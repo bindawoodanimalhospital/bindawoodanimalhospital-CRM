@@ -33,12 +33,11 @@ export default function DesignPage() {
           <Button className="ml-auto"><Plus /> New</Button>
         </header>
         <main className="mx-auto grid w-full max-w-7xl grid-cols-1 gap-10 px-4 py-6 md:px-8 md:py-8">
-          <section className="relative overflow-hidden rounded-3xl bg-ink px-6 py-8 text-white shadow-float md:px-10 md:py-10">
-            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(55%_90%_at_100%_0%,oklch(0.42_0.135_12/0.7),transparent_70%)]" />
-            <LogoMark className="pointer-events-none absolute -right-6 -bottom-10 size-56 text-white/[0.06]" strokeWidth={4} />
+          <section className="relative overflow-hidden rounded-3xl bg-ink bg-hero-gradient px-6 py-8 text-white shadow-float shadow-brand/20 md:px-10 md:py-10">
+            <LogoMark tone="white" className="pointer-events-none absolute -right-8 -bottom-12 w-60 opacity-[0.07]" />
             <div className="relative">
               <p className="text-sm font-medium text-white/60">Thursday, 25 September</p>
-              <h1 className="mt-1 text-3xl font-bold tracking-tight md:text-4xl">Good evening, Musab</h1>
+              <h1 className="mt-1 text-3xl font-bold tracking-tight md:text-4xl">Good evening, Dr. Musab</h1>
               <p className="mt-2 text-white/70">What would you like to do today?</p>
               <div className="mt-6 flex h-13 w-full max-w-xl items-center gap-3 rounded-2xl bg-white px-5 text-muted-foreground shadow-lg">
                 <Search className="size-5 text-brand" /> Search a pet, owner or phone number…
@@ -54,7 +53,7 @@ export default function DesignPage() {
               { t: "Add staff", d: "Give a doctor or receptionist a login", i: Users },
             ].map((a) => (
               <div key={a.t} className="group flex flex-col items-start rounded-2xl bg-card p-5 shadow-card ring-1 ring-border transition hover:-translate-y-0.5 hover:shadow-float hover:ring-brand-muted">
-                <span className={`flex size-12 items-center justify-center rounded-2xl ${a.p ? "bg-brand text-white shadow-md shadow-brand/30" : "bg-brand-soft text-brand"}`}>
+                <span className={`flex size-12 items-center justify-center rounded-2xl ${a.p ? "bg-brand-gradient text-white shadow-md shadow-brand/30" : "bg-brand-soft text-brand"}`}>
                   <a.i className="size-6" />
                 </span>
                 <span className="mt-4 text-base font-semibold">{a.t}</span>

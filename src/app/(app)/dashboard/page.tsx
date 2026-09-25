@@ -47,7 +47,9 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
       : null,
   ]);
 
+  // Doctors are greeted as "Dr. Musab"; everyone else by first name.
   const firstName = me.fullName.replace(/^dr\.?\s+/i, "").split(" ")[0];
+  const displayName = me.isDoctor ? `Dr. ${firstName}` : firstName;
   const dateLine = new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long", timeZone: TIMEZONE }).format(new Date());
 
   type Action = { title: string; text: string; icon: LucideIcon; href?: string; search?: boolean; primary?: boolean };
@@ -73,12 +75,11 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
       )}
 
       {/* Welcome banner */}
-      <section className="relative overflow-hidden rounded-3xl bg-ink px-6 py-8 text-white shadow-float md:px-10 md:py-10">
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(55%_90%_at_100%_0%,oklch(0.42_0.135_12/0.7),transparent_70%)]" />
-        <LogoMark className="pointer-events-none absolute -right-6 -bottom-10 size-56 text-white/[0.06]" strokeWidth={4} />
+      <section className="relative overflow-hidden rounded-3xl bg-ink bg-hero-gradient px-6 py-8 text-white shadow-float shadow-brand/20 md:px-10 md:py-10">
+        <LogoMark tone="white" className="pointer-events-none absolute -right-8 -bottom-12 w-60 opacity-[0.07]" />
         <div className="relative">
           <p className="text-sm font-medium text-white/60">{dateLine}</p>
-          <h1 className="mt-1 text-3xl font-bold tracking-tight md:text-4xl">{greeting()}, {firstName}</h1>
+          <h1 className="mt-1 text-3xl font-bold tracking-tight md:text-4xl">{greeting()}, {displayName}</h1>
           <p className="mt-2 max-w-lg text-white/70">What would you like to do today?</p>
           {(canCustomers || canPets) && (
             <OpenSearch className="mt-6 flex h-13 w-full max-w-xl items-center gap-3 rounded-2xl bg-white px-5 text-left text-muted-foreground shadow-lg transition hover:ring-4 hover:ring-white/15">
@@ -97,7 +98,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
             const body = (
               <>
                 <span className={cn("flex size-12 items-center justify-center rounded-2xl",
-                  a.primary ? "bg-brand text-white shadow-md shadow-brand/30" : "bg-brand-soft text-brand")}>
+                  a.primary ? "bg-brand-gradient text-white shadow-md shadow-brand/30" : "bg-brand-soft text-brand")}>
                   <a.icon className="size-6" />
                 </span>
                 <span className="mt-4 flex items-center gap-1 text-base font-semibold">

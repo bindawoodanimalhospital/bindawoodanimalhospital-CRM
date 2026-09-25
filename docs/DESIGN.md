@@ -32,6 +32,9 @@ calm, obvious and quick. Live reference: run `npm run dev` and open **http://loc
 - **Font:** Plus Jakarta Sans (headings bold, body regular/medium). Numbers use `tabular`.
 - **Radius:** inputs/buttons `rounded-xl`, cards `rounded-2xl`, hero `rounded-3xl`.
 - **Elevation:** `shadow-card` for cards (with `ring-1 ring-border`), `shadow-float` for dialogs & hover lift.
+- **Gradients (burgundy only):** `bg-brand-gradient` on primary buttons, the logo tile and primary action icons;
+  `bg-hero-gradient` (burgundy → ink) on welcome/brand banners; `bg-brand-wash` for a soft tinted highlight card.
+  Never on text, tables or status colours.
 
 ## Layout
 
@@ -51,13 +54,15 @@ calm, obvious and quick. Live reference: run `npm run dev` and open **http://loc
 
 ## Brand
 
-- Mark: paw toes over a heart with a medical cross — `public/brand/bdah-mark.svg` (vector redraw of the supplied
-  logo; originals in `docs/brand/`). Uses `currentColor`: white on ink/burgundy, ink on white.
-- Lockup: "BIN DAWOOD / ANIMAL HOSPITAL / BY DR. MUSAB BIN DAWOOD", used on the sign-in brand panel and printouts.
-- Favicon: white mark on a burgundy rounded square (`src/app/icon.svg`).
+- Always the clinic's own artwork (originals in `docs/brand/`), prepared as transparent PNGs in `public/brand/`:
+  `bdah-mark-white.png` (on burgundy/ink), `bdah-mark-ink.png` and `bdah-mark-burgundy.png` (on white),
+  `bdah-lockup-white.png` (mark + "BIN DAWOOD ANIMAL HOSPITAL — BY DR. MUSAB BIN DAWOOD"). Use `LogoMark`,
+  `Logo`, `LogoLockup` from `src/components/brand/logo.tsx`; don't redraw or recolour the logo in code.
+- App icon: white mark on a burgundy gradient tile (`src/app/icon.png`, `apple-icon.png`).
+- Doctors are addressed as "Dr. <first name>" (e.g. "Good evening, Dr. Musab").
 
 ## Don'ts
 
-- No dark mode, no gradients on buttons, no more than one primary button per view.
+- No dark mode; no more than one primary button per view; gradients only in burgundy (see above).
 - Don't use red for anything that isn't an error/danger — burgundy is the brand, red means "problem".
 - Don't show internal IDs as the main label; show names, with IDs as small mono text.
