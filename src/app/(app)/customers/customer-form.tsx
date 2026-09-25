@@ -19,7 +19,7 @@ import { findDuplicates, type DuplicateHit } from "./actions";
 export type CustomerDefaults = Partial<{
   id: string; full_name: string; full_name_ur: string | null; phone: string; whatsapp: string | null;
   alt_phone: string | null; email: string | null; address: string | null; area: string | null; city: string;
-  preferred_channel: string; marketing_opt_in: boolean; referral_source: string | null; notes: string | null;
+  preferred_channel: string; preferred_language: string; marketing_opt_in: boolean; referral_source: string | null; notes: string | null;
 }>;
 
 export function CustomerForm({
@@ -109,6 +109,12 @@ export function CustomerForm({
               <SelectItem value="sms">SMS</SelectItem>
               <SelectItem value="email">Email</SelectItem>
             </SelectContent>
+          </Select>
+        </FormField>
+        <FormField label="Message language" hint="Reminders are sent in this language">
+          <Select name="preferred_language" defaultValue={defaults.preferred_language ?? "ur"}>
+            <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+            <SelectContent><SelectItem value="ur">اردو (Urdu)</SelectItem><SelectItem value="en">English</SelectItem></SelectContent>
           </Select>
         </FormField>
         <FormField label="How did they find us?">

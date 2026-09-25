@@ -37,6 +37,7 @@ export const customerSchema = z.object({
   area: optionalText,
   city: z.string().trim().default("Lahore").transform((v) => v || "Lahore"),
   preferred_channel: z.enum(["whatsapp", "call", "sms", "email"]).default("whatsapp"),
+  preferred_language: z.enum(["ur", "en"]).default("ur"),
   marketing_opt_in: checkbox,
   referral_source: optionalText,
   notes: optionalText,

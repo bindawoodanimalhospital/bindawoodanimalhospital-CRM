@@ -64,3 +64,8 @@ export function addDaysPK(days: number): string {
   const date = new Date(Date.UTC(y, m - 1, d + days));
   return date.toISOString().slice(0, 10);
 }
+
+/** True if the timestamp is before now. */
+export function isPast(value: string | Date | null | undefined): boolean {
+  return !!value && new Date(value).getTime() < Date.now();
+}

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
-  ArrowRight, ArrowUpRight, BedDouble, Boxes, CalendarClock, CreditCard, ShoppingBag, Wallet, CalendarDays, CalendarPlus, ListOrdered, PawPrint, Search, ShieldAlert, Syringe,
+  ArrowRight, ArrowUpRight, BedDouble, Boxes, CalendarClock, CreditCard, ListTodo, MessageCircle, ShoppingBag, Wallet, CalendarDays, CalendarPlus, ListOrdered, PawPrint, Search, ShieldAlert, Syringe,
   UserCog, UserPlus, Users, type LucideIcon,
 } from "lucide-react";
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,7 +11,7 @@ import { LogoMark } from "@/components/brand/logo";
 import { OpenSearch } from "@/components/app/open-search";
 import { requireStaff } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { formatDateTime, initials, TIMEZONE, todayPK } from "@/lib/format";
+import { formatDateTime, initials, isPast, TIMEZONE, todayPK } from "@/lib/format";
 import { formatPhone } from "@/lib/phone";
 import { cn } from "@/lib/utils";
 
@@ -42,7 +42,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
   const ymd = todayPK();
 
   const seeMoney = me.can("finance.view") || me.can("billing.create");
-  const [customers, pets, newCustomers, newPets, recent, waiting, inClinic, appts, dueToday, overdue, inWard, theatre, payToday, openDues, stock] = await Promise.all([
+  const [customers, pets, newCustomers, newPets, recent, waiting, inClinic, appts, dueToday, overdue, inWard, theatre, payToday, openDues, stock, toSend, myTasks] = await Promise.all([
     canCustomers ? supabase.from("customers").select("id", { count: "exact", head: true }).neq("status", "merged") : null,
     canPets ? supabase.from("pets").select("id", { count: "exact", head: true }).eq("status", "active") : null,
     canCustomers ? supabase.from("customers").select("id", { count: "exact", head: true }).gte("created_at", today) : null,
@@ -62,7 +62,10 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
     seeMoney ? supabase.from("payments").select("kind, amount").gte("received_at", `${ymd}T00:00:00+05:00`) : null,
     me.can("billing.view") ? supabase.from("dues").select("promised_date, invoices(balance)").eq("status", "open") : null,
     me.can("inventory.view") ? supabase.from("stock_levels").select("usable_qty, reorder_level, next_expiry, expired_qty") : null,
+    me.can("crm.manage") ? supabase.from("messages").select("id", { count: "exact", head: true }).in("status", ["to_send", "queued"]).lte("scheduled_for", ymd) : null,
+    supabase.from("tasks").select("id, due_at", { count: "exact" }).eq("assigned_to", me.id).in("status", ["open", "in_progress"]),
   ]);
+  const myOverdueTasks = (myTasks?.data ?? []).filter((t) => isPast(t.due_at)).length;
   const collected = (payToday?.data ?? []).reduce((s, p) => s + (p.kind === "payment" ? Number(p.amount) : p.kind === "refund" ? -Number(p.amount) : 0), 0);
   const owed = (openDues?.data ?? []).reduce((s, d) => s + Number((d.invoices as unknown as { balance: number } | null)?.balance ?? 0), 0);
   const overdueMoney = (openDues?.data ?? []).filter((d) => d.promised_date < ymd).reduce((s, d) => s + Number((d.invoices as unknown as { balance: number } | null)?.balance ?? 0), 0);
@@ -91,6 +94,8 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
     canAppts && { label: "Appointments left today", value: appts?.count ?? 0, sub: "booked or confirmed", icon: CalendarDays, href: "/appointments" },
     canDue && { label: "Due today", value: dueToday?.count ?? 0, sub: "vaccines & follow-ups", icon: Syringe, href: "/due?view=today" },
     me.can("clinical.view") && { label: "In the ward", value: inWard?.count ?? 0, sub: `${theatre?.count ?? 0} surgery case(s) in progress`, icon: BedDouble, href: "/ward" },
+    me.can("crm.manage") && (toSend?.count ?? 0) > 0 && { label: "Messages to send", value: toSend?.count ?? 0, sub: "reminders ready for WhatsApp", icon: MessageCircle, href: "/messages", tone: "warning" },
+    (myTasks?.count ?? 0) > 0 && { label: "My tasks", value: myTasks?.count ?? 0, sub: myOverdueTasks ? `${myOverdueTasks} overdue` : "none overdue", icon: ListTodo, href: "/tasks", tone: myOverdueTasks ? "danger" : undefined },
     seeMoney && { label: "Collected today", value: Math.round(collected), sub: "payments − refunds (Rs.)", icon: Wallet, href: "/billing", money: true },
     me.can("billing.view") && { label: "Owed to the clinic", value: Math.round(owed), sub: overdueMoney ? `Rs. ${Math.round(overdueMoney).toLocaleString("en-PK")} overdue` : "none overdue", icon: CreditCard, href: "/billing/dues", tone: overdueMoney > 0 ? "danger" : undefined, money: true },
     me.can("inventory.view") && stockAlerts > 0 && { label: "Stock to check", value: stockAlerts, sub: "low or expired items", icon: Boxes, href: "/inventory", tone: "warning" },
@@ -241,7 +246,6 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
           <CardHeader><CardTitle>Coming next to the system</CardTitle></CardHeader>
           <CardContent className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
             {[
-              ["Phase 5", "WhatsApp reminders, tasks & follow-up alerts"],
               ["Phase 6", "Owner reports & analytics"],
             ].map(([phase, text]) => (
               <div key={phase} className="rounded-xl bg-card p-3 ring-1 ring-border">
