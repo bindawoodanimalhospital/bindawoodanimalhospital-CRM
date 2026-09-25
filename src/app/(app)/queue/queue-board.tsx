@@ -61,7 +61,7 @@ export function QueueBoard({ visits, doctors, canManage, canClinical }: {
 
   return (
     <div className="grid gap-6">
-      <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-4">
+      <div className="grid gap-4 lg:grid-cols-2 2xl:grid-cols-4">
         {VISIT_STAGES.map((stage) => {
           const items = active.filter((v) => v.status === stage.status).sort(sort);
           return (
@@ -184,7 +184,7 @@ function VisitCard({ v, now, doctors, canManage, canClinical }: {
       </div>
 
       {next && (canManage || canClinical) && (
-        <div className="mt-4 flex gap-2">
+        <div className="mt-4 flex flex-wrap gap-2">
           <Button className="flex-1" variant={v.status === "waiting" ? "default" : "outline"} disabled={pending}
             onClick={() => run(() => moveVisit(v.id, next.to))}>
             {pending ? <Loader2 className="animate-spin" /> : null} {next.label} {!pending && <ArrowRight />}

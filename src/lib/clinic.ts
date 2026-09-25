@@ -50,3 +50,63 @@ export function waitedFor(since: string | Date, now = new Date()): string {
 export function minutesSince(since: string | Date, now = new Date()): number {
   return Math.floor((now.getTime() - new Date(since).getTime()) / 60000);
 }
+
+// ---------------------------------------------------------------- surgery & ward
+
+export type SurgeryStatus = "planned" | "scheduled" | "admitted" | "pre_op" | "in_surgery" | "recovery" | "discharged" | "cancelled";
+
+export const SURGERY_STAGES: { status: SurgeryStatus; label: string; tone: Tone }[] = [
+  { status: "planned", label: "Planned", tone: "neutral" },
+  { status: "scheduled", label: "Scheduled", tone: "info" },
+  { status: "admitted", label: "Admitted", tone: "info" },
+  { status: "pre_op", label: "Pre-op", tone: "warning" },
+  { status: "in_surgery", label: "In surgery", tone: "danger" },
+  { status: "recovery", label: "Recovery", tone: "brand" },
+  { status: "discharged", label: "Discharged", tone: "success" },
+];
+
+export const SURGERY_LABEL: Record<SurgeryStatus, string> = {
+  planned: "Planned", scheduled: "Scheduled", admitted: "Admitted", pre_op: "Pre-op", in_surgery: "In surgery",
+  recovery: "Recovery", discharged: "Discharged", cancelled: "Cancelled",
+};
+
+export const SURGERY_TONE: Record<SurgeryStatus, Tone> = {
+  planned: "neutral", scheduled: "info", admitted: "info", pre_op: "warning", in_surgery: "danger",
+  recovery: "brand", discharged: "success", cancelled: "neutral",
+};
+
+export const URGENCY: Record<string, { label: string; tone: Tone }> = {
+  elective: { label: "Planned (elective)", tone: "neutral" },
+  urgent: { label: "Urgent", tone: "warning" },
+  emergency: { label: "Emergency", tone: "danger" },
+};
+
+export const ADMISSION_OUTCOMES: { value: string; label: string }[] = [
+  { value: "discharged_home", label: "Went home" },
+  { value: "transferred", label: "Transferred to another clinic" },
+  { value: "left_against_advice", label: "Owner took pet against advice" },
+  { value: "deceased", label: "Passed away" },
+];
+
+export type TreatmentSlot = { due_at: string; state: "given" | "skipped" | "refused" | "overdue" | "due" | "upcoming" };
+
+/**
+ * Dose times for a repeating order within [from, to], aligned to starts_at + k × every_hours.
+ * `done` maps an ISO due_at to its recorded result. Pure — used on server and client.
+ */
+export function treatmentSlots(order: { starts_at: string; ends_at: string | null; every_hours: number | null },
+  done: Map<string, "given" | "skipped" | "refused">, from: Date, to: Date, now = new Date()): TreatmentSlot[] {
+  if (!order.every_hours) return [];
+  const start = new Date(order.starts_at).getTime();
+  const step = order.every_hours * 3600_000;
+  const end = Math.min(to.getTime(), order.ends_at ? new Date(order.ends_at).getTime() : Infinity);
+  let k = Math.max(0, Math.ceil((from.getTime() - start) / step));
+  const out: TreatmentSlot[] = [];
+  for (let t = start + k * step; t <= end && out.length < 200; k++, t = start + k * step) {
+    const iso = new Date(t).toISOString();
+    const result = done.get(iso);
+    const mins = (t - now.getTime()) / 60000;
+    out.push({ due_at: iso, state: result ?? (mins < -30 ? "overdue" : mins <= 30 ? "due" : "upcoming") });
+  }
+  return out;
+}

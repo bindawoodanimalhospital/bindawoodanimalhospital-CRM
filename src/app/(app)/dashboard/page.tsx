@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
-  ArrowRight, ArrowUpRight, CalendarClock, CalendarDays, CalendarPlus, ListOrdered, PawPrint, Search, ShieldAlert, Syringe,
+  ArrowRight, ArrowUpRight, BedDouble, CalendarClock, CalendarDays, CalendarPlus, ListOrdered, PawPrint, Search, ShieldAlert, Syringe,
   UserCog, UserPlus, Users, type LucideIcon,
 } from "lucide-react";
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -41,7 +41,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
   const canDue = me.can("clinical.view") || me.can("crm.view");
   const ymd = todayPK();
 
-  const [customers, pets, newCustomers, newPets, recent, waiting, inClinic, appts, dueToday, overdue] = await Promise.all([
+  const [customers, pets, newCustomers, newPets, recent, waiting, inClinic, appts, dueToday, overdue, inWard, theatre] = await Promise.all([
     canCustomers ? supabase.from("customers").select("id", { count: "exact", head: true }).neq("status", "merged") : null,
     canPets ? supabase.from("pets").select("id", { count: "exact", head: true }).eq("status", "active") : null,
     canCustomers ? supabase.from("customers").select("id", { count: "exact", head: true }).gte("created_at", today) : null,
@@ -56,6 +56,8 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
       .gte("starts_at", `${ymd}T00:00:00+05:00`).lte("starts_at", `${ymd}T23:59:59+05:00`).in("status", ["booked", "confirmed"]) : null,
     canDue ? supabase.from("due_items").select("id", { count: "exact", head: true }).eq("status", "pending").eq("due_on", ymd) : null,
     canDue ? supabase.from("due_items").select("id", { count: "exact", head: true }).eq("status", "pending").lt("due_on", ymd) : null,
+    me.can("clinical.view") ? supabase.from("admissions").select("id", { count: "exact", head: true }).eq("status", "admitted") : null,
+    me.can("clinical.view") ? supabase.from("surgeries").select("id", { count: "exact", head: true }).in("status", ["admitted", "pre_op", "in_surgery", "recovery"]) : null,
   ]);
 
   // Doctors are greeted as "Dr. Musab"; everyone else by first name.
@@ -79,6 +81,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
     canQueue && { label: "Waiting now", value: waiting?.count ?? 0, sub: `${inClinic?.count ?? 0} with doctor / in treatment`, icon: ListOrdered, href: "/queue", tone: (waiting?.count ?? 0) > 0 ? "warning" : undefined },
     canAppts && { label: "Appointments left today", value: appts?.count ?? 0, sub: "booked or confirmed", icon: CalendarDays, href: "/appointments" },
     canDue && { label: "Due today", value: dueToday?.count ?? 0, sub: "vaccines & follow-ups", icon: Syringe, href: "/due?view=today" },
+    me.can("clinical.view") && { label: "In the ward", value: inWard?.count ?? 0, sub: `${theatre?.count ?? 0} surgery case(s) in progress`, icon: BedDouble, href: "/ward" },
     canDue && { label: "Overdue", value: overdue?.count ?? 0, sub: "need a call from reception", icon: CalendarClock, href: "/due?view=overdue", tone: (overdue?.count ?? 0) > 0 ? "danger" : "success" },
   ].filter(Boolean) as Stat[]);
 
@@ -114,7 +117,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
       </section>
 
       {todayStats.length > 0 && (
-        <section className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        <section className="grid grid-cols-2 gap-4 lg:grid-cols-5">
           {todayStats.map((s) => (
             <Link key={s.label} href={s.href} className="group rounded-2xl bg-card p-4 shadow-card ring-1 ring-border transition hover:ring-brand-muted">
               <div className="flex items-center gap-2 text-sm text-muted-foreground"><s.icon className="size-4" /> {s.label}</div>
@@ -226,7 +229,6 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
           <CardHeader><CardTitle>Coming next to the system</CardTitle></CardHeader>
           <CardContent className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
             {[
-              ["Phase 3", "Surgery workflow, admissions, discharge"],
               ["Phase 4", "Billing, dues & ledger, pet store POS, inventory"],
               ["Phase 5", "WhatsApp reminders, tasks & follow-up alerts"],
               ["Phase 6", "Owner reports & analytics"],
