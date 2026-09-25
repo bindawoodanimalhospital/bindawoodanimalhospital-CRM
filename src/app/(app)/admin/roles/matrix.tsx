@@ -40,7 +40,7 @@ export function PermissionMatrix({ roles, permissions, grants, editable }: {
     });
 
   return (
-    <div className="overflow-auto rounded-xl border bg-card">
+    <div className="overflow-auto rounded-2xl bg-card shadow-card ring-1 ring-border">
       <table className="w-full min-w-[900px] text-sm">
         <thead className="sticky top-0 z-10 bg-card">
           <tr className="border-b">

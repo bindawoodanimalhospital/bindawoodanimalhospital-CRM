@@ -42,19 +42,19 @@ export default async function AuditPage({ searchParams }: PageProps<"/admin/audi
     <>
       <PageHeader title="Audit log" description="Every change to records, permissions and settings — who, what and when. Entries can't be edited or deleted." />
       <form className="mb-4 flex flex-wrap gap-2">
-        <select name="table" defaultValue={table} className="h-8 rounded-lg border bg-card px-2 text-sm">
+        <select name="table" defaultValue={table} className="h-10 rounded-xl border border-input bg-card px-3 text-sm">
           <option value="">All records</option>
           {TABLES.map((t) => <option key={t} value={t}>{t.replace(/_/g, " ")}</option>)}
         </select>
-        <select name="actor" defaultValue={actor} className="h-8 rounded-lg border bg-card px-2 text-sm">
+        <select name="actor" defaultValue={actor} className="h-10 rounded-xl border border-input bg-card px-3 text-sm">
           <option value="">Everyone</option>
           {(staff ?? []).map((s) => <option key={s.id} value={s.id}>{s.full_name || s.email}</option>)}
         </select>
-        <button className="h-8 rounded-lg border bg-card px-3 text-sm hover:bg-muted" type="submit">Filter</button>
+        <button className="h-10 rounded-xl border border-input bg-card px-4 text-sm font-semibold hover:bg-muted" type="submit">Filter</button>
       </form>
 
       {!rows?.length ? <EmptyState icon={FileClock} title="Nothing logged yet" /> : (
-        <div className="divide-y overflow-hidden rounded-xl border bg-card">
+        <div className="divide-y overflow-hidden rounded-2xl bg-card shadow-card ring-1 ring-border">
           {rows.map((r) => {
             const fields = (r.changed as string[] | null)?.filter((f) => !HIDDEN.has(f)) ?? [];
             const data = (r.new_data ?? r.old_data) as Record<string, unknown> | null;

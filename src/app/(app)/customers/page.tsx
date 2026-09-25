@@ -49,7 +49,7 @@ export default async function CustomersPage({ searchParams }: PageProps<"/custom
         <EmptyState icon={Users} title={q ? "No matching customers" : "No customers yet"}
           description={q ? "Try a different spelling or the phone number." : "Register the first pet owner to get started."} />
       ) : (
-        <div className="overflow-hidden rounded-xl border bg-card">
+        <div className="overflow-hidden rounded-2xl bg-card shadow-card ring-1 ring-border">
           <Table>
             <TableHeader>
               <TableRow>
