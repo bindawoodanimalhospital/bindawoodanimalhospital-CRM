@@ -10,6 +10,7 @@ import { AppSidebar } from "@/components/app/app-sidebar";
 import { EmptyState, Field, PageHeader, StatusPill } from "@/components/app/page-header";
 import { FormField, FormSection } from "@/components/app/form-field";
 import { LogoMark } from "@/components/brand/logo";
+import { QueueBoard, type QueueVisit } from "@/app/(app)/queue/queue-board";
 
 export const metadata: Metadata = { title: "Design system" };
 
@@ -19,7 +20,20 @@ export const metadata: Metadata = { title: "Design system" };
  */
 export default function DesignPage() {
   if (process.env.NODE_ENV === "production") notFound();
-  const perms = ["customers.view", "pets.view", "staff.view", "audit.view", "settings.manage"];
+  const perms = ["customers.view", "pets.view", "queue.manage", "appointments.view", "clinical.view", "clinical.reopen", "staff.view", "audit.view", "settings.manage"];
+  const ago = (m: number) => new Date(Date.now() - m * 60000).toISOString();
+  const sample: QueueVisit[] = [
+    { id: "1", token_no: 7, status: "waiting", priority: "emergency", reason: "Hit by a car, bleeding from the leg", checked_in_at: ago(4), status_changed_at: ago(4), completed_at: null,
+      pet: { id: "p1", name: "Sheru", species: "Dog", special_handling: "Aggressive — muzzle first" }, owner: { id: "c1", full_name: "Bilal Ahmed" }, doctor: null, type: "Emergency" },
+    { id: "2", token_no: 5, status: "waiting", priority: "normal", reason: "Second puppy vaccine", checked_in_at: ago(38), status_changed_at: ago(38), completed_at: null,
+      pet: { id: "p2", name: "Moti", species: "Dog", special_handling: null }, owner: { id: "c2", full_name: "Ahmed Raza" }, doctor: null, type: "Vaccination" },
+    { id: "3", token_no: 4, status: "with_doctor", priority: "urgent", reason: "Not eating since 2 days", checked_in_at: ago(50), status_changed_at: ago(12), completed_at: null,
+      pet: { id: "p3", name: "Mano", species: "Cat", special_handling: null }, owner: { id: "c3", full_name: "Ayesha Khan" }, doctor: { id: "d1", full_name: "Dr. Musab Bin Dawood" }, type: "Consultation" },
+    { id: "4", token_no: 3, status: "in_treatment", priority: "normal", reason: "Ultrasound", checked_in_at: ago(70), status_changed_at: ago(9), completed_at: null,
+      pet: { id: "p4", name: "Rani", species: "Goat", special_handling: null }, owner: { id: "c4", full_name: "Usman Ali" }, doctor: { id: "d1", full_name: "Dr. Musab Bin Dawood" }, type: "Ultrasound" },
+    { id: "5", token_no: 2, status: "ready_for_billing", priority: "normal", reason: "Tick treatment", checked_in_at: ago(90), status_changed_at: ago(3), completed_at: null,
+      pet: { id: "p5", name: "Tiger", species: "Dog", special_handling: null }, owner: { id: "c5", full_name: "Hina Tariq" }, doctor: { id: "d1", full_name: "Dr. Musab Bin Dawood" }, type: "Consultation" },
+  ];
 
   return (
     <SidebarProvider>
@@ -44,6 +58,11 @@ export default function DesignPage() {
               </div>
             </div>
           </section>
+
+          <div>
+            <PageHeader title="Today's queue" description="Thursday, 25 September · 2 waiting · updates live on every screen" actions={<Button size="lg"><Plus /> Check in a pet</Button>} />
+            <QueueBoard visits={sample} doctors={[{ id: "d1", full_name: "Dr. Musab Bin Dawood" }]} canManage canClinical />
+          </div>
 
           <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {[

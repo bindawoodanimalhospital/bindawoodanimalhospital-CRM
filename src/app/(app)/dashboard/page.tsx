@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
-  ArrowRight, ArrowUpRight, PawPrint, Search, ShieldAlert, UserCog, UserPlus, Users, type LucideIcon,
+  ArrowRight, ArrowUpRight, CalendarClock, CalendarDays, CalendarPlus, ListOrdered, PawPrint, Search, ShieldAlert, Syringe,
+  UserCog, UserPlus, Users, type LucideIcon,
 } from "lucide-react";
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -10,7 +11,7 @@ import { LogoMark } from "@/components/brand/logo";
 import { OpenSearch } from "@/components/app/open-search";
 import { requireStaff } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { formatDateTime, initials, TIMEZONE } from "@/lib/format";
+import { formatDateTime, initials, TIMEZONE, todayPK } from "@/lib/format";
 import { formatPhone } from "@/lib/phone";
 import { cn } from "@/lib/utils";
 
@@ -35,8 +36,12 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
 
   const canCustomers = me.can("customers.view");
   const canPets = me.can("pets.view");
+  const canQueue = me.can("queue.manage") || me.can("clinical.view");
+  const canAppts = me.can("appointments.view");
+  const canDue = me.can("clinical.view") || me.can("crm.view");
+  const ymd = todayPK();
 
-  const [customers, pets, newCustomers, newPets, recent] = await Promise.all([
+  const [customers, pets, newCustomers, newPets, recent, waiting, inClinic, appts, dueToday, overdue] = await Promise.all([
     canCustomers ? supabase.from("customers").select("id", { count: "exact", head: true }).neq("status", "merged") : null,
     canPets ? supabase.from("pets").select("id", { count: "exact", head: true }).eq("status", "active") : null,
     canCustomers ? supabase.from("customers").select("id", { count: "exact", head: true }).gte("created_at", today) : null,
@@ -45,6 +50,12 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
       ? supabase.from("customers").select("id, code, full_name, phone, area, created_at, pet_owners(pets(name))")
           .neq("status", "merged").order("created_at", { ascending: false }).limit(6)
       : null,
+    canQueue ? supabase.from("visits").select("id", { count: "exact", head: true }).eq("visit_date", ymd).eq("status", "waiting") : null,
+    canQueue ? supabase.from("visits").select("id", { count: "exact", head: true }).eq("visit_date", ymd).in("status", ["with_doctor", "in_treatment", "ready_for_billing"]) : null,
+    canAppts ? supabase.from("appointments").select("id", { count: "exact", head: true })
+      .gte("starts_at", `${ymd}T00:00:00+05:00`).lte("starts_at", `${ymd}T23:59:59+05:00`).in("status", ["booked", "confirmed"]) : null,
+    canDue ? supabase.from("due_items").select("id", { count: "exact", head: true }).eq("status", "pending").eq("due_on", ymd) : null,
+    canDue ? supabase.from("due_items").select("id", { count: "exact", head: true }).eq("status", "pending").lt("due_on", ymd) : null,
   ]);
 
   // Doctors are greeted as "Dr. Musab"; everyone else by first name.
@@ -54,11 +65,22 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
 
   type Action = { title: string; text: string; icon: LucideIcon; href?: string; search?: boolean; primary?: boolean };
   const actions = ([
-    me.can("customers.create") && { title: "New pet owner", text: "Register an owner and their pet in one go", icon: UserPlus, href: "/customers/new", primary: true },
+    me.can("queue.manage") && { title: "Check in a pet", text: "Walk-in or arrived — add to today's queue", icon: ListOrdered, href: "/queue", primary: true },
+    !me.can("queue.manage") && me.can("clinical.view") && { title: "Today's queue", text: "See who's waiting and call the next patient", icon: ListOrdered, href: "/queue", primary: true },
+    me.can("appointments.manage") && { title: "Book appointment", text: "Phone or WhatsApp booking", icon: CalendarPlus, href: "/appointments" },
+    me.can("customers.create") && { title: "New pet owner", text: "Register an owner and their pet in one go", icon: UserPlus, href: "/customers/new" },
     (canCustomers || canPets) && { title: "Find a pet or owner", text: "Search by name, phone number or ID", icon: Search, search: true },
     me.can("pets.create") && { title: "Add a pet", text: "Add another pet to an existing owner", icon: PawPrint, href: "/pets/new" },
     me.can("staff.manage") && { title: "Add staff", text: "Give a doctor or receptionist a login", icon: UserCog, href: "/admin/staff/new" },
-  ].filter(Boolean) as Action[]);
+  ].filter(Boolean) as Action[]).slice(0, 4);
+
+  type Stat = { label: string; value: number; sub: string; icon: LucideIcon; href: string; tone?: "danger" | "warning" | "success" };
+  const todayStats = ([
+    canQueue && { label: "Waiting now", value: waiting?.count ?? 0, sub: `${inClinic?.count ?? 0} with doctor / in treatment`, icon: ListOrdered, href: "/queue", tone: (waiting?.count ?? 0) > 0 ? "warning" : undefined },
+    canAppts && { label: "Appointments left today", value: appts?.count ?? 0, sub: "booked or confirmed", icon: CalendarDays, href: "/appointments" },
+    canDue && { label: "Due today", value: dueToday?.count ?? 0, sub: "vaccines & follow-ups", icon: Syringe, href: "/due?view=today" },
+    canDue && { label: "Overdue", value: overdue?.count ?? 0, sub: "need a call from reception", icon: CalendarClock, href: "/due?view=overdue", tone: (overdue?.count ?? 0) > 0 ? "danger" : "success" },
+  ].filter(Boolean) as Stat[]);
 
   const stats = [
     canCustomers && { label: "Pet owners", value: customers?.count ?? 0, today: newCustomers?.count ?? 0, icon: Users, href: "/customers" },
@@ -90,6 +112,18 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
           )}
         </div>
       </section>
+
+      {todayStats.length > 0 && (
+        <section className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+          {todayStats.map((s) => (
+            <Link key={s.label} href={s.href} className="group rounded-2xl bg-card p-4 shadow-card ring-1 ring-border transition hover:ring-brand-muted">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground"><s.icon className="size-4" /> {s.label}</div>
+              <p className={cn("mt-2 text-3xl font-bold tabular", s.tone === "danger" && "text-danger", s.tone === "warning" && "text-warning")}>{s.value}</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">{s.sub}</p>
+            </Link>
+          ))}
+        </section>
+      )}
 
       {/* Big, obvious actions */}
       {actions.length > 0 && (
@@ -190,9 +224,8 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
       {me.can("dashboard.owner") && (
         <Card className="bg-surface shadow-none">
           <CardHeader><CardTitle>Coming next to the system</CardTitle></CardHeader>
-          <CardContent className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-5">
+          <CardContent className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
             {[
-              ["Phase 2", "Appointments, walk-in queue, consultations, vaccinations & prescriptions"],
               ["Phase 3", "Surgery workflow, admissions, discharge"],
               ["Phase 4", "Billing, dues & ledger, pet store POS, inventory"],
               ["Phase 5", "WhatsApp reminders, tasks & follow-up alerts"],

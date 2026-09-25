@@ -14,6 +14,7 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
 import { FormField } from "@/components/app/form-field";
+import { todayPK } from "@/lib/format";
 import type { FormState } from "@/lib/validation";
 import { grantRole, resetPassword, revokeRole, setStaffActive } from "../actions";
 
@@ -41,7 +42,7 @@ export function GrantRoleForm({ staffId, roles }: { staffId: string; roles: { id
         </Select>
       </FormField>
       <FormField label="Until (optional)" hint="For temporary shift cover">
-        <Input type="date" value={until} onChange={(e) => setUntil(e.target.value)} min={new Date().toISOString().slice(0, 10)} />
+        <Input type="date" value={until} onChange={(e) => setUntil(e.target.value)} min={todayPK()} />
       </FormField>
       <Button disabled={!roleId || pending} className="mb-5"
         onClick={() => run(() => grantRole(staffId, roleId, until || null), () => { setRoleId(""); setUntil(""); })}>

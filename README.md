@@ -11,8 +11,8 @@ Product spec: *Bin Dawood Animal Hospital CRM v1.2* (Omer Bin Dawood, Sep 2026).
 | Phase | Scope | Status |
 | --- | --- | --- |
 | 1 — Foundation | Auth, staff, roles & permissions, customers, pets, settings, audit log, global search | ✅ Built |
-| 2 — Clinic operations | Appointments, walk-in queue, consultations, vaccinations, prescriptions, diagnostics | Next |
-| 3 — Surgery & inpatient | Surgery workflow, admissions, discharge | |
+| 2 — Clinic operations | Appointments, live walk-in queue (tokens), consultations with locked records, vaccinations with approved schedules, prescriptions, diagnostics & files, due list, printouts | ✅ Built |
+| 3 — Surgery & inpatient | Surgery workflow, admissions, discharge | Next |
 | 4 — Billing & store | Invoices, payments, dues & ledger, POS, inventory, suppliers, expenses | |
 | 5 — CRM & comms | Reminder/escalation engine, WhatsApp, tasks, campaigns | |
 | 6 — Analytics | Owner command center, KPIs, exports | |
@@ -88,7 +88,7 @@ Add all other staff from **Staff → Add staff** inside the app.
 | `npm run dev` / `build` / `start` | Next.js |
 | `npm run typecheck` / `lint` | TypeScript / ESLint |
 | `npm run db:migrate` | Applies new migrations (history in `supabase_migrations.schema_migrations`, same as the Supabase CLI) |
-| `npm run db:test` | RLS smoke test in a rolled-back transaction (owner vs reception vs store staff vs un-activated sign-up) |
+| `npm run db:test` | Security & safety tests in rolled-back transactions: RLS per role, locked medical records, vaccine safety, Rx/diagnostic locks, due-list rules |
 | `npm run create-owner` | Bootstrap / promote an Owner account |
 
 ## Project layout
@@ -103,6 +103,18 @@ src/components/app/      app shell, sidebar, global search, shared page parts
 src/app/(auth)/          login, no-access
 src/app/(app)/           dashboard, customers, pets, admin (staff, roles, audit), settings
 ```
+
+## Clinical safety rules (enforced in the database, not just the UI)
+
+- Finalized consultations can't be edited or deleted. A senior doctor can reopen one **with a reason**; every
+  finalized version is kept (`consultation_revisions`).
+- Interns can write draft notes but can't finalize.
+- The system never calculates doses. Prescriptions are written line by line by the doctor and lock when issued.
+- Expired vaccine batches can't be recorded. Vaccine schedules are seeded as **drafts** and give no suggestions until
+  a senior doctor approves them; any edit un-approves. The next-dose date is always confirmed by the doctor.
+- Reviewed diagnostic results are locked. Medical files live in private storage and are opened with 10-minute links.
+- Due items (vaccine doses, follow-ups) stay open until someone records an outcome; skipping needs a reason and
+  rescheduling keeps the old date.
 
 ## Security notes
 

@@ -175,4 +175,15 @@ select pg_temp.act('00000000-0000-0000-0000-0000000000a4');
 update public.visits set status = 'with_doctor' where id = (select v from ctx where k='visit');
 update public.visits set status = 'completed' where id = (select v from ctx where k='visit');
 select 'visit timeline' as t, string_agg(to_status::text, ' → ' order by changed_at, id) from public.visit_status_events where visit_id = (select v from ctx where k='visit');
+
+-- ---------------------------------------------------------------- due items: reception works the list, reasons required
+select pg_temp.act('00000000-0000-0000-0000-0000000000a4');
+update public.due_items set due_on = current_date + 10, previous_due_on = due_on, outcome_reason = 'Owner travelling'
+ where kind = 'follow_up' and status = 'pending';
+select 'rescheduled keeps old date' as t, due_on - current_date as in_days, previous_due_on is not null as kept from public.due_items where kind = 'follow_up';
+do $$ begin
+  update public.due_items set status = 'skipped', outcome = 'not needed', outcome_reason = null where kind = 'follow_up';
+  raise exception 'FAIL: skipped without reason';
+exception when check_violation then raise notice 'OK closing a due item requires a reason';
+end $$;
 rollback;
