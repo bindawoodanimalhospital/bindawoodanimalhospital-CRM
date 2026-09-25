@@ -29,7 +29,7 @@ export default async function StaffPage() {
           <Button asChild><Link href="/admin/staff/new"><UserPlus /> Add staff</Link></Button>
         )}
       />
-      <div className="overflow-hidden rounded-xl border bg-card">
+      <div className="overflow-hidden rounded-2xl bg-card shadow-card ring-1 ring-border">
         <Table>
           <TableHeader>
             <TableRow>

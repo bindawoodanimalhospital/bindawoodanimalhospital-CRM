@@ -22,7 +22,7 @@ Product spec: *Bin Dawood Animal Hospital CRM v1.2* (Omer Bin Dawood, Sep 2026).
 
 - **Next.js 16** (App Router, Server Components, Server Actions) + TypeScript
 - **Supabase**: Postgres, Auth, Storage (later phases), `pg_cron` for background jobs (later phases)
-- **shadcn/ui** (Radix) + Tailwind CSS v4 — light, black-and-white UI with colour only for status
+- **shadcn/ui** (Radix) + Tailwind CSS v4 — light theme: ink & white with burgundy accent (see docs/DESIGN.md)
 - zod, libphonenumber-js (Pakistani numbers), date-fns
 
 ### Architecture decisions (vs. the spec)
@@ -42,6 +42,32 @@ Product spec: *Bin Dawood Animal Hospital CRM v1.2* (Omer Bin Dawood, Sep 2026).
    for temporary shift cover.
 4. **Phones stored as E.164** (`+923001234567`); staff can type `0300-1234567`, `3001234567`, etc. Search matches
    either format.
+
+### Repository & branch strategy
+
+**One repo, one app — frontend and backend together.** In Next.js the "backend" (Server Actions, route handlers)
+lives next to the pages that use it, and the real business rules and permissions live in Postgres
+(`supabase/migrations`). Splitting frontend and backend into separate repos or long-lived branches would mean
+two things to deploy and keep in sync for no benefit — and separate *branches* for frontend/backend never merge
+cleanly, so we don't do that.
+
+If a separate API is ever needed (e.g. a mobile app or NestJS), this repo becomes a monorepo in place:
+`apps/web` (this app), `apps/api`, `packages/db` (migrations + generated types) — still one repo.
+
+Branches:
+
+| Branch | Purpose |
+| --- | --- |
+| `main` | Always working, production. Only updated through pull requests. |
+| `feat/<name>`, `fix/<name>` | One branch per feature or fix (e.g. `feat/phase-2-appointments`), merged into `main` by PR after review. |
+
+Database changes ship in the same PR as the code that needs them (a new file in `supabase/migrations`), so code
+and schema never drift apart. When a staging environment is added, a `develop` branch can deploy to it.
+
+### Design
+
+Light theme only — black & white with a pinch of burgundy. See [docs/DESIGN.md](docs/DESIGN.md) and the live
+style guide at `/design` (dev only).
 
 ## Getting started
 

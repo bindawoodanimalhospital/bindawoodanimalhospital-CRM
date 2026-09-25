@@ -11,7 +11,7 @@ import { Field, PageHeader, StatusPill } from "@/components/app/page-header";
 import { NoticeToast } from "@/components/app/notice-toast";
 import { requireStaff } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { formatAge, formatDate, formatDateTime } from "@/lib/format";
+import { formatAge, formatDate, formatDateTime, sentence } from "@/lib/format";
 import { formatPhone, whatsappLink } from "@/lib/phone";
 import { MergeCustomerDialog } from "./merge-dialog";
 
@@ -62,7 +62,7 @@ export default async function CustomerPage({ params }: PageProps<"/customers/[id
             {c.full_name}
             {c.full_name_ur && <span dir="rtl" lang="ur" className="text-lg font-normal text-muted-foreground">{c.full_name_ur}</span>}
             <span className="font-mono text-sm font-normal text-muted-foreground">{c.code}</span>
-            {c.status !== "active" && <StatusPill tone="warning">{c.status}</StatusPill>}
+            {c.status !== "active" && <StatusPill tone="warning">{sentence(c.status)}</StatusPill>}
           </span>
         }
         description={`Customer since ${formatDate(c.created_at)}`}
@@ -128,15 +128,15 @@ export default async function CustomerPage({ params }: PageProps<"/customers/[id
                   const alerts = (p.pet_alerts ?? []).filter((a) => a.is_active);
                   return (
                     <Link key={p.id} href={`/pets/${p.id}`}
-                      className="group rounded-lg border p-3 transition-colors hover:border-foreground/25">
+                      className="group rounded-2xl p-4 ring-1 ring-border transition hover:-translate-y-0.5 hover:shadow-card hover:ring-brand-muted">
                       <div className="flex items-start gap-3">
-                        <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-muted">
-                          <PawPrint className="size-4" />
+                        <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand">
+                          <PawPrint className="size-5" />
                         </div>
                         <div className="min-w-0 flex-1">
                           <div className="flex items-center gap-2">
                             <span className="truncate font-medium">{p.name}</span>
-                            {p.status !== "active" && <StatusPill>{p.status}</StatusPill>}
+                            {p.status !== "active" && <StatusPill>{sentence(p.status)}</StatusPill>}
                           </div>
                           <p className="truncate text-xs text-muted-foreground">
                             {[p.species?.name, p.breeds?.name ?? p.breed_text, p.sex !== "unknown" ? p.sex : null,
