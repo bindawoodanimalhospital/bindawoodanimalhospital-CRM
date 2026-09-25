@@ -14,6 +14,9 @@ import { QueueBoard, type QueueVisit } from "@/app/(app)/queue/queue-board";
 import { SurgeryWorkspace, type SurgeryData } from "@/app/(app)/surgery/[id]/workspace";
 import { InvoiceEditor } from "@/app/(app)/billing/[id]/editor";
 import { MessageQueue } from "@/app/(app)/messages/queue";
+import { MoneyReport } from "@/app/(app)/reports/money";
+import { ClinicReport } from "@/app/(app)/reports/clinic";
+import { SAMPLE_FIN, SAMPLE_OPS } from "./report-samples";
 
 export const metadata: Metadata = { title: "Design system" };
 
@@ -77,6 +80,15 @@ export default function DesignPage() {
               </div>
             </div>
           </section>
+
+          <div id="reports">
+            <PageHeader title="Reports — Money" description="Sample numbers · billed, collected, owed and estimated profit kept separate." />
+            <MoneyReport r={SAMPLE_FIN} prev={{ ...SAMPLE_FIN, billed: { ...SAMPLE_FIN.billed, net: 1_150_000 }, collected: { ...SAMPLE_FIN.collected, net: 1_210_000 } }} />
+          </div>
+          <div>
+            <PageHeader title="Reports — Clinic activity" description="Sample numbers." />
+            <ClinicReport r={SAMPLE_OPS} prev={null} />
+          </div>
 
           <div>
             <PageHeader title="Today's queue" description="Thursday, 25 September · 2 waiting · updates live on every screen" actions={<Button size="lg"><Plus /> Check in a pet</Button>} />
