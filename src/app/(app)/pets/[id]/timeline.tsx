@@ -1,21 +1,21 @@
 import Link from "next/link";
-import { CalendarClock, FlaskConical, History, Lock, Pill, Stethoscope, Syringe } from "lucide-react";
+import { BedDouble, CalendarClock, FlaskConical, History, Lock, Pill, Scissors, Stethoscope, Syringe } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusPill } from "@/components/app/page-header";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate, formatDateTime, todayPK } from "@/lib/format";
 
 type Entry = {
-  at: string; kind: "visit" | "vaccination" | "prescription" | "diagnostic";
+  at: string; kind: "visit" | "vaccination" | "prescription" | "diagnostic" | "surgery" | "admission";
   title: string; detail?: string | null; href?: string; tags: { label: string; tone: "success" | "warning" | "neutral" | "brand" | "info" | "danger" }[];
 };
 
-const ICONS = { visit: Stethoscope, vaccination: Syringe, prescription: Pill, diagnostic: FlaskConical };
+const ICONS = { visit: Stethoscope, vaccination: Syringe, prescription: Pill, diagnostic: FlaskConical, surgery: Scissors, admission: BedDouble };
 
 /** One chronological history of the pet (spec §7). Server component; RLS limits what each role sees. */
 export async function PetTimeline({ petId }: { petId: string }) {
   const supabase = await createClient();
-  const [visits, vaccs, rx, dx] = await Promise.all([
+  const [visits, vaccs, rx, dx, sx, adm] = await Promise.all([
     supabase.from("visits").select(`id, checked_in_at, status, reason, appointment_types(name), doctor:doctor_id(full_name),
       consultations(status, assessment, chief_complaint, consultation_diagnoses(label, is_primary))`)
       .eq("pet_id", petId).neq("status", "cancelled").order("checked_in_at", { ascending: false }).limit(50),
@@ -25,6 +25,10 @@ export async function PetTimeline({ petId }: { petId: string }) {
       .eq("pet_id", petId).eq("status", "issued").order("issued_at", { ascending: false }).limit(50),
     supabase.from("diagnostic_orders").select("id, status, created_at, impression, visit_id, diagnostic_types(name)")
       .eq("pet_id", petId).neq("status", "cancelled").order("created_at", { ascending: false }).limit(50),
+    supabase.from("surgeries").select("id, procedure_name, status, scheduled_at, procedure_start, created_at, complications")
+      .eq("pet_id", petId).neq("status", "cancelled").order("created_at", { ascending: false }).limit(50),
+    supabase.from("admissions").select("id, reason, status, admitted_at, discharged_at, outcome")
+      .eq("pet_id", petId).neq("status", "cancelled").order("admitted_at", { ascending: false }).limit(50),
   ]);
 
   const entries: Entry[] = [
@@ -58,6 +62,17 @@ export async function PetTimeline({ petId }: { petId: string }) {
       title: (d.diagnostic_types as unknown as { name: string }).name, detail: d.impression,
       tags: [{ label: d.status === "reviewed" ? "Reviewed" : d.status === "resulted" ? "Result ready" : "Pending",
         tone: d.status === "reviewed" ? "success" as const : d.status === "resulted" ? "brand" as const : "warning" as const }],
+    })),
+    ...(sx.data ?? []).map((s) => ({
+      at: s.procedure_start ?? s.scheduled_at ?? s.created_at, kind: "surgery" as const, href: `/surgery/${s.id}`,
+      title: s.procedure_name, detail: s.complications ? `Complications: ${s.complications}` : null,
+      tags: [{ label: s.status === "discharged" ? "Done" : s.status.replace("_", " "), tone: s.status === "discharged" ? "success" as const : "brand" as const }],
+    })),
+    ...(adm.data ?? []).map((a) => ({
+      at: a.admitted_at, kind: "admission" as const, href: `/ward/${a.id}`,
+      title: "Hospital stay", detail: a.reason,
+      tags: [{ label: a.status === "admitted" ? "In ward now" : a.outcome === "deceased" ? "Passed away" : "Went home",
+        tone: a.status === "admitted" ? "warning" as const : a.outcome === "deceased" ? "neutral" as const : "success" as const }],
     })),
   ].sort((a, b) => b.at.localeCompare(a.at));
 

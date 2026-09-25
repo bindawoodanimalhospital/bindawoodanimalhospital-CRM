@@ -12,8 +12,8 @@ Product spec: *Bin Dawood Animal Hospital CRM v1.2* (Omer Bin Dawood, Sep 2026).
 | --- | --- | --- |
 | 1 — Foundation | Auth, staff, roles & permissions, customers, pets, settings, audit log, global search | ✅ Built |
 | 2 — Clinic operations | Appointments, live walk-in queue (tokens), consultations with locked records, vaccinations with approved schedules, prescriptions, diagnostics & files, due list, printouts | ✅ Built |
-| 3 — Surgery & inpatient | Surgery workflow, admissions, discharge | Next |
-| 4 — Billing & store | Invoices, payments, dues & ledger, POS, inventory, suppliers, expenses | |
+| 3 — Surgery & inpatient | Surgery workflow with consent & pre-op gates, theatre log, materials, ward board, treatment chart, discharge sheets | ✅ Built |
+| 4 — Billing & store | Invoices, payments, dues & ledger, POS, inventory, suppliers, expenses | Next |
 | 5 — CRM & comms | Reminder/escalation engine, WhatsApp, tasks, campaigns | |
 | 6 — Analytics | Owner command center, KPIs, exports | |
 | 7 — AI | After workflows and data quality are proven | |
@@ -113,6 +113,10 @@ src/app/(app)/           dashboard, customers, pets, admin (staff, roles, audit)
 - Expired vaccine batches can't be recorded. Vaccine schedules are seeded as **drafts** and give no suggestions until
   a senior doctor approves them; any edit un-approves. The next-dose date is always confirmed by the doctor.
 - Reviewed diagnostic results are locked. Medical files live in private storage and are opened with 10-minute links.
+- Surgery can't start without recorded owner consent **and** a completed pre-op check; a life-saving emergency
+  needs a written override reason (logged). Signed consent can't be edited, only withdrawn. Discharged surgeries lock.
+- Ward: one patient per kennel; treatment orders are written by a doctor and can't be edited (stop & rewrite);
+  every dose is logged once per time slot, and "not given" needs a reason; notes are append-only.
 - Due items (vaccine doses, follow-ups) stay open until someone records an outcome; skipping needs a reason and
   rescheduling keeps the old date.
 

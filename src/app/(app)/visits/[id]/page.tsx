@@ -1,13 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { FlaskConical, MessageCircle, OctagonAlert, PawPrint, Phone, Pill, Stethoscope, Syringe } from "lucide-react";
+import { BedDouble, FlaskConical, MessageCircle, OctagonAlert, PawPrint, Phone, Pill, Scissors, Stethoscope, Syringe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageHeader, StatusPill } from "@/components/app/page-header";
 import { requireStaff } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { formatAge, formatTime } from "@/lib/format";
+import { getDoctors, getKennels } from "@/lib/queries";
+import { PlanSurgeryDialog } from "../../surgery/plan-dialog";
+import { AdmitDialog } from "../../ward/admit-dialog";
 import { whatsappLink } from "@/lib/phone";
 import { PRIORITY, VISIT_STATUS_LABEL, type VisitStatus } from "@/lib/clinic";
 import { ConsultationPanel, type Consultation, type Template } from "./consultation-panel";
@@ -40,6 +43,14 @@ export default async function VisitPage({ params, searchParams }: PageProps<"/vi
   const pet = visit.pets as unknown as PetT;
   const owner = visit.customers as unknown as { id: string; full_name: string; phone: string; whatsapp: string | null };
 
+  const canSurgery = me.can("surgery.manage");
+  const canAdmit = me.can("inpatient.manage");
+  const [doctors, kennels, proceduresQ, openAdmissionQ] = await Promise.all([
+    canSurgery || canAdmit ? getDoctors() : Promise.resolve([]),
+    canAdmit ? getKennels() : Promise.resolve([]),
+    canSurgery ? supabase.from("surgery_procedures").select("id, name, default_minutes").eq("is_active", true).order("sort_order") : Promise.resolve({ data: [] }),
+    supabase.from("admissions").select("id").eq("pet_id", pet.id).eq("status", "admitted").maybeSingle(),
+  ]);
   const [templatesQ, consultQ, vaccinesQ, protocolsQ, historyQ, dueQ, rxQ, dxTypesQ, dxQ, staffQ, weightQ] = await Promise.all([
     supabase.from("clinical_templates").select("key, name, description, sections, exam_prompts").eq("is_active", true).order("sort_order"),
     supabase.from("consultations").select("*, consultation_diagnoses(label, certainty, is_primary, created_at), consultation_revisions(revision, finalized_at, reason)")
@@ -129,6 +140,17 @@ export default async function VisitPage({ params, searchParams }: PageProps<"/vi
           <>
             <Button asChild variant="outline"><a href={`tel:${owner.phone}`}><Phone /> {owner.full_name}</a></Button>
             {wa && <Button asChild variant="outline" size="icon" aria-label="WhatsApp owner"><a href={wa} target="_blank" rel="noreferrer"><MessageCircle /></a></Button>}
+            {canSurgery && (
+              <PlanSurgeryDialog procedures={proceduresQ.data ?? []} doctors={doctors}
+                fixed={{ pet_id: pet.id, pet_name: pet.name, customer_id: owner.id, visit_id: id, consultation_id: c?.id ?? null }}
+                trigger={<Button variant="outline"><Scissors /> Plan surgery</Button>} />
+            )}
+            {openAdmissionQ.data
+              ? <Button asChild variant="outline"><Link href={`/ward/${openAdmissionQ.data.id}`}><BedDouble /> In ward</Link></Button>
+              : canAdmit && (
+                <AdmitDialog kennels={kennels} doctors={doctors} fixed={{ pet_id: pet.id, pet_name: pet.name, customer_id: owner.id, visit_id: id, reason: visit.reason ?? "" }}
+                  trigger={<Button variant="outline"><BedDouble /> Admit to ward</Button>} />
+              )}
             <Button asChild variant="ghost"><Link href={`/pets/${pet.id}`}><PawPrint /> Full history</Link></Button>
           </>
         }
