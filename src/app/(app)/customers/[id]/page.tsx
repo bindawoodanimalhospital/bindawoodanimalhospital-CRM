@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
-  CalendarDays, MessageCircle, Pencil, PawPrint, Phone, Plus, Receipt, Syringe, TriangleAlert,
+  MessageCircle, Pencil, PawPrint, Phone, Plus, TriangleAlert,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,6 +14,7 @@ import { createClient } from "@/lib/supabase/server";
 import { formatAge, formatDate, formatDateTime, sentence } from "@/lib/format";
 import { formatPhone, whatsappLink } from "@/lib/phone";
 import { MergeCustomerDialog } from "./merge-dialog";
+import { CustomerSummaryCards } from "./summary-cards";
 
 export async function generateMetadata({ params }: PageProps<"/customers/[id]">): Promise<Metadata> {
   const { id } = await params;
@@ -161,22 +162,7 @@ export default async function CustomerPage({ params }: PageProps<"/customers/[id
           </CardContent>
         </Card>
 
-        {/* Placeholders for modules arriving in later phases — keeps the 360 layout stable. */}
-        <div className="grid gap-6 sm:grid-cols-3 lg:col-span-2">
-          {[
-            { title: "Balance", icon: Receipt, text: "Invoices, dues & ledger arrive in Phase 4." },
-            { title: "Appointments", icon: CalendarDays, text: "Upcoming visits arrive in Phase 2." },
-            { title: "Vaccinations due", icon: Syringe, text: "Due & overdue doses arrive in Phase 2." },
-          ].map((b) => (
-            <Card key={b.title} className="border-dashed shadow-none">
-              <CardContent>
-                <b.icon className="mb-2 size-4 text-muted-foreground" />
-                <p className="text-sm font-medium">{b.title}</p>
-                <p className="mt-1 text-xs text-muted-foreground">{b.text}</p>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <CustomerSummaryCards customerId={c.id} petIds={pets.map((p) => p.id)} me={me} />
       </div>
 
       <p className="mt-6 text-xs text-muted-foreground">Last updated {formatDateTime(c.updated_at)}</p>

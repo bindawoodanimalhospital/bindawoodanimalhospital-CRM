@@ -11,6 +11,7 @@ import { formatAge, formatTime } from "@/lib/format";
 import { getDoctors, getKennels } from "@/lib/queries";
 import { PlanSurgeryDialog } from "../../surgery/plan-dialog";
 import { AdmitDialog } from "../../ward/admit-dialog";
+import { BillVisitButton } from "../../billing/bill-visit-button";
 import { whatsappLink } from "@/lib/phone";
 import { PRIORITY, VISIT_STATUS_LABEL, type VisitStatus } from "@/lib/clinic";
 import { ConsultationPanel, type Consultation, type Template } from "./consultation-panel";
@@ -138,6 +139,7 @@ export default async function VisitPage({ params, searchParams }: PageProps<"/vi
           `checked in ${formatTime(visit.checked_in_at)}`].filter(Boolean).join(" · ")}
         actions={
           <>
+            {me.can("billing.create") && <BillVisitButton visitId={id} />}
             <Button asChild variant="outline"><a href={`tel:${owner.phone}`}><Phone /> {owner.full_name}</a></Button>
             {wa && <Button asChild variant="outline" size="icon" aria-label="WhatsApp owner"><a href={wa} target="_blank" rel="noreferrer"><MessageCircle /></a></Button>}
             {canSurgery && (
