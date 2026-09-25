@@ -45,3 +45,22 @@ export function initials(name: string | null | undefined): string {
 export function sentence(s: string | null | undefined): string {
   return s ? s[0].toUpperCase() + s.slice(1) : "";
 }
+
+/** "3:45 pm" in Lahore time. */
+export function formatTime(value: string | Date | null | undefined): string {
+  if (!value) return "";
+  return new Intl.DateTimeFormat("en-GB", { hour: "numeric", minute: "2-digit", hour12: true, timeZone: TIMEZONE })
+    .format(new Date(value)).replace(/\s?(am|pm)/i, (m) => m.toLowerCase());
+}
+
+/** Today's date in Lahore as YYYY-MM-DD. */
+export function todayPK(): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: TIMEZONE }).format(new Date());
+}
+
+/** Lahore date N days from today, as YYYY-MM-DD (safe around midnight, unlike toISOString). */
+export function addDaysPK(days: number): string {
+  const [y, m, d] = todayPK().split("-").map(Number);
+  const date = new Date(Date.UTC(y, m - 1, d + days));
+  return date.toISOString().slice(0, 10);
+}

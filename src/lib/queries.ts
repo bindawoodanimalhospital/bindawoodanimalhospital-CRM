@@ -37,3 +37,22 @@ export function searchPattern(q: string): string | null {
   const term = digits.length >= 4 && digits.length >= t.replace(/[\s-]/g, "").length - 1 ? digits : t;
   return `%${term.replace(/[%_]/g, "")}%`;
 }
+
+export type DoctorOption = { id: string; full_name: string };
+
+/** Active doctors, for "assign doctor" pickers. */
+export const getDoctors = cache(async (): Promise<DoctorOption[]> => {
+  const supabase = await createClient();
+  const { data } = await supabase.from("staff").select("id, full_name").eq("is_doctor", true).eq("is_active", true)
+    .order("full_name");
+  return data ?? [];
+});
+
+export type AppointmentTypeOption = { id: string; name: string; default_minutes: number; tone: string };
+
+export const getAppointmentTypes = cache(async (): Promise<AppointmentTypeOption[]> => {
+  const supabase = await createClient();
+  const { data } = await supabase.from("appointment_types").select("id, name, default_minutes, tone")
+    .eq("is_active", true).order("sort_order");
+  return data ?? [];
+});

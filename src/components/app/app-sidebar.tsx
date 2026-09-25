@@ -43,7 +43,8 @@ export function AppSidebar({ permissions, user }: Props) {
             {group.label && <SidebarGroupLabel className="text-[11px] tracking-wider uppercase">{group.label}</SidebarGroupLabel>}
             <SidebarMenu className="gap-1">
               {group.items.map((item) => {
-                const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                const active = (pathname === item.href || pathname.startsWith(`${item.href}/`))
+                  && !groups.some((g) => g.items.some((o) => o.href !== item.href && o.href.startsWith(item.href) && pathname.startsWith(o.href)));
                 return (
                   <SidebarMenuItem key={item.href}>
                     <SidebarMenuButton asChild isActive={active} tooltip={item.title}>

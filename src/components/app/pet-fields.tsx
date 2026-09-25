@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { FormField } from "@/components/app/form-field";
+import { todayPK } from "@/lib/format";
 
 export type SpeciesOption = { id: string; name: string; breeds: { id: string; name: string }[] };
 
@@ -106,7 +107,7 @@ export function PetFields({
             </>
           ) : (
             <Input name={n("date_of_birth")} type="date" className="w-44" defaultValue={defaults.date_of_birth ?? ""}
-              max={new Date().toISOString().slice(0, 10)} />
+              max={todayPK()} />
           )}
           <button type="button" className="text-xs text-muted-foreground underline underline-offset-2"
             onClick={() => setAgeMode(ageMode === "age" ? "dob" : "age")}>
