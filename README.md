@@ -15,8 +15,8 @@ Product spec: *Bin Dawood Animal Hospital CRM v1.2* (Omer Bin Dawood, Sep 2026).
 | 3 — Surgery & inpatient | Surgery workflow with consent & pre-op gates, theatre log, materials, ward board, treatment chart, discharge sheets | ✅ Built |
 | 4 — Billing & store | Bills from visits, split payments (cash/card/JazzCash/Easypaisa/Raast), dues with promises & approvals, returns/refunds, customer ledger & statements, pet store POS, batch/expiry stock (FEFO), suppliers & deliveries, expenses | ✅ Built |
 | 5 — CRM & comms | Reminder & escalation engine, WhatsApp message queue (Urdu/English), tasks, alert centre, notifications, opt-in campaigns | ✅ Built |
-| 6 — Analytics | Owner command center, KPIs, exports | Next |
-| 7 — AI | After workflows and data quality are proven | |
+| 6 — Analytics | Reports (money, clinic activity, medicines & stock, data checks), owner month summary, audited Excel/CSV exports | ✅ Built |
+| 7 — AI | After workflows and data quality are proven | Next |
 
 ## Stack
 
@@ -141,6 +141,18 @@ src/app/(app)/           dashboard, customers, pets, admin (staff, roles, audit)
   and Urdu. Pausing needs a reason; a new promised date restarts escalation.
 - With no WhatsApp provider, messages wait in "Messages to send": one tap opens WhatsApp with the text, then
   Sent / Couldn't reach (note required). Promotional campaigns only reach customers who opted in.
+
+## Reports (Phase 6)
+
+- Every money figure says what it is: **Billed** (bills issued, minus returns), **Collected** (cash, card & wallet
+  actually received, minus refunds), **Owed** (unpaid right now, all dates) and **Estimated profit** (billed − stock
+  used at purchase cost − wastage − expenses; items with no known cost are left out and counted).
+- Reports are database functions (`report_financial`, `report_operations`, `report_inventory`,
+  `report_data_quality`) that return totals only. Money needs `reports.financial`; costs, stock value and supplier
+  prices also need `inventory.view_cost` and are simply hidden without it. Days are Pakistan days.
+- Exports (Excel or CSV, Urdu-safe) need `data.export` plus access to that data; rows come through the normal
+  row-level security and each export is written to the history log (`data.exported`) before the file is sent.
+  Text that could run as a spreadsheet formula is neutralised.
 
 ## Security notes
 

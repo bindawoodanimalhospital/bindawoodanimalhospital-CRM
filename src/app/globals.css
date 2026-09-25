@@ -109,6 +109,13 @@
   --chart-3: oklch(0.62 0.09 12);
   --chart-4: oklch(0.55 0.01 30);
   --chart-5: oklch(0.8 0.04 12);
+  /* Report charts — validated (dataviz validator, light, white surface): billed ↔ collected pass CVD & contrast. */
+  --viz-1: #9b2c3f;          /* series 1: billed (burgundy, lifted into the chart lightness band) */
+  --viz-2: #2a78d6;          /* series 2: collected */
+  --viz-grid: #ebe9e6;       /* hairline gridlines */
+  --viz-axis: #c9c6c1;       /* baseline */
+  /* Sequential burgundy ramp (heatmaps), light → dark */
+  --heat-0: #f7f4f3; --heat-1: #f3dfe2; --heat-2: #e4b0b9; --heat-3: #cd7788; --heat-4: #a8405a; --heat-5: #6e1a2a;
 
   /* Status */
   --success: oklch(0.52 0.12 155);
