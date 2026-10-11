@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Logo, LogoLockup } from "@/components/brand/logo";
 import { LoginForm } from "./login-form";
+import { Credit } from "@/components/app/credit";
 
 export const metadata: Metadata = { title: "Sign in" };
 
@@ -26,6 +27,7 @@ export default async function LoginPage({ searchParams }: PageProps<"/login">) {
           <p className="mt-8 text-sm text-muted-foreground">
             Forgot your password? Ask the hospital admin to reset it.
           </p>
+          <Credit className="mt-12" />
         </div>
       </section>
     </main>

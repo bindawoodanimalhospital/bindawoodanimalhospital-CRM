@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { MessageCircle, OctagonAlert, Pencil, PawPrint } from "lucide-react";
+import { History, MessageCircle, OctagonAlert, Pencil, PawPrint } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field, PageHeader, StatusPill } from "@/components/app/page-header";
@@ -66,7 +66,12 @@ export default async function PetPage({ params }: PageProps<"/pets/[id]">) {
           p.sex !== "unknown" ? `${p.sex}${p.is_neutered ? " (neutered)" : ""}` : null,
           formatAge(p.date_of_birth, p.dob_is_estimate), latest ? `${Number(latest.weight_kg)} kg` : null]
           .filter(Boolean).join(" · ")}
-        actions={canEdit && <Button asChild variant="outline"><Link href={`/pets/${p.id}/edit`}><Pencil /> Edit</Link></Button>}
+        actions={
+          <>
+            {me.can("clinical.view") && <Button asChild><Link href={`/pets/${p.id}/history`}><History /> Full medical history</Link></Button>}
+            {canEdit && <Button asChild variant="outline"><Link href={`/pets/${p.id}/edit`}><Pencil /> Edit</Link></Button>}
+          </>
+        }
       />
 
       {(p.special_handling || critical.length > 0) && (

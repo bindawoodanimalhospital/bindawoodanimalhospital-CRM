@@ -35,6 +35,16 @@ select public.log_activity('view', '/customers', 'Pet owners · Bin Dawood Anima
 select public.log_activity('view', '/customers', 'Pet owners · Bin Dawood Animal Hospital');
 select public.log_activity('print', '/print/invoice/x', 'Bill');
 select public.log_activity('view', 'https://evil.example', null);
+select public.log_activity('call', '/customers/x', null, '{"to":"03001234567"}');
+select public.log_activity('whatsapp', '/customers/x', null, '{"to":"923001234567"}');
+select public.log_activity('search', '/dashboard', null, '{"q":"tiger","results":2,"opened":"Tiger"}');
+select public.log_activity('idle', '/queue', null, null);
+select public.log_activity('active', '/queue', null, '{"away_minutes":25}');
+select public.log_activity('closed', '/queue', null, null);
+select public.log_activity('denied', '/dashboard', null, '{"permission":"audit.view"}');
+select public.log_activity('copy', '/customers/x', null, '{"chars":11}');
+select public.log_activity('copy', '/customers/x', null, '{"chars":11}');
+select public.log_activity('hack_the_planet', '/x', null, null);
 -- a receptionist can write activity but cannot read or tamper with the log
 select pg_temp.check((select count(*) = 0 from public.audit_logs), 'receptionist cannot read the log');
 do $$ begin
@@ -48,6 +58,12 @@ select pg_temp.check((select count(*) = 1 from public.audit_logs where actor_id 
 select pg_temp.check((select count(*) = 1 from public.audit_logs where actor_id = '00000000-0000-0000-0000-0000000dd002' and action = 'page.print'),
   'print logged');
 select pg_temp.check(not exists (select 1 from public.audit_logs where record_id like 'http%'), 'outside links are not logged');
+select pg_temp.check((select count(*) = 8 from public.audit_logs where actor_id = '00000000-0000-0000-0000-0000000dd002'
+  and action in ('contact.call','contact.whatsapp','search.used','session.idle','session.active','session.closed','access.denied','data.copied')),
+  'calls, WhatsApp, searches, idle/back, tab closed, blocked page and copying are logged (copy repeat ignored)');
+select pg_temp.check((select context ->> 'to' = '03001234567' from public.audit_logs where action = 'contact.call' and actor_id = '00000000-0000-0000-0000-0000000dd002'),
+  'the number that was called is recorded');
+select pg_temp.check(not exists (select 1 from public.audit_logs where record_id = '/x'), 'unknown kinds of action are ignored');
 select pg_temp.check((select last_sign_in is not null from public.staff_last_seen() where staff_id = '00000000-0000-0000-0000-0000000dd002'),
   'owner sees when the receptionist last signed in');
 -- minor changes are logged too (a weight)

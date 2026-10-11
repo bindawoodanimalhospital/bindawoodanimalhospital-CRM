@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
-  Eye, FileClock, KeyRound, LogIn, LogOut, Pencil, Plus, Printer, ShieldAlert, Sparkles, Trash2, type LucideIcon,
+  Coffee, Copy, Download, ExternalLink, Eye, FileClock, KeyRound, LogIn, LogOut, Mail, MessageCircle, Pencil, Phone, Plus, Printer,
+  Search, ShieldAlert, ShieldX, Sparkles, SquareX, Trash2, Undo2, type LucideIcon,
 } from "lucide-react";
 import { EmptyState, PageHeader } from "@/components/app/page-header";
 import { Pagination } from "@/components/app/pagination";
@@ -50,12 +51,18 @@ const HREF: Record<string, string> = {
 
 const SIGNIN = ["auth.sign_in", "auth.sign_out", "auth.sign_in_failed"];
 const CHANGES = ["insert", "update", "delete"];
+const CONTACT = ["contact.call", "contact.whatsapp", "contact.email", "link.external", "file.download", "data.copied"];
+const PRESENCE = ["session.idle", "session.active", "session.closed"];
 const KINDS = [
   { key: "", label: "Everything" },
   { key: "signin", label: "Sign-ins & sign-outs" },
   { key: "changes", label: "Changes to records" },
   { key: "views", label: "Pages opened" },
   { key: "prints", label: "Prints" },
+  { key: "contact", label: "Calls, WhatsApp, links & copying" },
+  { key: "search", label: "Searches" },
+  { key: "presence", label: "Away, back & tab closed" },
+  { key: "denied", label: "Blocked pages" },
   { key: "events", label: "Other actions" },
 ] as const;
 
@@ -112,7 +119,11 @@ export default async function AuditPage({ searchParams }: PageProps<"/admin/audi
   if (kind === "changes") q = q.in("action", CHANGES);
   if (kind === "views") q = q.eq("action", "page.view");
   if (kind === "prints") q = q.eq("action", "page.print");
-  if (kind === "events") q = q.not("action", "in", `(${[...SIGNIN, ...CHANGES, "page.view", "page.print"].join(",")})`);
+  if (kind === "contact") q = q.in("action", CONTACT);
+  if (kind === "search") q = q.eq("action", "search.used");
+  if (kind === "presence") q = q.in("action", PRESENCE);
+  if (kind === "denied") q = q.eq("action", "access.denied");
+  if (kind === "events") q = q.not("action", "in", `(${[...SIGNIN, ...CHANGES, ...CONTACT, ...PRESENCE, "page.view", "page.print", "search.used", "access.denied"].join(",")})`);
   if (from) q = q.gte("occurred_at", `${from}T00:00:00+05:00`);
   if (to) q = q.lte("occurred_at", `${to}T23:59:59.999+05:00`);
 
@@ -140,7 +151,9 @@ export default async function AuditPage({ searchParams }: PageProps<"/admin/audi
   };
 
   /** One line describing what a single row did. */
+  const onPage = (r: Row) => (pageTitle(r) ? `on ${pageTitle(r)}` : r.record_id);
   const describe = (r: Row): { icon: LucideIcon; tone: string; text: string; detail?: string | null; href?: string | null } => {
+    const c = (k: string) => (r.context?.[k] == null || r.context?.[k] === "" ? null : String(r.context[k]));
     switch (r.action) {
       case "auth.sign_in":
         return { icon: LogIn, tone: "bg-success-soft text-success", text: "Signed in",
@@ -153,6 +166,30 @@ export default async function AuditPage({ searchParams }: PageProps<"/admin/audi
         return { icon: Eye, tone: "bg-muted text-muted-foreground", text: `Opened ${pageTitle(r) || "a page"}`, detail: r.record_id, href: r.record_id };
       case "page.print":
         return { icon: Printer, tone: "bg-info-soft text-info", text: `Printed ${pageTitle(r) || "a page"}`, detail: r.record_id, href: r.record_id };
+      case "contact.call":
+        return { icon: Phone, tone: "bg-success-soft text-success", text: `Tapped to call ${c("to") ?? "a number"}`, detail: onPage(r) };
+      case "contact.whatsapp":
+        return { icon: MessageCircle, tone: "bg-success-soft text-success", text: `Opened WhatsApp${c("to") ? ` to ${c("to")}` : ""}`, detail: onPage(r) };
+      case "contact.email":
+        return { icon: Mail, tone: "bg-info-soft text-info", text: `Started an email to ${c("to") ?? "someone"}`, detail: onPage(r) };
+      case "link.external":
+        return { icon: ExternalLink, tone: "bg-muted text-muted-foreground", text: `Opened an outside website`, detail: c("url") };
+      case "file.download":
+        return { icon: Download, tone: "bg-info-soft text-info", text: `Downloaded ${c("file") ?? "a file"}`, detail: onPage(r) };
+      case "data.copied":
+        return { icon: Copy, tone: "bg-warning-soft text-warning", text: `Copied ${c("chars") ?? "some"} characters of text`, detail: onPage(r) };
+      case "search.used":
+        return { icon: Search, tone: "bg-muted text-muted-foreground",
+          text: `Searched “${c("q") ?? ""}”`, detail: `${c("results") ?? 0} result(s) · ${c("opened") ? `opened ${c("opened")}` : "opened nothing"}` };
+      case "session.idle":
+        return { icon: Coffee, tone: "bg-muted text-muted-foreground", text: "Went idle (no activity for 10 minutes)", detail: onPage(r) };
+      case "session.active":
+        return { icon: Undo2, tone: "bg-muted text-muted-foreground", text: `Came back after about ${c("away_minutes") ?? "?"} minutes away`, detail: onPage(r) };
+      case "session.closed":
+        return { icon: SquareX, tone: "bg-muted text-muted-foreground", text: "Closed or refreshed the CRM tab", detail: onPage(r) };
+      case "access.denied":
+        return { icon: ShieldX, tone: "bg-danger-soft text-danger", text: "Tried to open a page they're not allowed to",
+          detail: [c("from") && `from ${c("from")}`, c("permission") && `needs “${String(c("permission")).replace(/[._]/g, " ")}”`].filter(Boolean).join(" · ") || null };
     }
     const type = TABLE_LABEL[r.table_name ?? ""] ?? r.table_name?.replace(/_/g, " ") ?? "";
     const name = recordName(r);

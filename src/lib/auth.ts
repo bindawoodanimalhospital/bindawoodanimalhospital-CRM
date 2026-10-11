@@ -54,7 +54,7 @@ export async function requireStaff(permission?: Permission): Promise<CurrentStaf
   const me = await getCurrentStaff();
   if (!me) redirect("/login");
   if (!me.isActive || me.permissions.size === 0) redirect("/no-access");
-  if (permission && !me.can(permission)) redirect("/dashboard?denied=1");
+  if (permission && !me.can(permission)) redirect(`/dashboard?denied=${encodeURIComponent(permission)}`);
   return me;
 }
 

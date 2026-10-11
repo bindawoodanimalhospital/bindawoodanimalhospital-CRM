@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { BedDouble, CalendarClock, FlaskConical, History, Lock, Pill, Scissors, Stethoscope, Syringe } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusPill } from "@/components/app/page-header";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate, formatDateTime, todayPK } from "@/lib/format";
@@ -79,7 +79,12 @@ export async function PetTimeline({ petId }: { petId: string }) {
 
   return (
     <Card className="lg:col-span-2">
-      <CardHeader><CardTitle className="flex items-center gap-2"><History className="size-4" /> Medical history</CardTitle></CardHeader>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2"><History className="size-4" /> Medical history</CardTitle>
+        <CardAction>
+          <Link href={`/pets/${petId}/history`} className="text-sm font-semibold text-brand hover:underline">Full detail: doctors, medicines, bills →</Link>
+        </CardAction>
+      </CardHeader>
       <CardContent>
         {entries.length === 0 ? <p className="text-sm text-muted-foreground">No visits yet.</p> : (
           <ol className="relative grid gap-1 before:absolute before:top-2 before:bottom-2 before:left-[19px] before:w-px before:bg-border">

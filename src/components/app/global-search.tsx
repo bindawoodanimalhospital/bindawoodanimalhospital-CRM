@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 import { prettifyPhones } from "@/lib/phone";
 import { cn } from "@/lib/utils";
+import { logActivity } from "./activity-tracker";
 
 /** Dispatch on window to open the search from anywhere; detail { q?, scope? } pre-fills it. */
 export const OPEN_SEARCH_EVENT = "bdah:open-search";
@@ -126,10 +127,11 @@ export function GlobalSearch({ actions = [] }: { actions?: QuickAction[] }) {
 
   const go = useCallback((h: Hit) => {
     saveRecent(h);
+    if (query.trim()) logActivity("search", { q: query.trim().slice(0, 100), scope, results: result.hits.length, opened: h.title, type: h.kind });
     setOpen(false);
     setQuery("");
     router.push(h.href);
-  }, [router]);
+  }, [router, query, scope, result.hits.length]);
 
   const counts = useMemo(() => {
     const c: Record<string, number> = {};
@@ -154,7 +156,11 @@ export function GlobalSearch({ actions = [] }: { actions?: QuickAction[] }) {
         <span className="truncate">Search owners, pets, phone, bills, products…</span>
         <kbd className="ml-auto hidden rounded-md border bg-card px-1.5 py-0.5 font-mono text-[10px] sm:inline">Ctrl K</kbd>
       </Button>
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog open={open} onOpenChange={(o) => {
+        // Closed without opening anything: still record what was searched for.
+        if (!o && searchable) logActivity("search", { q: trimmed.slice(0, 100), scope, results: hits.length, opened: null });
+        setOpen(o);
+      }}>
         <DialogContent showCloseButton={false}
           className="top-[8%] max-h-[84svh] translate-y-0 gap-0 overflow-hidden rounded-3xl p-0 shadow-float sm:top-[12%] sm:max-w-2xl"
           onOpenAutoFocus={(e) => { e.preventDefault(); input.current?.focus(); }}>
