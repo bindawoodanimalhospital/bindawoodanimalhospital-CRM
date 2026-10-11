@@ -2,6 +2,10 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
+/* Light theme only: `dark:` styles apply only inside an explicit .dark element (never used),
+   not when the computer's OS is in dark mode — otherwise inputs/buttons turn half-dark and grey. */
+@custom-variant dark (&:is(.dark *));
+
 /*
  * BDAH design tokens — see docs/DESIGN.md.
  * Light theme only. Ink (near-black) + white, warm neutral greys, and a pinch of burgundy

@@ -17,7 +17,8 @@ select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000
 insert into public.customers (full_name, phone, area) values ('Ahmed Raza', '+923001234567', 'Johar Town');
 insert into public.pets (name, species_id) select 'Tiger', id from public.species where name = 'Dog';
 insert into public.pet_owners (pet_id, customer_id, is_primary)
-  select p.id, c.id, true from public.pets p, public.customers c;
+  select p.id, c.id, true from public.pets p, public.customers c
+   where p.name = 'Tiger' and c.full_name = 'Ahmed Raza' and c.phone = '+923001234567';
 select 'reception sees customers' as t, count(*) from public.customers;
 select 'search by 0300 phone' as t, kind, title, subtitle from public.global_search('0300 1234567');
 select 'search fuzzy name' as t, kind, title from public.global_search('ahmad');

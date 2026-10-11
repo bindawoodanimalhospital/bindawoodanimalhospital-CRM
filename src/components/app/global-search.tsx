@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/compone
 import { CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
+import { prettifyPhones } from "@/lib/phone";
 
 /** Dispatch on window to open the search dialog from anywhere (e.g. dashboard tiles). */
 export const OPEN_SEARCH_EVENT = "bdah:open-search";
@@ -123,7 +124,7 @@ function ResultText({ h }: { h: Hit }) {
   return (
     <div className="flex min-w-0 flex-1 items-center gap-2">
       <span className="truncate font-medium">{h.title}</span>
-      <span className="truncate text-xs text-muted-foreground">{h.subtitle}</span>
+      <span className="truncate text-xs text-muted-foreground">{prettifyPhones(h.subtitle)}</span>
       <span className="ml-auto shrink-0 font-mono text-[11px] text-muted-foreground">{h.code}</span>
     </div>
   );

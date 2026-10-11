@@ -16,7 +16,7 @@ export default async function StaffPage() {
   const supabase = await createClient();
   const { data: staff } = await supabase
     .from("staff")
-    .select("id, full_name, email, phone, title, is_active, is_doctor, created_at, staff_roles(valid_until, roles(name))")
+    .select("id, full_name, email, phone, title, is_active, is_doctor, created_at, staff_roles!staff_roles_staff_id_fkey(valid_until, roles(name))")
     .order("is_active", { ascending: false })
     .order("full_name");
 

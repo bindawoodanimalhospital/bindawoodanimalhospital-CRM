@@ -42,15 +42,23 @@ export function DeliveryActions({ order, chargeLocked, canWaive, methods }: { or
         </>
       )}
 
-      <DispatchDialog open={open === "dispatch"} onOpenChange={(o) => setOpen(o ? "dispatch" : null)} order={order} pending={pending}
-        onConfirm={(rider, note) => run(() => updateDelivery(order.id, { status: "dispatched", rider, note }))} />
-      <DeliverDialog open={open === "deliver"} onOpenChange={(o) => setOpen(o ? "deliver" : null)} order={order} pending={pending} methods={methods}
-        onConfirm={(payment, key) => run(() => order.customerId
-          ? collectAndDeliver(order.id, order.customerId, payment, key)
-          : updateDelivery(order.id, { status: "delivered" }))} />
-      <EditDialog open={open === "edit"} onOpenChange={(o) => setOpen(o ? "edit" : null)} order={order} pending={pending}
-        chargeLocked={chargeLocked} canWaive={canWaive}
-        onConfirm={(patch) => run(() => updateDelivery(order.id, patch))} />
+      {/* Mounted only while open, so each dialog starts from the order as it is NOW
+          (e.g. the amount to collect after the delivery charge was changed). */}
+      {open === "dispatch" && (
+        <DispatchDialog open onOpenChange={(o) => setOpen(o ? "dispatch" : null)} order={order} pending={pending}
+          onConfirm={(rider, note) => run(() => updateDelivery(order.id, { status: "dispatched", rider, note }))} />
+      )}
+      {open === "deliver" && (
+        <DeliverDialog open onOpenChange={(o) => setOpen(o ? "deliver" : null)} order={order} pending={pending} methods={methods}
+          onConfirm={(payment, key) => run(() => order.customerId
+            ? collectAndDeliver(order.id, order.customerId, payment, key)
+            : updateDelivery(order.id, { status: "delivered" }))} />
+      )}
+      {open === "edit" && (
+        <EditDialog open onOpenChange={(o) => setOpen(o ? "edit" : null)} order={order} pending={pending}
+          chargeLocked={chargeLocked} canWaive={canWaive}
+          onConfirm={(patch) => run(() => updateDelivery(order.id, patch))} />
+      )}
     </>
   );
 }

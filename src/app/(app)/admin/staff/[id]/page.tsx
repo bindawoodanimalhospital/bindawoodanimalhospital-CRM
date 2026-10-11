@@ -20,7 +20,7 @@ export default async function StaffMemberPage({ params }: PageProps<"/admin/staf
   const supabase = await createClient();
   const [{ data: s }, { data: allRoles }] = await Promise.all([
     supabase.from("staff")
-      .select("*, staff_roles(role_id, valid_from, valid_until, roles(id, name, description))")
+      .select("*, staff_roles!staff_roles_staff_id_fkey(role_id, valid_from, valid_until, roles(id, name, description))")
       .eq("id", id).maybeSingle(),
     supabase.from("roles").select("id, name").order("created_at"),
   ]);

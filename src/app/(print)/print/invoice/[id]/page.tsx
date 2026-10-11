@@ -19,7 +19,7 @@ export default async function InvoicePrint({ params, searchParams }: PageProps<"
   const { id } = await params;
   const { receipt } = await searchParams;
   const supabase = await createClient();
-  const [{ data: inv }, clinic, cfg, { data: allocs }] = await Promise.all([
+  const [{ data: inv }, clinic, cfg, { data: allocs }, { data: methodRows }] = await Promise.all([
     supabase.from("invoices").select(`number, kind, status, subtotal, line_discounts, invoice_discount, discount_reason, tax_total, total, amount_paid,
       returned_amount, balance, issued_at, void_reason, notes, customers(full_name, phone, area), pets(name, code),
       fulfilment, delivery_status, delivery_address, delivery_notes, service_location, service_address,
@@ -27,7 +27,9 @@ export default async function InvoicePrint({ params, searchParams }: PageProps<"
     getSetting<ClinicProfile>("clinic.profile"),
     getSetting<{ invoice_footer?: string }>("billing.config"),
     supabase.from("payment_allocations").select("amount, payments(kind, method, received_at, reference)").eq("invoice_id", id).order("id"),
+    supabase.from("payment_methods").select("key, label"),
   ]);
+  const methodLabel = new Map((methodRows ?? []).map((m) => [m.key, m.label]));
   if (!inv || inv.status === "draft") notFound();
   // Products/services first, then the delivery charge as its own line (spec §3).
   const all = ((inv.invoice_items ?? []) as Item[]).sort((a, b) => a.sort_order - b.sort_order);
@@ -59,7 +61,7 @@ export default async function InvoicePrint({ params, searchParams }: PageProps<"
         <div className="no-print mx-auto mb-3 flex w-[80mm] justify-end"><PrintButton /></div>
         <article className="mx-auto w-[80mm] bg-white p-3 font-mono text-[11px] leading-snug text-ink print:p-1">
           <div className="text-center">
-            <LogoMark tone="ink" className="mx-auto w-10" />
+            <LogoMark tone="ink" className="mx-auto w-10" priority />
             <p className="mt-1 font-sans text-sm font-bold">{(clinic?.name || "Bin Dawood Animal Hospital").toUpperCase()}</p>
             {clinic?.phone && <p>{formatPhone(clinic.phone)}</p>}
             <p className="mt-1">{inv.number} · {formatDateTime(inv.issued_at)}</p>
@@ -84,7 +86,7 @@ export default async function InvoicePrint({ params, searchParams }: PageProps<"
           )}
           <hr className="my-2 border-dashed border-ink" />
           {totals}
-          {pays.map((p, n) => <p key={n} className="flex justify-between"><span>{p.kind === "refund" ? "Refund" : p.method}</span><span>{p.amount.toLocaleString("en-PK")}</span></p>)}
+          {pays.map((p, n) => <p key={n} className="flex justify-between"><span>{p.kind === "refund" ? "Refund" : methodLabel.get(p.method) ?? p.method}</span><span>{p.amount.toLocaleString("en-PK")}</span></p>)}
           <p className="mt-3 text-center">{cfg?.invoice_footer ?? "Thank you!"}</p>
         </article>
       </div>
@@ -131,7 +133,7 @@ export default async function InvoicePrint({ params, searchParams }: PageProps<"
       {pays.length > 0 && (
         <div className="mt-4 text-xs">
           <p className="font-semibold text-muted-foreground uppercase">Payments</p>
-          {pays.map((p, n) => <p key={n}>{formatDateTime(p.received_at)} · {p.kind === "refund" ? "Refund" : p.kind === "write_off" ? "Written off" : p.method}{p.reference ? ` (${p.reference})` : ""} · {formatPKR(Math.abs(p.amount))}</p>)}
+          {pays.map((p, n) => <p key={n}>{formatDateTime(p.received_at)} · {p.kind === "refund" ? "Refund" : p.kind === "write_off" ? "Written off" : methodLabel.get(p.method) ?? p.method}{p.reference ? ` (${p.reference})` : ""} · {formatPKR(Math.abs(p.amount))}</p>)}
         </div>
       )}
       {due && due.status === "open" && Number(inv.balance) > 0 && (

@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { assertCan } from "@/lib/auth";
-import { toE164 } from "@/lib/phone";
+import { prettifyPhones, toE164 } from "@/lib/phone";
 import { addressLine } from "@/lib/clinic";
 import {
   customerRow, customerSchema, dbErrorMessage, fieldErrors, formObject, petSchema, type FormState,
@@ -73,7 +73,8 @@ export async function searchCustomers(q: string): Promise<CustomerOption[]> {
   if (q.trim().length < 2) return [];
   const supabase = await createClient();
   const { data } = await supabase.rpc("global_search", { q, max_results: 20 });
-  return ((data ?? []) as (CustomerOption & { kind: string })[]).filter((h) => h.kind === "customer").slice(0, 8);
+  return ((data ?? []) as (CustomerOption & { kind: string })[]).filter((h) => h.kind === "customer").slice(0, 8)
+    .map((h) => ({ ...h, subtitle: prettifyPhones(h.subtitle) }));
 }
 
 /** The customer's saved address as one line (house, block, full address, area, city) — for deliveries & home visits. */

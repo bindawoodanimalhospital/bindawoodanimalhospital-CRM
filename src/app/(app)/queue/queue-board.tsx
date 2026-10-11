@@ -68,7 +68,7 @@ export function QueueBoard({ visits, doctors, canManage, canClinical, canBill = 
         {VISIT_STAGES.map((stage) => {
           const items = active.filter((v) => v.status === stage.status).sort(sort);
           return (
-            <section key={stage.status} className="flex min-h-40 flex-col rounded-2xl bg-surface p-3 ring-1 ring-border">
+            <section key={stage.status} className="flex min-h-40 min-w-0 flex-col rounded-2xl bg-surface p-3 ring-1 ring-border">
               <header className="flex items-center gap-2 px-1 pb-3">
                 <span className={cn("size-2.5 rounded-full", {
                   "bg-warning": stage.tone === "warning", "bg-brand": stage.tone === "brand",
@@ -77,7 +77,7 @@ export function QueueBoard({ visits, doctors, canManage, canClinical, canBill = 
                 <h2 className="font-semibold">{stage.label}</h2>
                 <span className="ml-auto rounded-full bg-card px-2 py-0.5 text-sm font-bold tabular ring-1 ring-border">{items.length}</span>
               </header>
-              <div className="grid gap-3">
+              <div className="grid min-w-0 gap-3">
                 {items.length === 0 && <p className="px-2 py-6 text-center text-sm text-muted-foreground">{stage.hint}</p>}
                 {items.map((v) => (
                   <VisitCard key={v.id} v={v} now={now} doctors={doctors} canManage={canManage} canClinical={canClinical} canBill={canBill} />
@@ -123,7 +123,7 @@ function VisitCard({ v, now, doctors, canManage, canClinical, canBill }: {
     });
 
   return (
-    <article className={cn("rounded-2xl bg-card p-4 shadow-card ring-1 ring-border transition",
+    <article className={cn("min-w-0 rounded-2xl bg-card p-4 shadow-card ring-1 ring-border transition",
       v.priority === "emergency" && "ring-2 ring-danger/60",
       v.priority === "urgent" && "ring-2 ring-warning/50")}>
       <div className="flex items-start gap-3">
