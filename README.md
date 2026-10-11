@@ -13,8 +13,8 @@ Product spec: *Bin Dawood Animal Hospital CRM v1.2* (Omer Bin Dawood, Sep 2026).
 | 1 — Foundation | Auth, staff, roles & permissions, customers, pets, settings, audit log, global search | ✅ Built |
 | 2 — Clinic operations | Appointments, live walk-in queue (tokens), consultations with locked records, vaccinations with approved schedules, prescriptions, diagnostics & files, due list, printouts | ✅ Built |
 | 3 — Surgery & inpatient | Surgery workflow with consent & pre-op gates, theatre log, materials, ward board, treatment chart, discharge sheets | ✅ Built |
-| 4 — Billing & store | Invoices, payments, dues & ledger, POS, inventory, suppliers, expenses | Next |
-| 5 — CRM & comms | Reminder/escalation engine, WhatsApp, tasks, campaigns | |
+| 4 — Billing & store | Bills from visits, split payments (cash/card/JazzCash/Easypaisa/Raast), dues with promises & approvals, returns/refunds, customer ledger & statements, pet store POS, batch/expiry stock (FEFO), suppliers & deliveries, expenses | ✅ Built |
+| 5 — CRM & comms | Reminder/escalation engine, WhatsApp, tasks, campaigns | Next |
 | 6 — Analytics | Owner command center, KPIs, exports | |
 | 7 — AI | After workflows and data quality are proven | |
 
@@ -119,6 +119,18 @@ src/app/(app)/           dashboard, customers, pets, admin (staff, roles, audit)
   every dose is logged once per time slot, and "not given" needs a reason; notes are append-only.
 - Due items (vaccine doses, follow-ups) stay open until someone records an outcome; skipping needs a reason and
   rescheduling keeps the old date.
+
+## Money & stock rules (enforced in the database)
+
+- Prices come from the price list; totals are computed by the database. Issued bills are locked — corrections are
+  voids (stock restored), returns or refunds, all with reasons.
+- Payments, refunds and write-offs are append-only and idempotent (a double-click can't charge twice). Wallet and
+  bank payments need a transaction reference.
+- Every unpaid balance becomes a due with a promised date and reason; large or repeat dues need manager approval;
+  changing a promise keeps the old date and counts missed promises; dues close automatically at zero.
+- Discounts need permission; above the configured % they need a manager.
+- Stock changes only through movements; never negative; expired batches can never be sold; earliest-expiry first,
+  with a reason required to pick another batch. Cost prices and expenses are visible only to finance roles.
 
 ## Security notes
 

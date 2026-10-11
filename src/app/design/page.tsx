@@ -12,6 +12,7 @@ import { FormField, FormSection } from "@/components/app/form-field";
 import { LogoMark } from "@/components/brand/logo";
 import { QueueBoard, type QueueVisit } from "@/app/(app)/queue/queue-board";
 import { SurgeryWorkspace, type SurgeryData } from "@/app/(app)/surgery/[id]/workspace";
+import { InvoiceEditor } from "@/app/(app)/billing/[id]/editor";
 
 export const metadata: Metadata = { title: "Design system" };
 
@@ -79,6 +80,21 @@ export default function DesignPage() {
           <div>
             <PageHeader title="Today's queue" description="Thursday, 25 September · 2 waiting · updates live on every screen" actions={<Button size="lg"><Plus /> Check in a pet</Button>} />
             <QueueBoard visits={sample} doctors={[{ id: "d1", full_name: "Dr. Musab Bin Dawood" }]} canManage canClinical />
+          </div>
+
+          <div>
+            <PageHeader title="New bill" description="Ahmed Raza · Bella — suggestions from the visit, lines, and checkout with a partial payment." />
+            <InvoiceEditor invoiceId="sample" customerName="Ahmed Raza" customerCredit={5000} perms={{ discount: true }}
+              methods={[{ key: "cash", label: "Cash", needs_reference: false }, { key: "jazzcash", label: "JazzCash", needs_reference: true }, { key: "easypaisa", label: "Easypaisa", needs_reference: true }]}
+              suggestions={[
+                { key: "v", item_id: "i1", name: "Consultation fee", quantity: 1, unit_price: 1500, reason: "Visit fee", source_table: "visits", source_id: "x", kind: "service" },
+                { key: "d", item_id: "i2", name: "Abdominal ultrasound", quantity: 1, unit_price: 3500, reason: "Test", source_table: "diagnostic_orders", source_id: "y", kind: "service" },
+                { key: "w", item_id: "i3", name: "Ward stay (per day)", quantity: 2, unit_price: 0, reason: "Ward stay (2 days)", source_table: "admissions", source_id: "z", kind: "service" },
+              ]}
+              unmatched={["DHPPi"]}
+              lines={[{ id: "l1", item_id: "i9", description: "Spay (ovariohysterectomy)", kind: "service", quantity: 1, unit_price: 25000, discount_amount: 0, line_total: 25000, price_is_editable: false, track_stock: false },
+                { id: "l2", item_id: "i8", description: "Meloxicam 1.5 mg/ml syrup", kind: "product", quantity: 1, unit_price: 850, discount_amount: 0, line_total: 850, price_is_editable: false, track_stock: true }]}
+              totals={{ subtotal: 25850, line_discounts: 0, invoice_discount: 0, tax_total: 0, total: 25850, discount_reason: null }} />
           </div>
 
           <div>

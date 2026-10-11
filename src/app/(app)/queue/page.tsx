@@ -47,7 +47,7 @@ export default async function QueuePage() {
         description={`${dateLine} · ${waiting} waiting · updates live on every screen`}
         actions={me.can("queue.manage") && <CheckInDialog doctors={doctors} types={types} />}
       />
-      <QueueBoard visits={visits} doctors={doctors} canManage={me.can("queue.manage")} canClinical={me.can("clinical.create")} />
+      <QueueBoard visits={visits} doctors={doctors} canManage={me.can("queue.manage")} canClinical={me.can("clinical.create")} canBill={me.can("billing.create")} />
     </>
   );
 }

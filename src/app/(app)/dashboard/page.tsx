@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
-  ArrowRight, ArrowUpRight, BedDouble, CalendarClock, CalendarDays, CalendarPlus, ListOrdered, PawPrint, Search, ShieldAlert, Syringe,
+  ArrowRight, ArrowUpRight, BedDouble, Boxes, CalendarClock, CreditCard, ShoppingBag, Wallet, CalendarDays, CalendarPlus, ListOrdered, PawPrint, Search, ShieldAlert, Syringe,
   UserCog, UserPlus, Users, type LucideIcon,
 } from "lucide-react";
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -41,7 +41,8 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
   const canDue = me.can("clinical.view") || me.can("crm.view");
   const ymd = todayPK();
 
-  const [customers, pets, newCustomers, newPets, recent, waiting, inClinic, appts, dueToday, overdue, inWard, theatre] = await Promise.all([
+  const seeMoney = me.can("finance.view") || me.can("billing.create");
+  const [customers, pets, newCustomers, newPets, recent, waiting, inClinic, appts, dueToday, overdue, inWard, theatre, payToday, openDues, stock] = await Promise.all([
     canCustomers ? supabase.from("customers").select("id", { count: "exact", head: true }).neq("status", "merged") : null,
     canPets ? supabase.from("pets").select("id", { count: "exact", head: true }).eq("status", "active") : null,
     canCustomers ? supabase.from("customers").select("id", { count: "exact", head: true }).gte("created_at", today) : null,
@@ -58,7 +59,14 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
     canDue ? supabase.from("due_items").select("id", { count: "exact", head: true }).eq("status", "pending").lt("due_on", ymd) : null,
     me.can("clinical.view") ? supabase.from("admissions").select("id", { count: "exact", head: true }).eq("status", "admitted") : null,
     me.can("clinical.view") ? supabase.from("surgeries").select("id", { count: "exact", head: true }).in("status", ["admitted", "pre_op", "in_surgery", "recovery"]) : null,
+    seeMoney ? supabase.from("payments").select("kind, amount").gte("received_at", `${ymd}T00:00:00+05:00`) : null,
+    me.can("billing.view") ? supabase.from("dues").select("promised_date, invoices(balance)").eq("status", "open") : null,
+    me.can("inventory.view") ? supabase.from("stock_levels").select("usable_qty, reorder_level, next_expiry, expired_qty") : null,
   ]);
+  const collected = (payToday?.data ?? []).reduce((s, p) => s + (p.kind === "payment" ? Number(p.amount) : p.kind === "refund" ? -Number(p.amount) : 0), 0);
+  const owed = (openDues?.data ?? []).reduce((s, d) => s + Number((d.invoices as unknown as { balance: number } | null)?.balance ?? 0), 0);
+  const overdueMoney = (openDues?.data ?? []).filter((d) => d.promised_date < ymd).reduce((s, d) => s + Number((d.invoices as unknown as { balance: number } | null)?.balance ?? 0), 0);
+  const stockAlerts = (stock?.data ?? []).filter((r) => (r.reorder_level != null && Number(r.usable_qty) <= Number(r.reorder_level)) || Number(r.expired_qty) > 0).length;
 
   // Doctors are greeted as "Dr. Musab"; everyone else by first name.
   const firstName = me.fullName.replace(/^dr\.?\s+/i, "").split(" ")[0];
@@ -69,6 +77,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
   const actions = ([
     me.can("queue.manage") && { title: "Check in a pet", text: "Walk-in or arrived — add to today's queue", icon: ListOrdered, href: "/queue", primary: true },
     !me.can("queue.manage") && me.can("clinical.view") && { title: "Today's queue", text: "See who's waiting and call the next patient", icon: ListOrdered, href: "/queue", primary: true },
+    me.can("pos.use") && !me.can("queue.manage") && { title: "Pet store sale", text: "Scan products and take payment", icon: ShoppingBag, href: "/pos", primary: !me.can("clinical.view") },
     me.can("appointments.manage") && { title: "Book appointment", text: "Phone or WhatsApp booking", icon: CalendarPlus, href: "/appointments" },
     me.can("customers.create") && { title: "New pet owner", text: "Register an owner and their pet in one go", icon: UserPlus, href: "/customers/new" },
     (canCustomers || canPets) && { title: "Find a pet or owner", text: "Search by name, phone number or ID", icon: Search, search: true },
@@ -76,12 +85,15 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
     me.can("staff.manage") && { title: "Add staff", text: "Give a doctor or receptionist a login", icon: UserCog, href: "/admin/staff/new" },
   ].filter(Boolean) as Action[]).slice(0, 4);
 
-  type Stat = { label: string; value: number; sub: string; icon: LucideIcon; href: string; tone?: "danger" | "warning" | "success" };
+  type Stat = { label: string; value: number; sub: string; icon: LucideIcon; href: string; tone?: "danger" | "warning" | "success"; money?: boolean };
   const todayStats = ([
     canQueue && { label: "Waiting now", value: waiting?.count ?? 0, sub: `${inClinic?.count ?? 0} with doctor / in treatment`, icon: ListOrdered, href: "/queue", tone: (waiting?.count ?? 0) > 0 ? "warning" : undefined },
     canAppts && { label: "Appointments left today", value: appts?.count ?? 0, sub: "booked or confirmed", icon: CalendarDays, href: "/appointments" },
     canDue && { label: "Due today", value: dueToday?.count ?? 0, sub: "vaccines & follow-ups", icon: Syringe, href: "/due?view=today" },
     me.can("clinical.view") && { label: "In the ward", value: inWard?.count ?? 0, sub: `${theatre?.count ?? 0} surgery case(s) in progress`, icon: BedDouble, href: "/ward" },
+    seeMoney && { label: "Collected today", value: Math.round(collected), sub: "payments − refunds (Rs.)", icon: Wallet, href: "/billing", money: true },
+    me.can("billing.view") && { label: "Owed to the clinic", value: Math.round(owed), sub: overdueMoney ? `Rs. ${Math.round(overdueMoney).toLocaleString("en-PK")} overdue` : "none overdue", icon: CreditCard, href: "/billing/dues", tone: overdueMoney > 0 ? "danger" : undefined, money: true },
+    me.can("inventory.view") && stockAlerts > 0 && { label: "Stock to check", value: stockAlerts, sub: "low or expired items", icon: Boxes, href: "/inventory", tone: "warning" },
     canDue && { label: "Overdue", value: overdue?.count ?? 0, sub: "need a call from reception", icon: CalendarClock, href: "/due?view=overdue", tone: (overdue?.count ?? 0) > 0 ? "danger" : "success" },
   ].filter(Boolean) as Stat[]);
 
@@ -117,11 +129,11 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
       </section>
 
       {todayStats.length > 0 && (
-        <section className="grid grid-cols-2 gap-4 lg:grid-cols-5">
+        <section className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           {todayStats.map((s) => (
             <Link key={s.label} href={s.href} className="group rounded-2xl bg-card p-4 shadow-card ring-1 ring-border transition hover:ring-brand-muted">
               <div className="flex items-center gap-2 text-sm text-muted-foreground"><s.icon className="size-4" /> {s.label}</div>
-              <p className={cn("mt-2 text-3xl font-bold tabular", s.tone === "danger" && "text-danger", s.tone === "warning" && "text-warning")}>{s.value}</p>
+              <p className={cn("mt-2 text-3xl font-bold tabular", s.tone === "danger" && "text-danger", s.tone === "warning" && "text-warning")}>{s.money ? `Rs. ${s.value.toLocaleString("en-PK")}` : s.value}</p>
               <p className="mt-0.5 text-xs text-muted-foreground">{s.sub}</p>
             </Link>
           ))}
@@ -229,7 +241,6 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
           <CardHeader><CardTitle>Coming next to the system</CardTitle></CardHeader>
           <CardContent className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
             {[
-              ["Phase 4", "Billing, dues & ledger, pet store POS, inventory"],
               ["Phase 5", "WhatsApp reminders, tasks & follow-up alerts"],
               ["Phase 6", "Owner reports & analytics"],
             ].map(([phase, text]) => (

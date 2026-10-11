@@ -23,6 +23,7 @@ import { formatTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { DoctorOption } from "@/lib/queries";
 import { assignDoctor, cancelVisit, moveVisit } from "./actions";
+import { BillVisitButton } from "../billing/bill-visit-button";
 
 export type QueueVisit = {
   id: string; token_no: number; status: VisitStatus; priority: VisitPriority; reason: string | null;
@@ -33,8 +34,8 @@ export type QueueVisit = {
   type: string | null;
 };
 
-export function QueueBoard({ visits, doctors, canManage, canClinical }: {
-  visits: QueueVisit[]; doctors: DoctorOption[]; canManage: boolean; canClinical: boolean;
+export function QueueBoard({ visits, doctors, canManage, canClinical, canBill = false }: {
+  visits: QueueVisit[]; doctors: DoctorOption[]; canManage: boolean; canClinical: boolean; canBill?: boolean;
 }) {
   const router = useRouter();
   const [now, setNow] = useState(() => new Date());
@@ -77,7 +78,7 @@ export function QueueBoard({ visits, doctors, canManage, canClinical }: {
               <div className="grid gap-3">
                 {items.length === 0 && <p className="px-2 py-6 text-center text-sm text-muted-foreground">{stage.hint}</p>}
                 {items.map((v) => (
-                  <VisitCard key={v.id} v={v} now={now} doctors={doctors} canManage={canManage} canClinical={canClinical} />
+                  <VisitCard key={v.id} v={v} now={now} doctors={doctors} canManage={canManage} canClinical={canClinical} canBill={canBill} />
                 ))}
               </div>
             </section>
@@ -104,8 +105,8 @@ export function QueueBoard({ visits, doctors, canManage, canClinical }: {
   );
 }
 
-function VisitCard({ v, now, doctors, canManage, canClinical }: {
-  v: QueueVisit; now: Date; doctors: DoctorOption[]; canManage: boolean; canClinical: boolean;
+function VisitCard({ v, now, doctors, canManage, canClinical, canBill }: {
+  v: QueueVisit; now: Date; doctors: DoctorOption[]; canManage: boolean; canClinical: boolean; canBill: boolean;
 }) {
   const [pending, start] = useTransition();
   const [cancelOpen, setCancelOpen] = useState(false);
@@ -189,6 +190,7 @@ function VisitCard({ v, now, doctors, canManage, canClinical }: {
             onClick={() => run(() => moveVisit(v.id, next.to))}>
             {pending ? <Loader2 className="animate-spin" /> : null} {next.label} {!pending && <ArrowRight />}
           </Button>
+          {v.status === "ready_for_billing" && canBill && <BillVisitButton visitId={v.id} label="Make bill" className="flex-1" />}
           {v.status === "with_doctor" && (
             <Button variant="outline" disabled={pending} onClick={() => run(() => moveVisit(v.id, "in_treatment"))}>Tests</Button>
           )}
