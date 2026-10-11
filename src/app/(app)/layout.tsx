@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { cookies } from "next/headers";
 import Link from "next/link";
 import { PawPrint, Plus, UserPlus } from "lucide-react";
@@ -9,6 +10,7 @@ import {
 import { AppSidebar } from "@/components/app/app-sidebar";
 import { GlobalSearch, type QuickAction } from "@/components/app/global-search";
 import { NotificationBell } from "@/components/app/notification-bell";
+import { ActivityTracker } from "@/components/app/activity-tracker";
 import { requireStaff } from "@/lib/auth";
 
 export default async function AppLayout({ children }: LayoutProps<"/">) {
@@ -56,6 +58,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
           )}
         </header>
         <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-6 md:px-8 md:py-8">{children}</main>
+        <Suspense><ActivityTracker /></Suspense>
       </SidebarInset>
     </SidebarProvider>
   );
