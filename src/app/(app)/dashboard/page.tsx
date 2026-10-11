@@ -1,16 +1,20 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { PawPrint, Plus, ShieldAlert, UserPlus, Users } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  ArrowRight, ArrowUpRight, PawPrint, Search, ShieldAlert, UserCog, UserPlus, Users, type LucideIcon,
+} from "lucide-react";
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { PageHeader } from "@/components/app/page-header";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { LogoMark } from "@/components/brand/logo";
+import { OpenSearch } from "@/components/app/open-search";
 import { requireStaff } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { formatDateTime, TIMEZONE } from "@/lib/format";
+import { formatDateTime, initials, TIMEZONE } from "@/lib/format";
 import { formatPhone } from "@/lib/phone";
+import { cn } from "@/lib/utils";
 
-export const metadata: Metadata = { title: "Dashboard" };
+export const metadata: Metadata = { title: "Home" };
 
 /** Start of "today" in Lahore, as an ISO timestamp. */
 function startOfTodayPK() {
@@ -39,63 +43,117 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
     canPets ? supabase.from("pets").select("id", { count: "exact", head: true }).gte("created_at", today) : null,
     canCustomers
       ? supabase.from("customers").select("id, code, full_name, phone, area, created_at, pet_owners(pets(name))")
-          .neq("status", "merged").order("created_at", { ascending: false }).limit(8)
+          .neq("status", "merged").order("created_at", { ascending: false }).limit(6)
       : null,
   ]);
 
+  // Doctors are greeted as "Dr. Musab"; everyone else by first name.
+  const firstName = me.fullName.replace(/^dr\.?\s+/i, "").split(" ")[0];
+  const displayName = me.isDoctor ? `Dr. ${firstName}` : firstName;
+  const dateLine = new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long", timeZone: TIMEZONE }).format(new Date());
+
+  type Action = { title: string; text: string; icon: LucideIcon; href?: string; search?: boolean; primary?: boolean };
+  const actions = ([
+    me.can("customers.create") && { title: "New pet owner", text: "Register an owner and their pet in one go", icon: UserPlus, href: "/customers/new", primary: true },
+    (canCustomers || canPets) && { title: "Find a pet or owner", text: "Search by name, phone number or ID", icon: Search, search: true },
+    me.can("pets.create") && { title: "Add a pet", text: "Add another pet to an existing owner", icon: PawPrint, href: "/pets/new" },
+    me.can("staff.manage") && { title: "Add staff", text: "Give a doctor or receptionist a login", icon: UserCog, href: "/admin/staff/new" },
+  ].filter(Boolean) as Action[]);
+
   const stats = [
-    canCustomers && { label: "Customers", value: customers?.count ?? 0, sub: `+${newCustomers?.count ?? 0} today`, icon: Users, href: "/customers" },
-    canPets && { label: "Active patients", value: pets?.count ?? 0, sub: `+${newPets?.count ?? 0} today`, icon: PawPrint, href: "/pets" },
-  ].filter(Boolean) as { label: string; value: number; sub: string; icon: typeof Users; href: string }[];
+    canCustomers && { label: "Pet owners", value: customers?.count ?? 0, today: newCustomers?.count ?? 0, icon: Users, href: "/customers" },
+    canPets && { label: "Active pets", value: pets?.count ?? 0, today: newPets?.count ?? 0, icon: PawPrint, href: "/pets" },
+  ].filter(Boolean) as { label: string; value: number; today: number; icon: LucideIcon; href: string }[];
 
   return (
-    <>
-      <PageHeader
-        title={`${greeting()}, ${me.fullName.split(" ")[0]}`}
-        description={new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: TIMEZONE }).format(new Date())}
-        actions={
-          <>
-            {me.can("customers.create") && (
-              <Button asChild><Link href="/customers/new"><UserPlus /> New customer</Link></Button>
-            )}
-            {me.can("pets.create") && (
-              <Button asChild variant="outline"><Link href="/pets/new"><Plus /> Register pet</Link></Button>
-            )}
-          </>
-        }
-      />
-
+    <div className="grid grid-cols-1 gap-6">
       {denied && (
-        <Alert className="mb-6">
+        <Alert>
           <ShieldAlert />
           <AlertDescription>You don&apos;t have access to that page. Ask the admin if you need it.</AlertDescription>
         </Alert>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {stats.map((s) => (
-          <Link key={s.label} href={s.href}>
-            <Card className="transition-colors hover:border-foreground/20">
-              <CardContent className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">{s.label}</p>
-                  <p className="mt-1 text-2xl font-semibold tabular-nums">{s.value.toLocaleString("en-PK")}</p>
-                  <p className="mt-1 text-xs text-muted-foreground">{s.sub}</p>
-                </div>
-                <s.icon className="size-5 text-muted-foreground" />
-              </CardContent>
-            </Card>
-          </Link>
-        ))}
-      </div>
+      {/* Welcome banner */}
+      <section className="relative overflow-hidden rounded-3xl bg-ink bg-hero-gradient px-6 py-8 text-white shadow-float shadow-brand/20 md:px-10 md:py-10">
+        <LogoMark tone="white" className="pointer-events-none absolute -right-8 -bottom-12 w-60 opacity-[0.07]" />
+        <div className="relative">
+          <p className="text-sm font-medium text-white/60">{dateLine}</p>
+          <h1 className="mt-1 text-3xl font-bold tracking-tight md:text-4xl">{greeting()}, {displayName}</h1>
+          <p className="mt-2 max-w-lg text-white/70">What would you like to do today?</p>
+          {(canCustomers || canPets) && (
+            <OpenSearch className="mt-6 flex h-13 w-full max-w-xl items-center gap-3 rounded-2xl bg-white px-5 text-left text-muted-foreground shadow-lg transition hover:ring-4 hover:ring-white/15">
+              <Search className="size-5 text-brand" />
+              <span className="flex-1 truncate">Search a pet, owner or phone number…</span>
+              <kbd className="hidden rounded-md border px-1.5 py-0.5 font-mono text-[10px] sm:inline">Ctrl K</kbd>
+            </OpenSearch>
+          )}
+        </div>
+      </section>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-3">
+      {/* Big, obvious actions */}
+      {actions.length > 0 && (
+        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {actions.map((a) => {
+            const body = (
+              <>
+                <span className={cn("flex size-12 items-center justify-center rounded-2xl",
+                  a.primary ? "bg-brand-gradient text-white shadow-md shadow-brand/30" : "bg-brand-soft text-brand")}>
+                  <a.icon className="size-6" />
+                </span>
+                <span className="mt-4 flex items-center gap-1 text-base font-semibold">
+                  {a.title}
+                  <ArrowRight className="size-4 opacity-0 transition group-hover:translate-x-0.5 group-hover:opacity-100" />
+                </span>
+                <span className="mt-1 text-sm text-muted-foreground">{a.text}</span>
+              </>
+            );
+            const cls = "group flex flex-col items-start rounded-2xl bg-card p-5 text-left shadow-card ring-1 ring-border transition hover:-translate-y-0.5 hover:shadow-float hover:ring-brand-muted";
+            return a.search
+              ? <OpenSearch key={a.title} className={cls}>{body}</OpenSearch>
+              : <Link key={a.title} href={a.href!} className={cls}>{body}</Link>;
+          })}
+        </section>
+      )}
+
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Numbers */}
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
+          {stats.map((s) => (
+            <Link key={s.label} href={s.href} className="group">
+              <Card className="transition group-hover:ring-brand-muted">
+                <CardContent className="flex items-center gap-4">
+                  <span className="flex size-12 items-center justify-center rounded-2xl bg-muted">
+                    <s.icon className="size-6 text-foreground/70" />
+                  </span>
+                  <div className="flex-1">
+                    <p className="text-sm text-muted-foreground">{s.label}</p>
+                    <p className="tabular text-3xl font-bold tracking-tight">{s.value.toLocaleString("en-PK")}</p>
+                  </div>
+                  <span className={cn("rounded-full px-2.5 py-1 text-xs font-semibold",
+                    s.today ? "bg-success-soft text-success" : "bg-muted text-muted-foreground")}>
+                    +{s.today} today
+                  </span>
+                </CardContent>
+              </Card>
+            </Link>
+          ))}
+        </div>
+
+        {/* Recent */}
         {recent && (
           <Card className="lg:col-span-2">
-            <CardHeader><CardTitle>Recently registered</CardTitle></CardHeader>
-            <CardContent className="px-0">
+            <CardHeader>
+              <CardTitle>Recently registered</CardTitle>
+              <CardAction>
+                <Link href="/customers" className="inline-flex items-center gap-1 text-sm font-semibold text-brand hover:underline">
+                  See all <ArrowUpRight className="size-4" />
+                </Link>
+              </CardAction>
+            </CardHeader>
+            <CardContent className="px-2">
               {recent.data?.length ? (
-                <ul className="divide-y">
+                <ul>
                   {recent.data.map((c) => {
                     const petNames = (c.pet_owners ?? []).flatMap((po) => {
                       const p = po.pets as unknown as { name: string } | null;
@@ -103,44 +161,51 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
                     });
                     return (
                       <li key={c.id}>
-                        <Link href={`/customers/${c.id}`} className="flex items-center gap-3 px-6 py-2.5 hover:bg-muted/50">
+                        <Link href={`/customers/${c.id}`} className="flex items-center gap-3 rounded-xl px-3 py-2.5 hover:bg-muted/70">
+                          <Avatar className="size-10 rounded-xl">
+                            <AvatarFallback className="rounded-xl bg-brand-soft text-sm font-semibold text-brand">{initials(c.full_name)}</AvatarFallback>
+                          </Avatar>
                           <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-medium">{c.full_name}</p>
-                            <p className="truncate text-xs text-muted-foreground">
-                              {formatPhone(c.phone)}{c.area ? ` · ${c.area}` : ""}{petNames.length ? ` · ${petNames.join(", ")}` : ""}
+                            <p className="truncate font-semibold">{c.full_name}</p>
+                            <p className="truncate text-sm text-muted-foreground">
+                              {formatPhone(c.phone)}{petNames.length ? ` · ${petNames.join(", ")}` : ""}
                             </p>
                           </div>
-                          <span className="shrink-0 text-xs text-muted-foreground">{formatDateTime(c.created_at)}</span>
+                          <span className="hidden shrink-0 text-xs text-muted-foreground sm:block">{formatDateTime(c.created_at)}</span>
                         </Link>
                       </li>
                     );
                   })}
                 </ul>
               ) : (
-                <p className="px-6 text-sm text-muted-foreground">No customers yet. Register the first one to get started.</p>
+                <div className="px-3 py-8 text-center text-muted-foreground">
+                  No pet owners yet — tap <b className="text-foreground">New pet owner</b> above to register the first one.
+                </div>
               )}
             </CardContent>
           </Card>
         )}
+      </div>
 
-        <Card>
-          <CardHeader><CardTitle>Coming next</CardTitle></CardHeader>
-          <CardContent className="grid gap-3 text-sm">
+      {me.can("dashboard.owner") && (
+        <Card className="bg-surface shadow-none">
+          <CardHeader><CardTitle>Coming next to the system</CardTitle></CardHeader>
+          <CardContent className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-5">
             {[
               ["Phase 2", "Appointments, walk-in queue, consultations, vaccinations & prescriptions"],
               ["Phase 3", "Surgery workflow, admissions, discharge"],
-              ["Phase 4", "Billing, dues & ledger, POS, inventory, suppliers"],
-              ["Phase 5", "WhatsApp reminders, tasks, escalation engine"],
-              ["Phase 6", "Owner analytics & reports"],
+              ["Phase 4", "Billing, dues & ledger, pet store POS, inventory"],
+              ["Phase 5", "WhatsApp reminders, tasks & follow-up alerts"],
+              ["Phase 6", "Owner reports & analytics"],
             ].map(([phase, text]) => (
-              <div key={phase} className="flex gap-3">
-                <span className="w-16 shrink-0 font-mono text-xs text-muted-foreground">{phase}</span>
-                <span>{text}</span>
+              <div key={phase} className="rounded-xl bg-card p-3 ring-1 ring-border">
+                <p className="text-xs font-bold tracking-wide text-brand uppercase">{phase}</p>
+                <p className="mt-1">{text}</p>
               </div>
             ))}
           </CardContent>
         </Card>
-      </div>
-    </>
+      )}
+    </div>
   );
 }

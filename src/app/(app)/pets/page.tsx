@@ -8,7 +8,7 @@ import { Pagination } from "@/components/app/pagination";
 import { requireStaff } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getSpeciesOptions, searchPattern } from "@/lib/queries";
-import { formatAge } from "@/lib/format";
+import { formatAge, sentence } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Pets" };
 const PAGE_SIZE = 25;
@@ -38,18 +38,18 @@ export default async function PetsPage({ searchParams }: PageProps<"/pets">) {
       <form className="mb-4 flex flex-wrap gap-2">
         <Input name="q" defaultValue={q} placeholder="Filter by pet name, ID, microchip…" className="max-w-sm bg-card" />
         <select name="species" defaultValue={speciesFilter}
-          className="h-8 rounded-lg border bg-card px-2 text-sm">
+          className="h-10 rounded-xl border border-input bg-card px-3 text-sm">
           <option value="">All species</option>
           {species.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
         </select>
-        <button className="h-8 rounded-lg border bg-card px-3 text-sm hover:bg-muted" type="submit">Filter</button>
+        <button className="h-10 rounded-xl border border-input bg-card px-4 text-sm font-semibold hover:bg-muted" type="submit">Filter</button>
       </form>
 
       {!pets?.length ? (
         <EmptyState icon={PawPrint} title={q || speciesFilter ? "No matching pets" : "No pets yet"}
           description="Pets are registered from the owner's profile." />
       ) : (
-        <div className="overflow-hidden rounded-xl border bg-card">
+        <div className="overflow-hidden rounded-2xl bg-card shadow-card ring-1 ring-border">
           <Table>
             <TableHeader>
               <TableRow>
@@ -78,7 +78,7 @@ export default async function PetsPage({ searchParams }: PageProps<"/pets">) {
                     <TableCell className="hidden md:table-cell">{formatAge(p.date_of_birth, p.dob_is_estimate)}</TableCell>
                     <TableCell className="hidden md:table-cell">{owner?.full_name}</TableCell>
                     <TableCell className="text-right">
-                      <StatusPill tone={p.status === "active" ? "success" : "neutral"}>{p.status}</StatusPill>
+                      <StatusPill tone={p.status === "active" ? "success" : "neutral"}>{sentence(p.status)}</StatusPill>
                     </TableCell>
                   </TableRow>
                 );

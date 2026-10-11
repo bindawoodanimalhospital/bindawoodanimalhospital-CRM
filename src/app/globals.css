@@ -2,9 +2,23 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
+/*
+ * BDAH design tokens — see docs/DESIGN.md.
+ * Light theme only. Ink (near-black) + white, warm neutral greys, and a pinch of burgundy
+ * for the brand, the primary action on each screen, and "you are here" states.
+ * Status colours (green/amber/blue/red) are used only to communicate state.
+ */
 
 @theme inline {
   --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-muted: var(--brand-muted);
+  --color-brand-strong: var(--brand-strong);
+  --color-ink: var(--ink);
+  --color-surface: var(--surface);
   --color-success: var(--success);
   --color-success-soft: var(--success-soft);
   --color-warning: var(--warning);
@@ -13,7 +27,6 @@
   --color-info-soft: var(--info-soft);
   --color-danger: var(--danger);
   --color-danger-soft: var(--danger-soft);
-  --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-sans);
@@ -53,67 +66,116 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+  --shadow-card: 0 1px 2px oklch(0.2 0.02 20 / 0.04), 0 4px 16px -4px oklch(0.2 0.02 20 / 0.06);
+  --shadow-float: 0 2px 4px oklch(0.2 0.02 20 / 0.04), 0 16px 40px -8px oklch(0.2 0.02 20 / 0.14);
 }
 
 :root {
   color-scheme: light;
-  --background: oklch(0.985 0 0);
-  --foreground: oklch(0.145 0 0);
+
+  /* Brand — burgundy */
+  --brand: oklch(0.42 0.135 12);          /* #7a1f30 */
+  --brand-strong: oklch(0.33 0.11 12);    /* #5a1522 — hover / pressed */
+  --brand-foreground: oklch(0.99 0 0);
+  --brand-soft: oklch(0.965 0.014 12);    /* tinted backgrounds */
+  --brand-muted: oklch(0.9 0.04 12);      /* tinted borders */
+
+  /* Neutrals — warm stone, so burgundy sits naturally */
+  --ink: oklch(0.2 0.008 20);             /* near-black text & dark panels */
+  --background: oklch(0.967 0.003 40);    /* app canvas */
+  --surface: oklch(0.985 0.002 40);       /* subtle raised areas */
+  --foreground: oklch(0.2 0.008 20);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  --card-foreground: oklch(0.2 0.008 20);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  /* Status colours — the only colour in an otherwise black & white UI. */
-  --success: oklch(0.55 0.13 155);
-  --success-soft: oklch(0.96 0.04 155);
-  --warning: oklch(0.62 0.14 70);
-  --warning-soft: oklch(0.97 0.05 85);
-  --info: oklch(0.52 0.13 250);
-  --info-soft: oklch(0.96 0.03 250);
-  --danger: oklch(0.55 0.2 27);
-  --danger-soft: oklch(0.96 0.03 27);
-  --sidebar: oklch(1 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --popover-foreground: oklch(0.2 0.008 20);
+  --primary: var(--brand);
+  --primary-foreground: var(--brand-foreground);
+  --secondary: oklch(0.955 0.004 40);
+  --secondary-foreground: oklch(0.2 0.008 20);
+  --muted: oklch(0.955 0.004 40);
+  --muted-foreground: oklch(0.5 0.01 30);
+  --accent: oklch(0.955 0.004 40);
+  --accent-foreground: oklch(0.2 0.008 20);
+  --destructive: oklch(0.56 0.2 30);
+  --border: oklch(0.91 0.005 40);
+  --input: oklch(0.89 0.006 40);
+  --ring: oklch(0.42 0.135 12 / 0.45);
+  --radius: 0.75rem;
+
+  /* Charts: burgundy first, then inks and warm greys */
+  --chart-1: oklch(0.42 0.135 12);
+  --chart-2: oklch(0.2 0.008 20);
+  --chart-3: oklch(0.62 0.09 12);
+  --chart-4: oklch(0.55 0.01 30);
+  --chart-5: oklch(0.8 0.04 12);
+
+  /* Status */
+  --success: oklch(0.52 0.12 155);
+  --success-soft: oklch(0.96 0.035 155);
+  --warning: oklch(0.58 0.13 65);
+  --warning-soft: oklch(0.965 0.05 85);
+  --info: oklch(0.5 0.12 250);
+  --info-soft: oklch(0.96 0.025 250);
+  --danger: oklch(0.55 0.2 30);
+  --danger-soft: oklch(0.96 0.03 30);
+
+  /* Sidebar sits on the canvas; content floats on a white panel (inset layout) */
+  --sidebar: var(--background);
+  --sidebar-foreground: oklch(0.3 0.01 20);
+  --sidebar-primary: var(--brand);
+  --sidebar-primary-foreground: var(--brand-foreground);
+  --sidebar-accent: oklch(0.93 0.006 30);
+  --sidebar-accent-foreground: oklch(0.2 0.008 20);
+  --sidebar-border: oklch(0.91 0.005 40);
+  --sidebar-ring: var(--ring);
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    /* 17px base: easier reading for everyone, especially on clinic monitors. */
+    font-size: 106.25%;
+    @apply font-sans;
+  }
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "cv11", "ss01";
+  }
+  h1, h2, h3 {
+    @apply font-heading;
   }
   button:not(:disabled), [role="button"]:not(:disabled) {
     cursor: pointer;
   }
-  html {
-    @apply font-sans;
+  ::selection {
+    background: var(--brand-muted);
   }
 }
+
+/* Burgundy gradients — brand surfaces only (buttons, logo tile, hero banners). */
+@utility bg-brand-gradient {
+  background-image: linear-gradient(180deg, oklch(0.48 0.145 12) 0%, var(--brand) 55%, oklch(0.37 0.12 12) 100%);
+}
+@utility bg-brand-gradient-hover {
+  background-image: linear-gradient(180deg, oklch(0.43 0.135 12) 0%, var(--brand-strong) 100%);
+}
+@utility bg-hero-gradient {
+  background-image:
+    radial-gradient(70% 120% at 100% 0%, oklch(0.5 0.16 12 / 0.85), transparent 60%),
+    radial-gradient(60% 90% at 0% 100%, oklch(0.36 0.12 12 / 0.7), transparent 65%),
+    linear-gradient(135deg, oklch(0.3 0.09 12) 0%, var(--ink) 70%);
+}
+@utility bg-brand-wash {
+  background-image: linear-gradient(135deg, var(--brand-soft) 0%, oklch(1 0 0) 70%);
+}
+
+@utility tabular {
+  font-variant-numeric: tabular-nums;
+}
+
 @media print {
   body { background: white; }
   .no-print { display: none !important; }

@@ -9,7 +9,7 @@ import { Field, PageHeader, StatusPill } from "@/components/app/page-header";
 import { NoticeToast } from "@/components/app/notice-toast";
 import { requireStaff } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { formatAge, formatDate, formatDateTime } from "@/lib/format";
+import { formatAge, formatDate, formatDateTime, sentence } from "@/lib/format";
 import { formatPhone, whatsappLink } from "@/lib/phone";
 import { AddOwnerDialog, AlertForm, MakePrimaryButton, ResolveAlertButton, WeightForm } from "./widgets";
 
@@ -55,10 +55,10 @@ export default async function PetPage({ params }: PageProps<"/pets/[id]">) {
         back={owners[0] ? { href: `/customers/${owners[0].customers.id}`, label: owners[0].customers.full_name } : { href: "/pets", label: "Pets" }}
         title={
           <span className="flex flex-wrap items-center gap-3">
-            <span className="flex size-10 items-center justify-center rounded-full bg-muted"><PawPrint className="size-5" /></span>
+            <span className="flex size-12 items-center justify-center rounded-2xl bg-brand-soft text-brand"><PawPrint className="size-6" /></span>
             {p.name}
             <span className="font-mono text-sm font-normal text-muted-foreground">{p.code}</span>
-            <StatusPill tone={p.status === "active" ? "success" : "neutral"}>{p.status}</StatusPill>
+            <StatusPill tone={p.status === "active" ? "success" : "neutral"}>{sentence(p.status)}</StatusPill>
           </span>
         }
         description={[species?.name, breed?.name ?? p.breed_text,

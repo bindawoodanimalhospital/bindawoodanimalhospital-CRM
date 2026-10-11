@@ -40,3 +40,8 @@ export function formatAge(dob: string | null | undefined, estimate = false): str
 export function initials(name: string | null | undefined): string {
   return (name ?? "").trim().split(/\s+/).slice(0, 2).map((p) => p[0]?.toUpperCase() ?? "").join("");
 }
+
+/** "active" → "Active" (first letter only; leaves the rest untouched). */
+export function sentence(s: string | null | undefined): string {
+  return s ? s[0].toUpperCase() + s.slice(1) : "";
+}

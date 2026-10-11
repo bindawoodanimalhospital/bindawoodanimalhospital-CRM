@@ -10,8 +10,8 @@ export default async function NoAccessPage() {
     <main className="flex min-h-svh items-center justify-center p-4">
       <div className="w-full max-w-md text-center">
         <Logo className="mb-8 justify-center" />
-        <div className="rounded-xl border bg-card p-8 shadow-xs">
-          <ShieldAlert className="mx-auto mb-3 size-8 text-warning" />
+        <div className="rounded-3xl bg-card p-10 shadow-float ring-1 ring-border">
+          <span className="mx-auto mb-4 flex size-14 items-center justify-center rounded-2xl bg-warning-soft text-warning"><ShieldAlert className="size-7" /></span>
           <h1 className="text-lg font-semibold">Your account isn&apos;t active yet</h1>
           <p className="mt-2 text-sm text-muted-foreground">
             {me?.email ? <>Signed in as <b>{me.email}</b>. </> : null}

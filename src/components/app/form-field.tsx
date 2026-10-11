@@ -20,7 +20,7 @@ export function FormField({
       </Label>
       {children}
       {error ? (
-        <p className="text-xs text-danger">{error}</p>
+        <p className="text-sm font-medium text-danger">{error}</p>
       ) : hint ? (
         <p className="text-xs text-muted-foreground">{hint}</p>
       ) : null}
@@ -32,10 +32,10 @@ export function FormSection({ title, description, children, className }: {
   title: string; description?: string; children: React.ReactNode; className?: string;
 }) {
   return (
-    <section className={cn("rounded-xl border bg-card p-5", className)}>
-      <h2 className="text-sm font-semibold">{title}</h2>
-      {description && <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>}
-      <div className="mt-4 grid gap-4 sm:grid-cols-2">{children}</div>
+    <section className={cn("rounded-2xl bg-card p-6 shadow-card ring-1 ring-border", className)}>
+      <h2 className="text-lg font-semibold">{title}</h2>
+      {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}
+      <div className="mt-5 grid gap-5 sm:grid-cols-2">{children}</div>
     </section>
   );
 }

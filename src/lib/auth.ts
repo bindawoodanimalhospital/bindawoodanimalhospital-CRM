@@ -10,6 +10,7 @@ export type CurrentStaff = {
   fullName: string;
   title: string | null;
   isActive: boolean;
+  isDoctor: boolean;
   roles: { key: string; name: string }[];
   permissions: Set<Permission>;
   can: (p: Permission) => boolean;
@@ -23,7 +24,7 @@ export const getCurrentStaff = cache(async (): Promise<CurrentStaff | null> => {
   if (!userId) return null;
 
   const [{ data: staff }, { data: perms }, { data: roles }] = await Promise.all([
-    supabase.from("staff").select("id, email, full_name, title, is_active").eq("id", userId).maybeSingle(),
+    supabase.from("staff").select("id, email, full_name, title, is_active, is_doctor").eq("id", userId).maybeSingle(),
     supabase.rpc("my_permissions"),
     supabase
       .from("staff_roles")
@@ -39,6 +40,7 @@ export const getCurrentStaff = cache(async (): Promise<CurrentStaff | null> => {
     fullName: staff?.full_name || (claims.claims.email as string | undefined) || "Staff",
     title: staff?.title ?? null,
     isActive: Boolean(staff?.is_active),
+    isDoctor: Boolean(staff?.is_doctor),
     roles: (roles ?? [])
       .filter((r) => new Date(r.valid_from).getTime() <= now && (!r.valid_until || new Date(r.valid_until).getTime() > now))
       .flatMap((r) => (r.roles ? [r.roles as unknown as { key: string; name: string }] : [])),

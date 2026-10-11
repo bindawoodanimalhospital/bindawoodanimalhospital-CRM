@@ -12,16 +12,16 @@ export function PageHeader({
   className?: string;
 }) {
   return (
-    <div className={cn("mb-6", className)}>
+    <div className={cn("mb-8", className)}>
       {back && (
-        <Link href={back.href} className="mb-2 inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+        <Link href={back.href} className="mb-3 inline-flex items-center gap-1 rounded-lg text-sm font-medium text-muted-foreground hover:text-brand">
           <ChevronLeft className="size-4" /> {back.label}
         </Link>
       )}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="text-xl font-semibold tracking-tight md:text-2xl">{title}</h1>
-          {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}
+          <h1 className="text-2xl font-bold tracking-tight md:text-3xl">{title}</h1>
+          {description && <p className="mt-1.5 text-muted-foreground">{description}</p>}
         </div>
         {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
       </div>
@@ -36,9 +36,9 @@ export function EmptyState({ icon: Icon, title, description, action }: {
   action?: React.ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center rounded-xl border border-dashed bg-card px-6 py-14 text-center">
-      <Icon className="mb-3 size-8 text-muted-foreground" />
-      <p className="font-medium">{title}</p>
+    <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed bg-surface px-6 py-16 text-center">
+      <span className="mb-4 flex size-14 items-center justify-center rounded-2xl bg-brand-soft text-brand"><Icon className="size-7" /></span>
+      <p className="text-lg font-semibold">{title}</p>
       {description && <p className="mt-1 max-w-sm text-sm text-muted-foreground">{description}</p>}
       {action && <div className="mt-4">{action}</div>}
     </div>
@@ -50,7 +50,7 @@ export function Field({ label, children, className }: { label: string; children:
   return (
     <div className={cn("min-w-0", className)}>
       <dt className="text-xs text-muted-foreground">{label}</dt>
-      <dd className="mt-0.5 truncate text-sm">{children || <span className="text-muted-foreground">—</span>}</dd>
+      <dd className="mt-1 truncate font-medium">{children || <span className="text-muted-foreground">—</span>}</dd>
     </div>
   );
 }
@@ -61,13 +61,14 @@ const TONES = {
   warning: "bg-warning-soft text-warning",
   danger: "bg-danger-soft text-danger",
   info: "bg-info-soft text-info",
+  brand: "bg-brand-soft text-brand",
 } as const;
 
 export function StatusPill({ tone = "neutral", children, className }: {
   tone?: keyof typeof TONES; children: React.ReactNode; className?: string;
 }) {
   return (
-    <span className={cn("inline-flex h-5 items-center rounded-full px-2 text-xs font-medium whitespace-nowrap", TONES[tone], className)}>
+    <span className={cn("inline-flex h-6 items-center rounded-full px-2.5 text-xs font-semibold whitespace-nowrap", TONES[tone], className)}>
       {children}
     </span>
   );

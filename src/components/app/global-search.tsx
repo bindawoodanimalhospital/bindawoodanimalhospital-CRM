@@ -9,6 +9,9 @@ import { CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } fr
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
 
+/** Dispatch on window to open the search dialog from anywhere (e.g. dashboard tiles). */
+export const OPEN_SEARCH_EVENT = "bdah:open-search";
+
 type Hit = { kind: "customer" | "pet"; id: string; code: string; title: string; subtitle: string };
 
 /** Ctrl/⌘+K (or "/") search across customers & pets by name, phone, ID or microchip. Results are filtered by RLS. */
@@ -27,8 +30,13 @@ export function GlobalSearch() {
         setOpen((o) => !o);
       }
     };
+    const onOpen = () => setOpen(true);
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener(OPEN_SEARCH_EVENT, onOpen);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener(OPEN_SEARCH_EVENT, onOpen);
+    };
   }, []);
 
   const onQueryChange = (value: string) => {
@@ -65,19 +73,19 @@ export function GlobalSearch() {
 
   return (
     <>
-      <Button variant="outline" onClick={() => setOpen(true)}
-        className="h-9 w-full max-w-md justify-start gap-2 bg-background font-normal text-muted-foreground">
-        <Search className="size-4" />
-        <span className="truncate">Search pet, owner, phone, ID…</span>
-        <kbd className="ml-auto hidden rounded border bg-muted px-1.5 font-mono text-[10px] sm:inline">Ctrl K</kbd>
+      <Button variant="ghost" onClick={() => setOpen(true)}
+        className="h-11 w-full max-w-xl justify-start gap-2.5 rounded-xl bg-muted/80 px-4 font-normal text-muted-foreground ring-1 ring-transparent hover:bg-muted hover:ring-border">
+        <Search className="size-[18px]" />
+        <span className="truncate">Search a pet, owner or phone number…</span>
+        <kbd className="ml-auto hidden rounded-md border bg-card px-1.5 py-0.5 font-mono text-[10px] sm:inline">Ctrl K</kbd>
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="top-[20%] translate-y-0 overflow-hidden p-0 sm:max-w-xl" showCloseButton={false}>
+        <DialogContent className="top-[15%] translate-y-0 overflow-hidden rounded-2xl p-0 shadow-float sm:max-w-2xl" showCloseButton={false}>
           <DialogTitle className="sr-only">Search</DialogTitle>
           <DialogDescription className="sr-only">Search customers and pets</DialogDescription>
           {/* Matching happens in Postgres (fuzzy + phone), so cmdk's own filter is off. */}
           <CommandPrimitive shouldFilter={false} className="flex flex-col">
-            <CommandInput placeholder="Pet name, owner, 0300…, C-00012, microchip…" value={query} onValueChange={onQueryChange} />
+            <CommandInput placeholder="Type a pet name, owner name, 0300… number, or ID" value={query} onValueChange={onQueryChange} />
             <CommandList className="max-h-[60vh]">
               {loading && (
                 <div className="flex items-center gap-2 p-3 text-sm text-muted-foreground">

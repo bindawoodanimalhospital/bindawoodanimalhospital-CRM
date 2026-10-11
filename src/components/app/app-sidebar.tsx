@@ -2,10 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LogOut } from "lucide-react";
+import { ChevronsUpDown, LogOut } from "lucide-react";
 import {
   Sidebar, SidebarContent, SidebarFooter, SidebarGroup, SidebarGroupLabel, SidebarHeader, SidebarMenu,
-  SidebarMenuBadge, SidebarMenuButton, SidebarMenuItem, SidebarRail,
+  SidebarMenuButton, SidebarMenuItem, SidebarRail, useSidebar,
 } from "@/components/ui/sidebar";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -23,6 +23,7 @@ type Props = {
 
 export function AppSidebar({ permissions, user }: Props) {
   const pathname = usePathname();
+  const { setOpenMobile } = useSidebar();
   const perms = new Set(permissions);
   const groups = NAV.map((g) => ({
     ...g,
@@ -30,35 +31,27 @@ export function AppSidebar({ permissions, user }: Props) {
   })).filter((g) => g.items.length);
 
   return (
-    <Sidebar collapsible="icon">
-      <SidebarHeader className="h-14 justify-center border-b px-3">
-        <Link href="/dashboard" className="outline-none">
+    <Sidebar collapsible="icon" variant="inset">
+      <SidebarHeader className="px-2 pt-3 pb-4">
+        <Link href="/dashboard" className="rounded-xl outline-none" onClick={() => setOpenMobile(false)}>
           <Logo className="group-data-[collapsible=icon]:[&>div:last-child]:hidden" />
         </Link>
       </SidebarHeader>
       <SidebarContent>
-        {groups.map((group) => (
-          <SidebarGroup key={group.label}>
-            <SidebarGroupLabel>{group.label}</SidebarGroupLabel>
-            <SidebarMenu>
+        {groups.map((group, i) => (
+          <SidebarGroup key={group.label ?? i}>
+            {group.label && <SidebarGroupLabel className="text-[11px] tracking-wider uppercase">{group.label}</SidebarGroupLabel>}
+            <SidebarMenu className="gap-1">
               {group.items.map((item) => {
                 const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
                 return (
                   <SidebarMenuItem key={item.href}>
-                    {item.soon ? (
-                      <SidebarMenuButton disabled tooltip={`${item.title} — ${item.soon}`} className="opacity-45">
+                    <SidebarMenuButton asChild isActive={active} tooltip={item.title}>
+                      <Link href={item.href} onClick={() => setOpenMobile(false)}>
                         <item.icon />
                         <span>{item.title}</span>
-                      </SidebarMenuButton>
-                    ) : (
-                      <SidebarMenuButton asChild isActive={active} tooltip={item.title}>
-                        <Link href={item.href}>
-                          <item.icon />
-                          <span>{item.title}</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    )}
-                    {item.soon && <SidebarMenuBadge className="text-[10px] text-muted-foreground">soon</SidebarMenuBadge>}
+                      </Link>
+                    </SidebarMenuButton>
                   </SidebarMenuItem>
                 );
               })}
@@ -66,24 +59,25 @@ export function AppSidebar({ permissions, user }: Props) {
           </SidebarGroup>
         ))}
       </SidebarContent>
-      <SidebarFooter className="border-t">
+      <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <SidebarMenuButton size="lg">
-                  <Avatar className="size-8 rounded-lg">
-                    <AvatarFallback className="rounded-lg bg-muted text-xs">{initials(user.name)}</AvatarFallback>
+                <SidebarMenuButton size="lg" className="data-[state=open]:bg-sidebar-accent">
+                  <Avatar className="size-9 rounded-xl">
+                    <AvatarFallback className="rounded-xl bg-ink text-xs font-semibold text-white">{initials(user.name)}</AvatarFallback>
                   </Avatar>
-                  <div className="grid flex-1 text-left text-sm leading-tight">
-                    <span className="truncate font-medium">{user.name}</span>
+                  <div className="grid flex-1 text-left leading-tight">
+                    <span className="truncate text-sm font-semibold">{user.name}</span>
                     <span className="truncate text-xs text-muted-foreground">{user.roles.join(" + ") || "No role"}</span>
                   </div>
+                  <ChevronsUpDown className="text-muted-foreground" />
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
-              <DropdownMenuContent side="top" align="start" className="w-56">
+              <DropdownMenuContent side="top" align="start" className="w-60 rounded-xl">
                 <DropdownMenuLabel className="font-normal">
-                  <div className="text-sm font-medium">{user.name}</div>
+                  <div className="text-sm font-semibold">{user.name}</div>
                   <div className="text-xs text-muted-foreground">{user.email}</div>
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
