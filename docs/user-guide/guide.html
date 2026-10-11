@@ -1,0 +1,488 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Bin Dawood Animal Hospital CRM — User Guide</title>
+<style>
+  @page { size: A4; margin: 16mm 15mm 18mm; }
+  @page :first { margin: 0; }
+  :root { --brand:#8a1f35; --brand2:#5a1222; --soft:#f8eef0; --ink:#1f1a1b; --muted:#6b6264; --line:#eadfe1; --ok:#1f7a4d; --okbg:#e8f5ee; --warn:#9a5b00; --warnbg:#fff4e0; --info:#1d5fa0; --infobg:#e8f1fb; }
+  * { box-sizing: border-box; }
+  html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { margin:0; font-family: "Segoe UI", "Helvetica Neue", Arial, sans-serif; color:var(--ink); font-size:10.6pt; line-height:1.55; }
+  h1,h2,h3 { font-family: "Segoe UI Semibold", "Segoe UI", Arial, sans-serif; letter-spacing:-0.01em; }
+  a { color: var(--brand); text-decoration: none; }
+
+  /* Cover */
+  .cover { height:297mm; width:210mm; position:relative; overflow:hidden; color:#fff; page-break-after:always;
+    background: radial-gradient(70% 60% at 100% 0%, #a8304c 0%, transparent 60%), radial-gradient(60% 50% at 0% 100%, #5e1526 0%, transparent 65%), linear-gradient(150deg, #4a1020 0%, #1f1416 75%); }
+  .cover .grid { position:absolute; inset:0; opacity:.05; background-image:linear-gradient(#fff 1px,transparent 1px),linear-gradient(90deg,#fff 1px,transparent 1px); background-size:14mm 14mm; }
+  .cover .inner { position:absolute; inset:0; padding:28mm 22mm; display:flex; flex-direction:column; }
+  .cover .lockup { width:110mm; margin-top:8mm; }
+  .cover .kicker { margin-top:auto; font-size:10pt; letter-spacing:.32em; text-transform:uppercase; color:#f3c9d3; }
+  .cover h1 { font-size:40pt; line-height:1.05; margin:4mm 0 5mm; }
+  .cover .sub { font-size:13pt; color:#f1dfe3; max-width:140mm; }
+  .cover .meta { margin-top:16mm; display:flex; gap:10mm; font-size:10pt; color:#e9d3d8; border-top:1px solid rgba(255,255,255,.25); padding-top:6mm; }
+  .cover .meta b { display:block; color:#fff; font-size:11pt; }
+  .cover .meta a { color:#fff; }
+
+  /* Pages */
+  .chapter { page-break-before: always; }
+  .chapter-head { display:flex; align-items:center; gap:5mm; border-bottom:2.5px solid var(--brand); padding-bottom:3mm; margin-bottom:5mm; }
+  .chapter-head .num { width:12mm; height:12mm; border-radius:3.5mm; background:linear-gradient(180deg,#a8304c,var(--brand2)); color:#fff; font-weight:700; font-size:15pt; display:flex; align-items:center; justify-content:center; flex:none; }
+  .chapter-head h2 { margin:0; font-size:20pt; color:var(--ink); }
+  .chapter-head p { margin:0; color:var(--muted); font-size:10pt; }
+  h3 { font-size:12.5pt; color:var(--brand); margin:6mm 0 2mm; break-after: avoid; }
+  p { margin: 0 0 2.6mm; }
+  ul, ol { margin: 0 0 3mm; padding-left: 5.5mm; }
+  li { margin: .6mm 0; }
+  .muted { color: var(--muted); }
+  .ui { display:inline-block; padding:0 2mm; border-radius:1.6mm; background:#f2ecee; border:1px solid var(--line); font-weight:600; font-size:9.6pt; white-space:nowrap; }
+  .btn { display:inline-block; padding:0 2.4mm; border-radius:1.8mm; background:var(--brand); color:#fff; font-weight:600; font-size:9.4pt; white-space:nowrap; }
+  code { font-family: Consolas, monospace; background:#f2ecee; padding:0 1.2mm; border-radius:1mm; font-size:9.4pt; }
+
+  .box { border-radius:3mm; padding:3.5mm 4.5mm; margin:3mm 0 4mm; break-inside: avoid; }
+  .box b.t { display:block; margin-bottom:1mm; }
+  .tip { background:var(--okbg); border-left:4px solid var(--ok); }
+  .tip b.t { color:var(--ok); }
+  .warn { background:var(--warnbg); border-left:4px solid #d08a1c; }
+  .warn b.t { color:var(--warn); }
+  .note { background:var(--infobg); border-left:4px solid var(--info); }
+  .note b.t { color:var(--info); }
+
+  .steps { counter-reset: s; list-style:none; padding:0; margin:2mm 0 4mm; }
+  .steps > li { counter-increment: s; position:relative; padding:2.2mm 0 2.2mm 11mm; border-bottom:1px dashed var(--line); break-inside: avoid; }
+  .steps > li:last-child { border-bottom:0; }
+  .steps > li::before { content: counter(s); position:absolute; left:0; top:2mm; width:7mm; height:7mm; border-radius:50%; background:var(--soft); color:var(--brand); font-weight:700; display:flex; align-items:center; justify-content:center; font-size:9.5pt; border:1px solid #e6c9d0; }
+
+  table { width:100%; border-collapse:collapse; margin:2mm 0 4mm; font-size:9.6pt; break-inside:auto; }
+  th { text-align:left; background:var(--soft); color:var(--brand2); font-weight:700; padding:2mm 2.5mm; border-bottom:1.5px solid #e2c3ca; }
+  td { padding:1.8mm 2.5mm; border-bottom:1px solid var(--line); vertical-align:top; }
+  tr { break-inside: avoid; }
+  .yes { color:var(--ok); font-weight:700; } .no { color:#b9aeb1; }
+
+  .cards { display:grid; grid-template-columns: 1fr 1fr; gap:3.5mm; margin:3mm 0 4mm; }
+  .card { border:1px solid var(--line); border-radius:3mm; padding:3.2mm 4mm; break-inside: avoid; background:#fff; }
+  .card h4 { margin:0 0 1mm; font-size:10.8pt; color:var(--ink); }
+  .card p { margin:0; font-size:9.6pt; color:var(--muted); }
+  .card .tag { font-size:8.4pt; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--brand); }
+
+  /* Flow diagram */
+  .flow { display:flex; flex-wrap:wrap; align-items:center; gap:2mm; margin:3mm 0 5mm; }
+  .flow .n { border:1.5px solid #e2c3ca; background:var(--soft); color:var(--brand2); border-radius:2.5mm; padding:1.8mm 3mm; font-weight:700; font-size:9.8pt; }
+  .flow .n.dark { background:var(--brand); color:#fff; border-color:var(--brand); }
+  .flow .a { color:#c08a96; font-weight:700; }
+
+  .toc { columns: 2; column-gap: 10mm; padding:0; list-style:none; margin-top:4mm; }
+  .toc li { break-inside: avoid; display:flex; gap:3mm; padding:2mm 0; border-bottom:1px solid var(--line); }
+  .toc .n { color:var(--brand); font-weight:700; width:7mm; flex:none; }
+  .toc small { display:block; color:var(--muted); font-size:9pt; }
+
+  .footer-credit { margin-top:10mm; text-align:center; color:var(--muted); font-size:9.5pt; }
+  .back { height:250mm; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; }
+  .back img { width:30mm; margin-bottom:6mm; }
+  .back h2 { font-size:22pt; margin:0 0 2mm; }
+</style>
+</head>
+<body>
+
+<!-- ============================== COVER ============================== -->
+<section class="cover">
+  <div class="grid"></div>
+  <div class="inner">
+    <img class="lockup" src="../../public/brand/bdah-lockup-white.png" alt="Bin Dawood Animal Hospital">
+    <div class="kicker">Clinic Management System</div>
+    <h1>User Guide<br>&amp; Owner's Manual</h1>
+    <div class="sub">Everything the clinic's CRM can do, how each part connects, and step-by-step instructions for every daily task — from the front desk to the ward, the pet store and the owner's reports.</div>
+    <div class="meta">
+      <div><b>Open the CRM</b><a href="https://bdah-crm.bindawoodanimalhospital.workers.dev">bdah-crm.bindawoodanimalhospital.workers.dev</a></div>
+      <div><b>Version</b>October 2026</div>
+      <div><b>Prepared by</b><a href="https://omerbindawood.github.io/Portfolio-Website/">OBD</a></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================== CONTENTS ============================== -->
+<section>
+  <div class="chapter-head"><div class="num">◆</div><div><h2>Contents</h2><p>Read chapters 1–3 once; use the rest as a reference while working.</p></div></div>
+  <ol class="toc">
+    <li><span class="n">1</span><span>Getting started<small>Opening the CRM, signing in, phones</small></span></li>
+    <li><span class="n">2</span><span>How everything connects<small>Owners, pets, visits, bills, reminders</small></span></li>
+    <li><span class="n">3</span><span>Finding your way around<small>Menu, Home page, smart search</small></span></li>
+    <li><span class="n">4</span><span>Pet owners &amp; pets<small>Registering, editing, alerts, merging</small></span></li>
+    <li><span class="n">5</span><span>Today's queue &amp; appointments<small>Tokens, check-in, booking</small></span></li>
+    <li><span class="n">6</span><span>The visit: doctor's work<small>Consultation, prescriptions, vaccines, tests</small></span></li>
+    <li><span class="n">7</span><span>Surgery &amp; ward<small>Consent, theatre, admissions, doses</small></span></li>
+    <li><span class="n">8</span><span>Billing &amp; payments<small>Bills, unpaid bills, returns, statements</small></span></li>
+    <li><span class="n">9</span><span>Pet store &amp; home delivery<small>POS, cash on delivery, home visits</small></span></li>
+    <li><span class="n">10</span><span>Inventory &amp; suppliers<small>Stock, expiry, deliveries, borrow/lend</small></span></li>
+    <li><span class="n">11</span><span>Follow-ups &amp; reminders<small>Due list, WhatsApp messages, tasks, alerts</small></span></li>
+    <li><span class="n">12</span><span>Full histories<small>Every visit of a pet or an owner's family</small></span></li>
+    <li><span class="n">13</span><span>Expenses &amp; reports<small>Money, activity, stock, data checks</small></span></li>
+    <li><span class="n">14</span><span>Owner &amp; admin<small>Staff, permissions, activity log, settings</small></span></li>
+    <li><span class="n">15</span><span>Built-in safety<small>What the system protects automatically</small></span></li>
+    <li><span class="n">16</span><span>Quick answers<small>Common questions &amp; troubleshooting</small></span></li>
+  </ol>
+  <div class="box note"><b class="t">How to read this guide</b>Words in a grey box such as <span class="ui">Today's queue</span> are names you will see on screen. A maroon box such as <span class="btn">Check in a pet</span> is a button you press.</div>
+</section>
+
+<!-- ============================== 1 ============================== -->
+<section class="chapter">
+  <div class="chapter-head"><div class="num">1</div><div><h2>Getting started</h2><p>One web address, any device, no installation.</p></div></div>
+  <h3>Opening the CRM</h3>
+  <p>The CRM is a website. Open it in Chrome, Edge or Safari on any computer, tablet or phone:</p>
+  <p style="font-size:13pt"><a href="https://bdah-crm.bindawoodanimalhospital.workers.dev"><b>bdah-crm.bindawoodanimalhospital.workers.dev</b></a></p>
+  <div class="box tip"><b class="t">Tip — make it one tap away</b>On the reception computer, bookmark the address. On a phone, open it and choose <i>Add to Home screen</i>; it then opens like an app.</div>
+  <h3>Signing in</h3>
+  <ol class="steps">
+    <li>Type the email and password the hospital admin gave you, then press <span class="btn">Sign in</span>.</li>
+    <li>You land on the <span class="ui">Home</span> page, which shows only what your role is allowed to use.</li>
+    <li>When you finish, open the menu at the bottom-left (your name) and choose <b>Sign out</b> — especially on shared computers.</li>
+  </ol>
+  <div class="box warn"><b class="t">Forgot your password?</b>There is no self-service reset on purpose. Ask the Owner/Admin, who can reset it from <span class="ui">Staff</span>. Every reset is recorded in the activity log.</div>
+  <h3>Accounts and roles</h3>
+  <p>Each staff member has their own login. Never share logins — the system records who did what, and it can only be accurate if everyone uses their own account. What each person sees and can do depends on their <b>role</b>:</p>
+  <table>
+    <tr><th>Role</th><th>Typical person</th><th>Main areas</th></tr>
+    <tr><td><b>Owner / Admin</b></td><td>Dr. Musab</td><td>Everything, including staff, permissions, reports and the activity log</td></tr>
+    <tr><td><b>Senior Doctor</b></td><td>Experienced vets</td><td>All clinical work, surgery, ward, finalising notes, billing</td></tr>
+    <tr><td><b>Junior Doctor</b></td><td>Newer vets</td><td>Consultations, prescriptions, vaccines, tests (with senior oversight)</td></tr>
+    <tr><td><b>Intern</b></td><td>Trainees</td><td>Viewing records and assisting; limited changes</td></tr>
+    <tr><td><b>Reception / Front Desk</b></td><td>Receptionist</td><td>Owners &amp; pets, queue, appointments, bills, payments, reminders</td></tr>
+    <tr><td><b>Finance / Manager</b></td><td>Accounts</td><td>Bills, unpaid bills, expenses, financial reports</td></tr>
+    <tr><td><b>Inventory / Pharmacy</b></td><td>Pharmacist</td><td>Stock, batches, expiry, suppliers, borrowed &amp; lent stock</td></tr>
+    <tr><td><b>Store Staff</b></td><td>Pet-store counter</td><td>Pet store sales, deliveries, products — no medical records</td></tr>
+  </table>
+  <p class="muted">The exact permissions of every role can be viewed and adjusted by the owner in <span class="ui">Who can do what</span> (chapter 14).</p>
+</section>
+
+<!-- ============================== 2 ============================== -->
+<section class="chapter">
+  <div class="chapter-head"><div class="num">2</div><div><h2>How everything connects</h2><p>Understand this page and the rest of the system makes sense.</p></div></div>
+  <p>Everything in the CRM hangs off two records: the <b>pet owner</b> (the paying customer) and the <b>pet</b> (the patient). Each visit of a pet produces the medical work, and the medical work produces the bill.</p>
+  <div class="flow">
+    <span class="n dark">Pet owner</span><span class="a">→</span><span class="n dark">Pet</span><span class="a">→</span><span class="n">Visit (token)</span><span class="a">→</span><span class="n">Consultation</span><span class="a">→</span><span class="n">Prescription · Vaccine · Test</span><span class="a">→</span><span class="n">Bill</span><span class="a">→</span><span class="n">Payment</span>
+  </div>
+  <div class="cards">
+    <div class="card"><div class="tag">Owner ↔ Pets</div><h4>One owner, many pets — one pet, several owners</h4><p>A family can share a pet. Each pet has one <i>primary</i> owner who receives reminders and bills.</p></div>
+    <div class="card"><div class="tag">Visit</div><h4>Every time a pet comes in</h4><p>Checking a pet in creates a visit with today's token number. Everything the doctor does is saved inside that visit.</p></div>
+    <div class="card"><div class="tag">Bill</div><h4>Built from the visit</h4><p>Services, medicines and vaccines from the visit go onto one bill. Medicines on a bill reduce stock automatically.</p></div>
+    <div class="card"><div class="tag">Unpaid bill</div><h4>Pay later, with a promise date</h4><p>If an owner pays part, the rest becomes an unpaid bill with a promised date, and payment reminders follow.</p></div>
+    <div class="card"><div class="tag">Reminders</div><h4>Created automatically</h4><p>A vaccine sets the next due date; a consultation can set a follow-up. These appear in <span class="ui">Due &amp; follow-ups</span> and become WhatsApp messages.</p></div>
+    <div class="card"><div class="tag">From a visit</div><h4>Surgery and ward stays</h4><p>A doctor can plan surgery or admit the pet to the ward from the visit; their costs join the pet's bills.</p></div>
+    <div class="card"><div class="tag">Stock</div><h4>Pet store and medicines</h4><p>Pet-store sales and billed medicines take stock out; supplier deliveries and borrowed stock put it back in.</p></div>
+    <div class="card"><div class="tag">Everything</div><h4>Recorded in the activity log</h4><p>Every sign-in, page opened, print and change — who, what and when — is kept and cannot be edited.</p></div>
+  </div>
+  <div class="box tip"><b class="t">In one sentence</b>Register the owner and pet once; after that every visit, medicine, vaccine, bill, payment, call and reminder is linked to them, so the full history is always one tap away.</div>
+</section>
+
+<!-- ============================== 3 ============================== -->
+<section class="chapter">
+  <div class="chapter-head"><div class="num">3</div><div><h2>Finding your way around</h2><p>The menu, the Home page and the smart search.</p></div></div>
+  <h3>The menu (left side)</h3>
+  <table>
+    <tr><th style="width:30%">Section</th><th>Pages</th></tr>
+    <tr><td><b>Today</b></td><td><span class="ui">Home</span> <span class="ui">Today's queue</span> <span class="ui">Appointments</span> <span class="ui">Surgery</span> <span class="ui">Ward</span></td></tr>
+    <tr><td><b>Follow-up</b></td><td><span class="ui">Messages to send</span> <span class="ui">Tasks</span> <span class="ui">Due &amp; follow-ups</span> <span class="ui">Alert centre</span></td></tr>
+    <tr><td><b>Records</b></td><td><span class="ui">Pet owners</span> <span class="ui">Pets</span></td></tr>
+    <tr><td><b>Money &amp; stock</b></td><td><span class="ui">Billing</span> <span class="ui">Unpaid bills</span> <span class="ui">Pet store</span> <span class="ui">Home deliveries</span> <span class="ui">Inventory</span> <span class="ui">Borrowed &amp; lent stock</span> <span class="ui">Suppliers</span> <span class="ui">Expenses</span> <span class="ui">Reports</span></td></tr>
+    <tr><td><b>Admin</b></td><td><span class="ui">Staff</span> <span class="ui">Who can do what</span> <span class="ui">Activity log</span> <span class="ui">Vaccine schedules</span> <span class="ui">Reminder settings</span> <span class="ui">Settings</span></td></tr>
+  </table>
+  <p>The top bar always has the <b>search box</b>, the <b>bell</b> (your notifications) and the <span class="btn">+ New</span> button for registering a new owner or pet. On a phone, tap <b>☰</b> to open the menu.</p>
+  <h3>The Home page</h3>
+  <ul>
+    <li><b>Greeting card</b> — today's date and greeting in Pakistan time, a one-line summary (waiting, appointments left, things needing attention) and the big search box.</li>
+    <li><b>Quick actions</b> — the most common jobs for your role, such as <span class="btn">Check in a pet</span> or <span class="btn">Pet store sale</span>.</li>
+    <li><b>Today's numbers</b> — waiting, appointments left, vaccines due today, pets in the ward, money collected today.</li>
+    <li><b>Today's queue</b> — who is here right now, with token and status.</li>
+    <li><b>Needs attention</b> — only appears when something must be done: overdue reminders, money owed, messages to send, your tasks, deliveries, low stock, overdue stock loans. Tap any line to go straight there.</li>
+  </ul>
+  <h3>Smart search — find anything in seconds</h3>
+  <p>Press <code>Ctrl + K</code> (or <code>/</code>) anywhere, or tap the search box. It searches owners, pets, bills, products and today's tokens at once, forgives spelling mistakes and understands any phone format.</p>
+  <table>
+    <tr><th style="width:36%">Type…</th><th>To find…</th></tr>
+    <tr><td><code>0300 1234567</code>, <code>+92300…</code> or just <code>4567</code></td><td>An owner by any part of their phone number</td></tr>
+    <tr><td><code>tiger ahmed</code></td><td>Pet "Tiger" belonging to owner "Ahmed" (typos like <code>tigr ahmad</code> also work)</td></tr>
+    <tr><td><code>C-00012</code> / <code>P-00034</code></td><td>An owner or pet by ID (printed on cards and bills)</td></tr>
+    <tr><td><code>#5</code></td><td>Today's token number 5</td></tr>
+    <tr><td><code>bill: 123</code></td><td>A bill by its number</td></tr>
+    <tr><td><code>item: royal canin</code></td><td>A product or service on the price list, with stock</td></tr>
+    <tr><td><code>pet:</code> / <code>owner:</code></td><td>Search only pets or only owners</td></tr>
+  </table>
+  <div class="box tip"><b class="t">Reading the results</b>Coloured labels warn you at a glance: <b>Alert</b> (allergy or critical warning), <b>Owes Rs. …</b> (unpaid), <b>Out of stock</b>. Use the arrow keys and Enter, or Tab to switch between All / Owners / Pets / Bills / Items. Your recent picks appear when the search opens.</div>
+</section>
+
+<!-- ============================== 4 ============================== -->
+<section class="chapter">
+  <div class="chapter-head"><div class="num">4</div><div><h2>Pet owners &amp; pets</h2><p>Register once, use forever.</p></div></div>
+  <h3>Register a new owner and their pet</h3>
+  <ol class="steps">
+    <li>Press <span class="btn">+ New</span> → <b>New pet owner + pet</b> (or use the quick action on Home).</li>
+    <li>Enter the owner's name, mobile number (any format — it is tidied automatically), area and address. Optional: WhatsApp number if different, email, preferred contact.</li>
+    <li>Add the pet on the same form: name, species, breed, sex, date of birth (or estimated age), colour, microchip.</li>
+    <li>Save. The owner gets an ID like <code>C-00012</code> and the pet <code>P-00034</code>.</li>
+  </ol>
+  <div class="box warn"><b class="t">Avoid duplicates</b>Before registering, search the phone number. The system also warns you if the number already belongs to someone. If two records of the same person were created, the owner can <b>Merge</b> them from the owner page — visits, bills, messages and tasks all move to the kept record.</div>
+  <h3>The owner page</h3>
+  <p>Shows contact details, all their pets, money owed, home deliveries and home visits, and the contact history (calls, WhatsApps). Buttons at the top let you <b>Call</b>, <b>Edit</b>, start a <span class="btn">New bill</span>, a <b>Pet store sale</b>, <b>Book appointment</b>, open <b>Full history — all pets</b> and the <b>Account &amp; statement</b>.</p>
+  <h3>The pet page</h3>
+  <ul>
+    <li><b>Alerts</b> — allergies, conditions and handling warnings. Critical ones show in red at the top of the pet and in every search result. Add them as soon as you learn them.</li>
+    <li><b>Weight</b> — record weights; the change since last time is shown.</li>
+    <li><b>Owners</b> — add a second owner, or make someone the primary owner.</li>
+    <li><b>Medical history</b> and <b>Due</b> — a summary; press <span class="btn">Full medical history</span> for everything (chapter 12).</li>
+  </ul>
+</section>
+
+<!-- ============================== 5 ============================== -->
+<section class="chapter">
+  <div class="chapter-head"><div class="num">5</div><div><h2>Today's queue &amp; appointments</h2><p>From arrival to the doctor.</p></div></div>
+  <h3>Check a pet in</h3>
+  <ol class="steps">
+    <li>Open <span class="ui">Today's queue</span> and press <span class="btn">Check in a pet</span>.</li>
+    <li>Search the owner or pet, choose the pet, write the reason ("vomiting since 2 days"), choose the doctor if requested, and mark <b>Urgent</b> for emergencies.</li>
+    <li>The pet receives today's <b>token number</b>. Tell the owner their token.</li>
+  </ol>
+  <p>The queue board updates live on every screen. Each card moves through these stages:</p>
+  <div class="flow"><span class="n">Waiting</span><span class="a">→</span><span class="n">With doctor</span><span class="a">→</span><span class="n">In treatment</span><span class="a">→</span><span class="n">Ready to bill</span><span class="a">→</span><span class="n dark">Completed</span></div>
+  <p>The doctor presses <span class="btn">Call in</span> to take the next patient. Urgent cases are highlighted and waiting time is shown on every card. Tokens restart at 1 every day (Pakistan time).</p>
+  <div class="box note"><b class="t">One pet, one visit per day</b>If a pet that is already in the queue arrives for an appointment, it is linked to the existing visit — no second token, no second bill.</div>
+  <h3>Appointments</h3>
+  <ol class="steps">
+    <li>Open <span class="ui">Appointments</span> and press <span class="btn">Book</span> for phone or WhatsApp bookings.</li>
+    <li>Choose owner, pet, type, date and time, doctor, and whether it is at the clinic or a <b>home visit</b> (with address).</li>
+    <li>When the owner arrives, press <b>Check in</b> on the appointment — it goes straight into today's queue.</li>
+  </ol>
+  <p>Appointments can be confirmed, cancelled (with a reason) or marked <b>did not come</b>. Missed appointments show in the owner's history so reception can follow up.</p>
+</section>
+
+<!-- ============================== 6 ============================== -->
+<section class="chapter">
+  <div class="chapter-head"><div class="num">6</div><div><h2>The visit: doctor's work</h2><p>Everything for one pet's visit lives on one screen.</p></div></div>
+  <p>Open the visit from the queue. The top shows the pet, owner, token and any <b>allergy alert</b>. Below are tabs: <span class="ui">Consultation</span> <span class="ui">Prescriptions</span> <span class="ui">Vaccines</span> <span class="ui">Tests</span>. Buttons on top: <span class="btn">Bill this visit</span>, <b>Plan surgery</b>, <b>Admit to ward</b>, <b>Full history</b>.</p>
+  <h3>Consultation notes</h3>
+  <ol class="steps">
+    <li>Record the complaint and history, then vitals: temperature, heart rate, breathing rate, weight, mucous membranes, CRT, hydration, body condition and pain score.</li>
+    <li>Write the examination, assessment and diagnosis (mark the main one as <i>primary</i>), treatment given and medicines given in the clinic.</li>
+    <li>Set a follow-up plan and date if needed — this creates a reminder automatically.</li>
+    <li>Notes save automatically as you type. Press <span class="btn">Finalize</span> when complete.</li>
+  </ol>
+  <div class="box warn"><b class="t">Finalized notes are locked</b>Once finalized, notes cannot be silently changed. To correct them a doctor must <b>re-open</b> with a reason; every version is kept. <i>Doctor's private notes</i> are never printed.</div>
+  <h3>Prescriptions</h3>
+  <p>Add each medicine with strength, dose, how often, for how long, route, quantity and instructions, plus advice for the owner. Check carefully, then <span class="btn">Issue</span> — it locks and is ready to print. To change an issued prescription, cancel it and issue a new one.</p>
+  <h3>Vaccines</h3>
+  <p>Record the vaccine, batch number, dose, route and site. The next due date is calculated from the vaccine schedule and appears in <span class="ui">Due &amp; follow-ups</span>. If recorded by mistake, <b>void</b> it with a reason — the reminder it closed is re-opened automatically. A printable <b>vaccination card</b> is available from the pet.</p>
+  <h3>Tests</h3>
+  <p>Order blood work, X-ray, ultrasound and other tests with the reason and urgency. When results arrive, enter the findings, values and impression; a senior doctor reviews them. Upload reports and images to the pet's documents.</p>
+</section>
+
+<!-- ============================== 7 ============================== -->
+<section class="chapter">
+  <div class="chapter-head"><div class="num">7</div><div><h2>Surgery &amp; ward</h2><p>Planned and emergency procedures, and pets staying overnight.</p></div></div>
+  <h3>Surgery</h3>
+  <ol class="steps">
+    <li>From the visit press <b>Plan surgery</b>: procedure, reason, urgency, surgeon, date and estimate.</li>
+    <li><b>Consent</b>: print the consent form for the owner to sign, then record that it was signed.</li>
+    <li><b>Pre-op</b>: weight, vitals, ASA class, fasting confirmed and the pre-op checklist.</li>
+    <li><b>In theatre</b>: anaesthesia, start and end times, team, notes, complications and materials used.</li>
+    <li><b>Recovery and discharge</b>: recovery notes, home-care instructions, follow-up date, and print the discharge sheet.</li>
+  </ol>
+  <p><span class="ui">Surgery</span> in the menu shows everything scheduled and in progress.</p>
+  <h3>Ward (hospital stays)</h3>
+  <ol class="steps">
+    <li>From the visit press <b>Admit to ward</b>: reason, kennel, attending doctor, feeding plan.</li>
+    <li>Add <b>treatment orders</b>: medicine or fluid, dose, route and how often (every X hours).</li>
+    <li>The ward board shows doses due. When given, staff press <b>Given</b> (or skipped/refused with a note) — the time and the person are recorded.</li>
+    <li>Add notes and vitals during the stay. On discharge, write the summary and instructions, and print the discharge sheet.</li>
+  </ol>
+</section>
+
+<!-- ============================== 8 ============================== -->
+<section class="chapter">
+  <div class="chapter-head"><div class="num">8</div><div><h2>Billing &amp; payments</h2><p>Accurate bills, part payments and promises, all tracked.</p></div></div>
+  <h3>Bill a visit</h3>
+  <ol class="steps">
+    <li>On the visit press <span class="btn">Bill this visit</span> (or from the owner page, <span class="btn">New bill</span>).</li>
+    <li>Add services and products from the price list. Medicines and vaccines from the visit can be added in one tap. Some items (like "Other charge") let you type the price.</li>
+    <li>Discounts: per line or for the whole bill, with a reason. Large discounts need a manager's approval.</li>
+    <li>Press <b>Checkout</b>: choose the payment method(s) — cash, card, bank transfer, JazzCash/Easypaisa — and the amount. You can split between methods.</li>
+    <li>If the owner pays only part, enter the <b>promised date</b> for the rest. The remainder becomes an unpaid bill.</li>
+    <li>Print the bill or the receipt, or share it.</li>
+  </ol>
+  <div class="box note"><b class="t">Double-tap protection</b>If the checkout button is pressed twice or the internet drops mid-payment, the system records the payment only once.</div>
+  <h3>Unpaid bills</h3>
+  <p><span class="ui">Unpaid bills</span> lists every balance with its promised date; overdue ones are highlighted. Record later payments from the bill. Payment reminders are prepared automatically for WhatsApp (chapter 11).</p>
+  <h3>Returns, refunds and voids</h3>
+  <ul>
+    <li><b>Return items</b> — choose the lines and quantities; the refund is calculated fairly even when the bill had a discount, and stock goes back.</li>
+    <li><b>Refund</b> — money back without a return, with a reason (shown in Data checks).</li>
+    <li><b>Void</b> — cancel a bill made by mistake, with a reason. Voided bills remain visible.</li>
+  </ul>
+  <h3>Owner account &amp; statement</h3>
+  <p>From the owner page, <b>Account &amp; statement</b> shows every bill and payment over time and what is still owed. Print the statement for the owner.</p>
+</section>
+
+<!-- ============================== 9 ============================== -->
+<section class="chapter">
+  <div class="chapter-head"><div class="num">9</div><div><h2>Pet store &amp; home delivery</h2><p>Fast counter sales, deliveries and cash on delivery.</p></div></div>
+  <h3>Make a sale</h3>
+  <ol class="steps">
+    <li>Open <span class="ui">Pet store</span>. Scan the barcode, type the SKU and press Enter, or search and tap products.</li>
+    <li>Adjust quantities in the cart. Optionally attach the sale to an owner (needed for delivery or pay-later).</li>
+    <li>Choose <b>In store</b> or <b>Home delivery</b> (address and delivery charge).</li>
+    <li>Take payment now, or choose <b>Cash on delivery</b>. Print the receipt.</li>
+  </ol>
+  <h3>Home deliveries</h3>
+  <p><span class="ui">Home deliveries</span> lists orders to dispatch and on the way. Mark <b>Dispatched</b> (with rider) and then <b>Delivered</b>. For cash on delivery, payment reminders start only after the order is delivered and still unpaid.</p>
+  <h3>Home visits</h3>
+  <p>Appointments and visits can be marked as <b>home visit</b> with the address; a home visit charge can be added to the bill. They appear in the owner's service history.</p>
+</section>
+
+<!-- ============================== 10 ============================== -->
+<section class="chapter">
+  <div class="chapter-head"><div class="num">10</div><div><h2>Inventory &amp; suppliers</h2><p>Know what you have, what is expiring and what to order.</p></div></div>
+  <h3>Stock and the price list</h3>
+  <p><span class="ui">Inventory</span> has two views: <b>Stock</b> (quantities, batches, expiry) and <b>Price list</b> (every service and product with its price). Summary tiles show <b>low / reorder</b>, <b>expiring in 60 days</b> and <b>expired on the shelf</b>. Press <span class="btn">New item</span> to add a product or service; turn on stock tracking for physical items.</p>
+  <h3>Receive stock from a supplier</h3>
+  <ol class="steps">
+    <li>Open <span class="ui">Suppliers</span> (add the supplier once), then <b>Receive stock</b>.</li>
+    <li>Add each product with quantity, cost, batch number and expiry date.</li>
+    <li>Save — stock increases and the cost is recorded for profit reports. Record supplier payments on the supplier page.</li>
+  </ol>
+  <h3>Borrowed &amp; lent stock</h3>
+  <p>When a nearby pet shop or clinic borrows from you, or you borrow from them, record it in <span class="ui">Borrowed &amp; lent stock</span> with the expected return date. Stock moves immediately; record returns (full or part) when they come back. Overdue loans appear on the Home page.</p>
+  <div class="box tip"><b class="t">Good habit</b>Check <b>Expiring in 60 days</b> every Monday and use or return those items first.</div>
+</section>
+
+<!-- ============================== 11 ============================== -->
+<section class="chapter">
+  <div class="chapter-head"><div class="num">11</div><div><h2>Follow-ups &amp; reminders</h2><p>The system remembers so staff don't have to.</p></div></div>
+  <h3>Due &amp; follow-ups</h3>
+  <p>Every vaccine due, booster and follow-up appears here with views for <b>Today</b>, <b>Overdue</b> and <b>Upcoming</b>. Reception calls or messages the owner and records the outcome (booked, will come, not reachable). Recording the vaccine closes the reminder automatically.</p>
+  <h3>Messages to send</h3>
+  <p>Every 30 minutes the system prepares reminders (vaccines due, follow-ups, payment reminders) according to <span class="ui">Reminder settings</span>. In <span class="ui">Messages to send</span>, press the WhatsApp button on each — WhatsApp opens with the message already written — send it, and mark it sent. Calls and in-person conversations can also be logged on the owner page.</p>
+  <h3>Tasks</h3>
+  <p>Create tasks for yourself or a colleague ("Call Mrs. Khan about lab result"), with a due time and linked owner. Your open tasks show on Home; overdue ones are in red.</p>
+  <h3>Alert centre &amp; notifications</h3>
+  <p>The bell shows notifications for you. <span class="ui">Alert centre</span> gathers clinical and stock alerts that need a decision.</p>
+</section>
+
+<!-- ============================== 12 ============================== -->
+<section class="chapter">
+  <div class="chapter-head"><div class="num">12</div><div><h2>Full histories</h2><p>The complete story of a pet, or of a whole family.</p></div></div>
+  <h3>A pet's full medical history</h3>
+  <p>On any pet press <span class="btn">Full medical history</span>. Every visit is shown newest first, and opening one shows everything:</p>
+  <ul>
+    <li>Who brought the pet, the doctor, who checked it in, and a timeline of the visit with times.</li>
+    <li>Consultation: complaint, vitals, examination, diagnosis, treatment, medicines given in the clinic, follow-up.</li>
+    <li>Each prescription with dose, frequency, duration and who prescribed; vaccines with batch and who gave them; tests with who ordered, entered and reviewed them.</li>
+    <li>Surgery with surgeon and team; ward stays with every dose given and by whom; and the bill.</li>
+  </ul>
+  <p>The top shows a summary: visits, first and last seen, vaccinations, surgeries, hospital stays, total billed and still owed, every doctor who has seen the pet and every medicine ever prescribed. Filter by type, doctor or year, or search inside the history.</p>
+  <h3>An owner's full history — all pets</h3>
+  <p>On the owner page press <b>Full history — all pets</b>. One timeline for the whole family: every visit of every pet in full detail, plus appointments (including missed ones), payments and refunds with who received them, and every call or WhatsApp with its outcome.</p>
+  <div class="box tip"><b class="t">Print for referrals or the owner</b>Both histories have <b>Print full history</b>, producing a clean document on the clinic letterhead. Doctors' private notes are never printed.</div>
+</section>
+
+<!-- ============================== 13 ============================== -->
+<section class="chapter">
+  <div class="chapter-head"><div class="num">13</div><div><h2>Expenses &amp; reports</h2><p>Where the money goes, and how the clinic is doing.</p></div></div>
+  <h3>Expenses</h3>
+  <p>Record every expense (rent, electricity, salaries, supplies) with category, amount and payment method. Expenses feed into the profit estimate.</p>
+  <h3>Reports</h3>
+  <p>Pick a period (today, last 7 or 30 days, this month, last month, last 3 months, this year or custom dates) and a report. Every report can be exported.</p>
+  <table>
+    <tr><th style="width:26%">Report</th><th>What it tells you</th></tr>
+    <tr><td><b>Money</b></td><td>Billed, collected (cash actually received), owed to the clinic and estimated profit after stock cost and expenses; by payment method and by service.</td></tr>
+    <tr><td><b>Clinic activity</b></td><td>Visits, new owners and pets, appointments kept and missed, busiest days, work per doctor.</td></tr>
+    <tr><td><b>Medicines &amp; stock</b></td><td>What was used and sold, stock value, low and expiring items.</td></tr>
+    <tr><td><b>Data checks</b></td><td>Things that need tidying: bills owing with no promise date, refunds without a return, duplicate-looking owners and similar.</td></tr>
+  </table>
+  <div class="box note"><b class="t">"Billed" vs "Collected"</b>Billed is the value of bills issued; collected is cash actually received in the period. The difference is what owners still owe.</div>
+</section>
+
+<!-- ============================== 14 ============================== -->
+<section class="chapter">
+  <div class="chapter-head"><div class="num">14</div><div><h2>Owner &amp; admin</h2><p>Staff, permissions, oversight and clinic settings.</p></div></div>
+  <h3>Staff</h3>
+  <ol class="steps">
+    <li><span class="ui">Staff</span> → <span class="btn">Add staff</span>: name, email, phone, title, whether they are a doctor, and their role(s).</li>
+    <li>Give them their email and temporary password. Reset passwords from the same page.</li>
+    <li>When someone leaves, turn <b>Access</b> off — they are signed out immediately everywhere, and their history stays.</li>
+  </ol>
+  <h3>Who can do what</h3>
+  <p>A grid of roles and permissions. Tick or untick to change what a role can see and do. Changes apply immediately to everyone with that role, and are recorded.</p>
+  <h3>Activity log — every action, by every person</h3>
+  <p>The owner sees everything staff do in the CRM, in plain sentences, grouped by day:</p>
+  <div class="cards">
+    <div class="card"><h4>Sign-ins &amp; sign-outs</h4><p>With the device and IP address, and wrong-password attempts.</p></div>
+    <div class="card"><h4>Every change</h4><p>Added, changed, removed — down to a single field, with before → after values.</p></div>
+    <div class="card"><h4>Pages opened &amp; prints</h4><p>What each person looked at and printed.</p></div>
+    <div class="card"><h4>Calls, WhatsApp, searches</h4><p>Numbers tapped to call or message, what was searched, text copied (amount, not content).</p></div>
+    <div class="card"><h4>Away, back, tab closed</h4><p>Idle after 10 minutes, the return, and closing the CRM.</p></div>
+    <div class="card"><h4>Blocked pages</h4><p>Attempts to open pages a person isn't allowed to.</p></div>
+  </div>
+  <p>The cards at the top show when each staff member last signed in and was last active (green dot = active in the last 15 minutes). Filter by person, kind of action, record type and dates. <b>Entries can never be edited or deleted.</b></p>
+  <h3>Settings</h3>
+  <ul>
+    <li><span class="ui">Settings</span> — clinic name, address, phone/WhatsApp (03331606689), email and details printed on bills, prescriptions and certificates; billing rules such as discount approval limits.</li>
+    <li><span class="ui">Vaccine schedules</span> — vaccines and the intervals used to calculate next due dates.</li>
+    <li><span class="ui">Reminder settings</span> — which reminders are prepared, when, and the message wording.</li>
+  </ul>
+</section>
+
+<!-- ============================== 15 ============================== -->
+<section class="chapter">
+  <div class="chapter-head"><div class="num">15</div><div><h2>Built-in safety</h2><p>Protections the system enforces on its own.</p></div></div>
+  <table>
+    <tr><th style="width:34%">Protection</th><th>What it means for you</th></tr>
+    <tr><td><b>Role-based access</b></td><td>Each person only sees and changes what their role allows — enforced in the database, not just hidden on screen.</td></tr>
+    <tr><td><b>Allergy &amp; handling alerts</b></td><td>Shown in red on the pet, the visit and in every search result.</td></tr>
+    <tr><td><b>Locked medical notes</b></td><td>Finalized consultations and issued prescriptions cannot be silently changed; every revision is kept with a reason.</td></tr>
+    <tr><td><b>No double charges</b></td><td>Pressing a button twice or a lost connection cannot create a second payment or sale.</td></tr>
+    <tr><td><b>Accurate money</b></td><td>Totals, discounts, refunds and balances are calculated by the database; returns refund exactly what was paid.</td></tr>
+    <tr><td><b>One visit per pet per day</b></td><td>No duplicate tokens or bills for the same pet.</td></tr>
+    <tr><td><b>Pakistan time everywhere</b></td><td>Dates, tokens, "today" and greetings follow Pakistan time, whatever the device clock says.</td></tr>
+    <tr><td><b>Permanent activity log</b></td><td>Everything is recorded and cannot be altered, so questions can always be answered.</td></tr>
+    <tr><td><b>Secure hosting</b></td><td>Encrypted connection (https) on Cloudflare; data stored in Supabase with daily safety rules.</td></tr>
+  </table>
+</section>
+
+<!-- ============================== 16 ============================== -->
+<section class="chapter">
+  <div class="chapter-head"><div class="num">16</div><div><h2>Quick answers</h2><p>Common questions and what to do.</p></div></div>
+  <table>
+    <tr><th style="width:38%">Question</th><th>Answer</th></tr>
+    <tr><td>A page says I don't have access.</td><td>Your role doesn't include it. Ask the owner to adjust <span class="ui">Who can do what</span> if you need it.</td></tr>
+    <tr><td>I can't find an owner.</td><td>Search part of the phone number (last 4 digits work), or the pet's name with the owner's name.</td></tr>
+    <tr><td>I registered someone twice.</td><td>The owner can merge the two records from the owner page.</td></tr>
+    <tr><td>A payment was entered wrongly.</td><td>Use refund or void on the bill with a reason — never re-enter it. Every correction is recorded.</td></tr>
+    <tr><td>The doctor's notes need correcting after finalizing.</td><td>A doctor re-opens the consultation with a reason, corrects it and finalizes again.</td></tr>
+    <tr><td>The owner wants a copy of everything.</td><td>Pet page → Full medical history → Print full history (or the owner's full history for all pets).</td></tr>
+    <tr><td>A Cloudflare page shows "Error 1102".</td><td>The free hosting plan's processing limit was reached on a heavy page. Refresh once; if it repeats, tell the owner — upgrading Cloudflare Workers to the $5/month plan removes the limit.</td></tr>
+    <tr><td>The site is slow on a phone.</td><td>Check the internet connection; the CRM works on mobile data. Close and reopen the tab if it was left open for days.</td></tr>
+    <tr><td>Someone left the clinic.</td><td><span class="ui">Staff</span> → turn their access off. They are signed out everywhere at once.</td></tr>
+  </table>
+  <div class="box tip"><b class="t">Daily routine that keeps everything accurate</b>
+    <ol style="margin:1mm 0 0">
+      <li>Morning: check <b>Needs attention</b> on Home and send <span class="ui">Messages to send</span>.</li>
+      <li>All day: check every pet in through <span class="ui">Today's queue</span>; bill every visit before the owner leaves.</li>
+      <li>Evening: review <span class="ui">Unpaid bills</span>, complete open tasks, and check the day's collected total.</li>
+    </ol>
+  </div>
+</section>
+
+<!-- ============================== BACK ============================== -->
+<section class="chapter">
+  <div class="back">
+    <img src="../../public/brand/bdah-mark-burgundy.png" alt="">
+    <h2>Bin Dawood Animal Hospital</h2>
+    <p class="muted">By Dr. Musab Bin Dawood · Lahore · Tel / WhatsApp 0333 1606689</p>
+    <p style="margin-top:6mm"><a href="https://bdah-crm.bindawoodanimalhospital.workers.dev"><b>bdah-crm.bindawoodanimalhospital.workers.dev</b></a></p>
+    <p class="footer-credit">Designed, developed and documented by <a href="https://omerbindawood.github.io/Portfolio-Website/"><b>OBD</b></a><br>
+      <a href="https://omerbindawood.github.io/Portfolio-Website/">omerbindawood.github.io/Portfolio-Website</a></p>
+  </div>
+</section>
+
+</body>
+</html>
