@@ -1,5 +1,5 @@
 import {
-  BedDouble, BellRing, Boxes, CalendarClock, ListTodo, MessageCircle, CalendarDays, CreditCard, FileClock, Receipt, Scissors, ShoppingBag, Truck, Wallet, House, ListOrdered, PawPrint, Settings, ShieldCheck, Syringe, UserCog, Users, type LucideIcon,
+  ChartColumnBig, BedDouble, BellRing, Boxes, CalendarClock, ListTodo, MessageCircle, CalendarDays, CreditCard, FileClock, Receipt, Scissors, ShoppingBag, Truck, Wallet, House, ListOrdered, PawPrint, Settings, ShieldCheck, Syringe, UserCog, Users, type LucideIcon,
 } from "lucide-react";
 import type { Permission } from "@/lib/permissions";
 
@@ -53,6 +53,7 @@ export const NAV: NavGroup[] = [
       { title: "Inventory", href: "/inventory", icon: Boxes, anyOf: ["inventory.view", "settings.manage"] },
       { title: "Suppliers", href: "/suppliers", icon: Truck, anyOf: ["suppliers.manage"] },
       { title: "Expenses", href: "/expenses", icon: Wallet, anyOf: ["expenses.view"] },
+      { title: "Reports", href: "/reports", icon: ChartColumnBig, anyOf: ["reports.view", "reports.financial", "inventory.view"] },
     ],
   },
   {

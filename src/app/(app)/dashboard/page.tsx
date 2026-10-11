@@ -14,6 +14,7 @@ import { createClient } from "@/lib/supabase/server";
 import { formatDateTime, initials, isPast, TIMEZONE, todayPK } from "@/lib/format";
 import { formatPhone } from "@/lib/phone";
 import { cn } from "@/lib/utils";
+import { presetRange, type FinancialReport } from "@/lib/reports";
 
 export const metadata: Metadata = { title: "Home" };
 
@@ -65,6 +66,10 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
     me.can("crm.manage") ? supabase.from("messages").select("id", { count: "exact", head: true }).in("status", ["to_send", "queued"]).lte("scheduled_for", ymd) : null,
     supabase.from("tasks").select("id, due_at", { count: "exact" }).eq("assigned_to", me.id).in("status", ["open", "in_progress"]),
   ]);
+  const month = presetRange("mtd");
+  const monthReport = me.can("reports.financial")
+    ? ((await supabase.rpc("report_financial", { p_from: month.from, p_to: month.to })).data as FinancialReport | null)
+    : null;
   const myOverdueTasks = (myTasks?.data ?? []).filter((t) => isPast(t.due_at)).length;
   const collected = (payToday?.data ?? []).reduce((s, p) => s + (p.kind === "payment" ? Number(p.amount) : p.kind === "refund" ? -Number(p.amount) : 0), 0);
   const owed = (openDues?.data ?? []).reduce((s, d) => s + Number((d.invoices as unknown as { balance: number } | null)?.balance ?? 0), 0);
@@ -241,16 +246,29 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
         )}
       </div>
 
-      {me.can("dashboard.owner") && (
-        <Card className="bg-surface shadow-none">
-          <CardHeader><CardTitle>Coming next to the system</CardTitle></CardHeader>
-          <CardContent className="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
+      {monthReport && (
+        <Card>
+          <CardHeader>
+            <CardTitle>This month so far</CardTitle>
+            <CardAction>
+              <Link href="/reports" className="inline-flex items-center gap-1 text-sm font-semibold text-brand hover:underline">
+                Full reports <ArrowUpRight className="size-4" />
+              </Link>
+            </CardAction>
+          </CardHeader>
+          <CardContent className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             {[
-              ["Phase 6", "Owner reports & analytics"],
-            ].map(([phase, text]) => (
-              <div key={phase} className="rounded-xl bg-card p-3 ring-1 ring-border">
-                <p className="text-xs font-bold tracking-wide text-brand uppercase">{phase}</p>
-                <p className="mt-1">{text}</p>
+              { label: "Billed", value: monthReport.billed.net, sub: `${monthReport.billed.bills} bills issued` },
+              { label: "Collected", value: monthReport.collected.net, sub: "cash actually received" },
+              { label: "Owed to the clinic", value: monthReport.owed.total, sub: "unpaid today, all dates", danger: monthReport.owed.total > 0 },
+              { label: "Estimated profit", value: monthReport.estimate?.profit ?? null, sub: "after stock cost & expenses", brand: true },
+            ].map((t) => (
+              <div key={t.label} className={cn("rounded-xl p-3 ring-1", t.brand ? "bg-brand-wash ring-brand-muted" : "bg-surface ring-border")}>
+                <p className="text-xs text-muted-foreground">{t.label}</p>
+                <p className={cn("mt-1 text-xl font-bold tabular", t.danger && "text-danger", t.brand && "text-brand")}>
+                  {t.value == null ? "—" : `Rs. ${Math.round(t.value).toLocaleString("en-PK")}`}
+                </p>
+                <p className="text-xs text-muted-foreground">{t.sub}</p>
               </div>
             ))}
           </CardContent>

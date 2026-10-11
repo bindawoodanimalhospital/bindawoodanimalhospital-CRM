@@ -10,7 +10,7 @@
     "db:migrate": "node scripts/migrate.mjs",
     "create-owner": "node scripts/create-owner.mjs",
     "typecheck": "tsc --noEmit",
-    "db:test": "node scripts/run-sql.mjs scripts/sql/rls-smoke-test.sql && node scripts/run-sql.mjs scripts/sql/phase2-safety-test.sql && node scripts/run-sql.mjs scripts/sql/phase3-safety-test.sql && node scripts/run-sql.mjs scripts/sql/phase4-money-test.sql && node scripts/run-sql.mjs scripts/sql/phase5-reminders-test.sql && node scripts/run-sql.mjs scripts/sql/reset-empty-sequences.sql"
+    "db:test": "node scripts/run-sql.mjs scripts/sql/rls-smoke-test.sql && node scripts/run-sql.mjs scripts/sql/phase2-safety-test.sql && node scripts/run-sql.mjs scripts/sql/phase3-safety-test.sql && node scripts/run-sql.mjs scripts/sql/phase4-money-test.sql && node scripts/run-sql.mjs scripts/sql/phase5-reminders-test.sql && node scripts/run-sql.mjs scripts/sql/phase6-reports-test.sql && node scripts/run-sql.mjs scripts/sql/reset-empty-sequences.sql"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.9.1",
@@ -20,6 +20,7 @@
     "cmdk": "^1.1.1",
     "cn": "^0.4.0",
     "date-fns": "^4.4.0",
+    "exceljs": "^4.4.0",
     "libphonenumber-js": "^1.13.14",
     "lucide-react": "^1.48.0",
     "next": "16.3.6",
@@ -45,5 +46,8 @@
     "pg": "^8.23.0",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "overrides": {
+    "uuid": "^11.1.1"
   }
 }
