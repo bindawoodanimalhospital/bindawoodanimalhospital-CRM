@@ -68,7 +68,7 @@ end $$;
 
 -- ---------------------------------------------------------------- junior doctor finalizes; nobody edits finalized
 select pg_temp.act('00000000-0000-0000-0000-0000000000a2');
-update public.consultations set assessment = 'Gastritis', weight_kg = 12.5, follow_up_date = current_date + 5,
+update public.consultations set assessment = 'Gastritis', weight_kg = 12.5, follow_up_date = private.clinic_today() + 5,
   follow_up_plan = 'Recheck vomiting' where id = (select v from ctx where k='consult');
 insert into public.consultation_diagnoses (consultation_id, label, is_primary) values ((select v from ctx where k='consult'), 'Acute gastritis', true);
 select public.finalize_consultation((select v from ctx where k='consult'));
@@ -103,16 +103,16 @@ from public.consultation_revisions where consultation_id = (select v from ctx wh
 select pg_temp.act('00000000-0000-0000-0000-0000000000a2');
 do $$ begin
   insert into public.vaccinations (pet_id, vaccine_id, vaccine_name, expiry_date)
-  select (select v from ctx where k='pet'), id, name, current_date - 1 from public.vaccines where name = 'DHPPi';
+  select (select v from ctx where k='pet'), id, name, private.clinic_today() - 1 from public.vaccines where name = 'DHPPi';
   raise exception 'FAIL: expired batch accepted';
 exception when check_violation then raise notice 'OK expired vaccine batch is rejected';
 end $$;
 insert into public.vaccinations (pet_id, vaccine_id, vaccine_name, batch_no, expiry_date, next_due_date, next_due_label)
-select (select v from ctx where k='pet'), id, name, 'B123', current_date + 200, current_date + 21, 'DHPPi Dose 2'
+select (select v from ctx where k='pet'), id, name, 'B123', private.clinic_today() + 200, private.clinic_today() + 21, 'DHPPi Dose 2'
 from public.vaccines where name = 'DHPPi';
-select 'dose 2 due item' as t, title, due_on - current_date as in_days, status from public.due_items where kind = 'vaccination';
+select 'dose 2 due item' as t, title, due_on - private.clinic_today() as in_days, status from public.due_items where kind = 'vaccination';
 insert into public.vaccinations (pet_id, vaccine_id, vaccine_name, batch_no, expiry_date)
-select (select v from ctx where k='pet'), id, name, 'B124', current_date + 200 from public.vaccines where name = 'DHPPi';
+select (select v from ctx where k='pet'), id, name, 'B124', private.clinic_today() + 200 from public.vaccines where name = 'DHPPi';
 select 'dose 2 given → due closed' as t, status, outcome from public.due_items where kind = 'vaccination';
 
 do $$ begin
@@ -178,9 +178,9 @@ select 'visit timeline' as t, string_agg(to_status::text, ' → ' order by chang
 
 -- ---------------------------------------------------------------- due items: reception works the list, reasons required
 select pg_temp.act('00000000-0000-0000-0000-0000000000a4');
-update public.due_items set due_on = current_date + 10, previous_due_on = due_on, outcome_reason = 'Owner travelling'
+update public.due_items set due_on = private.clinic_today() + 10, previous_due_on = due_on, outcome_reason = 'Owner travelling'
  where kind = 'follow_up' and status = 'pending';
-select 'rescheduled keeps old date' as t, due_on - current_date as in_days, previous_due_on is not null as kept from public.due_items where kind = 'follow_up';
+select 'rescheduled keeps old date' as t, due_on - private.clinic_today() as in_days, previous_due_on is not null as kept from public.due_items where kind = 'follow_up';
 do $$ begin
   update public.due_items set status = 'skipped', outcome = 'not needed', outcome_reason = null where kind = 'follow_up';
   raise exception 'FAIL: skipped without reason';

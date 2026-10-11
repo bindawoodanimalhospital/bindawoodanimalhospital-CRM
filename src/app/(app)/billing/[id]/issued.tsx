@@ -151,7 +151,8 @@ function RefundDialog({ inv, methods }: { inv: IssuedInvoice; methods: Method[] 
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild><Button variant="outline"><Undo2 /> Refund money</Button></DialogTrigger>
       <DialogContent className="rounded-2xl">
-        <DialogHeader><DialogTitle>Refund</DialogTitle><DialogDescription>For returning products use “Return items” instead — it also puts stock back.</DialogDescription></DialogHeader>
+        <DialogHeader><DialogTitle>Refund</DialogTitle><DialogDescription>Use this to give money back before voiding a bill made by mistake. Returning products? Use “Return items” — it lowers the bill and puts stock back.</DialogDescription></DialogHeader>
+        <p className="rounded-xl bg-warning-soft px-3 py-2 text-sm text-warning">A refund on its own leaves the refunded amount <b>unpaid on this bill</b> — the customer will show as owing it until the bill is voided or paid again.</p>
         <div className="grid gap-3">
           <Input className="text-right text-lg font-bold tabular" inputMode="decimal" value={amount} onChange={(e) => setAmount(e.target.value.replace(/[^\d.]/g, ""))} />
           <Select value={method} onValueChange={setMethod}>

@@ -44,7 +44,7 @@ with i as (insert into public.catalog_items (kind, name, category, unit, sale_pr
 with s as (insert into public.suppliers (name) values ('Report Test Pharma') returning id) insert into ctx select 'sup', id from s;
 with p as (insert into public.purchases (supplier_id) values (pg_temp.g('sup')) returning id) insert into ctx select 'po', id from p;
 insert into public.purchase_lines (purchase_id, item_id, location_id, batch_no, expiry_date, qty, unit_cost)
-select pg_temp.g('po'), pg_temp.g('tabs'), id, 'R1', current_date + 300, 10, 40 from public.inventory_locations where is_default;
+select pg_temp.g('po'), pg_temp.g('tabs'), id, 'R1', private.clinic_today() + 300, 10, 40 from public.inventory_locations where is_default;
 select public.receive_purchase(pg_temp.g('po'));
 
 with c as (insert into public.customers (full_name, phone) values ('Report Owner', '+923009998877') returning id) insert into ctx select 'cust', id from c;
@@ -57,7 +57,7 @@ with i as (insert into public.invoices (customer_id, pet_id, visit_id) values (p
 insert into public.invoice_items (invoice_id, item_id, quantity, unit_price) select pg_temp.g('inv'), id, 1, 0 from public.catalog_items where name = 'Consultation fee';
 insert into public.invoice_items (invoice_id, item_id, quantity, unit_price, deduct_stock) values (pg_temp.g('inv'), pg_temp.g('tabs'), 2, 0, true);
 select public.checkout_invoice(pg_temp.g('inv'), '[{"method":"cash","amount":700}]',
-  jsonb_build_object('promised_date', current_date + 5, 'reason', 'Rest on Friday'), 'k-rpt-1') is not null as issued;
+  jsonb_build_object('promised_date', private.clinic_today() + 5, 'reason', 'Rest on Friday'), 'k-rpt-1') is not null as issued;
 insert into public.expenses (category_id, amount, method, description) select id, 300, 'cash', 'Report test tea' from public.expense_categories order by sort_order limit 1;
 
 insert into snap values ('fin1', public.report_financial(private.clinic_today(), private.clinic_today())),
@@ -93,12 +93,12 @@ begin
 end $$;
 
 do $$ begin
-  perform public.report_financial(current_date, current_date - 1);
+  perform public.report_financial(private.clinic_today(), private.clinic_today() - 1);
   raise exception 'FAIL: backwards range accepted';
 exception when invalid_parameter_value then raise notice 'OK backwards date range is refused';
 end $$;
 do $$ begin
-  perform public.report_operations(current_date - 2000, current_date);
+  perform public.report_operations(private.clinic_today() - 2000, private.clinic_today());
   raise exception 'FAIL: huge range accepted';
 exception when invalid_parameter_value then raise notice 'OK ranges over 3 years are refused';
 end $$;
@@ -116,7 +116,7 @@ end $$;
 select pg_temp.act('00000000-0000-0000-0000-0000000000d2');
 select 'doctor sees activity' as t, (public.report_operations(private.clinic_today(), private.clinic_today()) -> 'visits' ->> 'total')::int >= 1 as ok;
 do $$ begin
-  perform public.report_financial(current_date, current_date);
+  perform public.report_financial(private.clinic_today(), private.clinic_today());
   raise exception 'FAIL: doctor saw money report';
 exception when insufficient_privilege then raise notice 'OK money reports need reports.financial';
 end $$;
@@ -138,7 +138,7 @@ end $$;
 -- ============================================================ reception: no reports
 select pg_temp.act('00000000-0000-0000-0000-0000000000d4');
 do $$ begin
-  perform public.report_operations(current_date, current_date);
+  perform public.report_operations(private.clinic_today(), private.clinic_today());
   raise exception 'FAIL: reception saw reports';
 exception when insufficient_privilege then raise notice 'OK reception has no report access';
 end $$;
@@ -155,7 +155,7 @@ begin
   raise notice 'OK stock report hides costs and supplier prices without inventory.view_cost';
 end $$;
 do $$ begin
-  perform public.report_financial(current_date, current_date);
+  perform public.report_financial(private.clinic_today(), private.clinic_today());
   raise exception 'FAIL: store staff saw money report';
 exception when insufficient_privilege then raise notice 'OK store staff cannot see money reports';
 end $$;

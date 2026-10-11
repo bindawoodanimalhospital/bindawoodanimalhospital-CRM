@@ -47,9 +47,9 @@ insert into public.invoice_items (invoice_id, item_id, quantity, unit_price) val
 select public.checkout_invoice(pg_temp.g('paid'), '[{"method":"cash","amount":1000}]', null, 'mx-paid');
 with i as (insert into public.invoices (customer_id) values (pg_temp.g('cust')) returning id) insert into fx select 'unpaid', id from i;
 insert into public.invoice_items (invoice_id, item_id, quantity, unit_price) values (pg_temp.g('unpaid'), pg_temp.g('svc'), 1, 700);
-select public.checkout_invoice(pg_temp.g('unpaid'), '[]', jsonb_build_object('promised_date', current_date + 3, 'reason', 'matrix fixture'), 'mx-unpaid');
+select public.checkout_invoice(pg_temp.g('unpaid'), '[]', jsonb_build_object('promised_date', private.clinic_today() + 3, 'reason', 'matrix fixture'), 'mx-unpaid');
 insert into fx select 'deliv', public.pos_checkout('mx-deliv', pg_temp.g('cust'), null, jsonb_build_array(jsonb_build_object('item_id', pg_temp.g('item'), 'quantity', 1)),
-  '[]', 0, null, jsonb_build_object('promised_date', current_date, 'reason', 'Cash on delivery'), '{"address":"House 1"}');
+  '[]', 0, null, jsonb_build_object('promised_date', private.clinic_today(), 'reason', 'Cash on delivery'), '{"address":"House 1"}');
 -- loans, expense, task, message
 with p as (insert into public.partner_businesses (name) values ('MX Clinic') returning id) insert into fx select 'partner', id from p;
 insert into fx select 'loan', public.record_stock_loan('mx-loan', 'borrowed', pg_temp.g('partner'), jsonb_build_array(jsonb_build_object('item_id', pg_temp.g('item'), 'qty', 2)));
@@ -114,8 +114,8 @@ insert into probes values
  ('expenses: add',              '{expenses.manage}',       $q$ insert into public.expenses (category_id, amount, method, description) values (pg_temp.g('exp_cat'), 50, 'cash', 'MX exp2'); $q$),
  ('settings: change',           '{settings.manage}',       $q$ update public.system_settings set value = value where key = 'billing.config'; if not found then raise exception 'NOT_VISIBLE'; end if; $q$),
  ('history log: view',          '{audit.view}',            $q$ perform 1 from public.audit_logs limit 1; if not found then raise exception 'NOT_VISIBLE'; end if; $q$),
- ('reports: money',             '{reports.financial}',     $q$ perform public.report_financial(current_date - 7, current_date); $q$),
- ('reports: clinic activity',   '{reports.view,reports.financial}', $q$ perform public.report_operations(current_date - 7, current_date); $q$),
+ ('reports: money',             '{reports.financial}',     $q$ perform public.report_financial(private.clinic_today() - 7, private.clinic_today()); $q$),
+ ('reports: clinic activity',   '{reports.view,reports.financial}', $q$ perform public.report_operations(private.clinic_today() - 7, private.clinic_today()); $q$),
  ('reports: export',            '{data.export}',           $q$ perform public.log_export('customers', 1); $q$),
  ('messages: view',             '{crm.view}',              $q$ perform 1 from public.messages where id = pg_temp.g('msg'); if not found then raise exception 'NOT_VISIBLE'; end if; $q$),
  ('reminders: run now',         '{crm.manage,settings.manage}', $q$ perform public.run_reminders_now(); $q$),

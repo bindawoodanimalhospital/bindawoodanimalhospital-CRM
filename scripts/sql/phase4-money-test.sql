@@ -27,9 +27,9 @@ with i as (insert into public.catalog_items (kind, name, category, unit, sale_pr
 with s as (insert into public.suppliers (name, phone) values ('Test Pharma', '03001112223') returning id) insert into ctx select 'sup', id from s;
 with p as (insert into public.purchases (supplier_id, supplier_invoice_no) values (pg_temp.g('sup'), 'INV-77') returning id) insert into ctx select 'po', id from p;
 insert into public.purchase_lines (purchase_id, item_id, location_id, batch_no, expiry_date, qty, unit_cost)
-select pg_temp.g('po'), pg_temp.g('food'), id, 'A', current_date + 30, 5, 1000 from public.inventory_locations where name = 'Pet store';
+select pg_temp.g('po'), pg_temp.g('food'), id, 'A', private.clinic_today() + 30, 5, 1000 from public.inventory_locations where name = 'Pet store';
 insert into public.purchase_lines (purchase_id, item_id, location_id, batch_no, expiry_date, qty, unit_cost)
-select pg_temp.g('po'), pg_temp.g('food'), id, 'B', current_date + 200, 10, 1100 from public.inventory_locations where name = 'Pet store';
+select pg_temp.g('po'), pg_temp.g('food'), id, 'B', private.clinic_today() + 200, 10, 1100 from public.inventory_locations where name = 'Pet store';
 select public.receive_purchase(pg_temp.g('po'));
 select 'stock after receiving' as t, usable_qty from public.stock_levels where item_id = pg_temp.g('food');
 select 'purchase total' as t, total from public.purchases where id = pg_temp.g('po');
@@ -47,7 +47,7 @@ exception when insufficient_privilege then raise notice 'OK received purchase is
 end $$;
 -- An expired batch that must never be sold
 insert into public.product_batches (item_id, location_id, batch_no, expiry_date)
-select pg_temp.g('food'), id, 'OLD', current_date - 1 from public.inventory_locations where name = 'Pet store';
+select pg_temp.g('food'), id, 'OLD', private.clinic_today() - 1 from public.inventory_locations where name = 'Pet store';
 insert into ctx select 'oldbatch', id from public.product_batches where batch_no = 'OLD' and item_id = pg_temp.g('food');
 select public.adjust_stock(pg_temp.g('oldbatch'), 3, 'adjust', 'Found on shelf');
 insert into ctx select 'batchB', id from public.product_batches where batch_no = 'B' and item_id = pg_temp.g('food');
@@ -79,9 +79,9 @@ do $$ begin
 exception when others then raise notice 'OK unpaid balance needs a promised date & reason (%)', left(sqlerrm, 50);
 end $$;
 select public.checkout_invoice(pg_temp.g('inv'), '[{"method":"cash","amount":1000}]',
-  jsonb_build_object('promised_date', current_date + 7, 'reason', 'Will pay on salary day'), 'k-inv-1') is not null as issued;
+  jsonb_build_object('promised_date', private.clinic_today() + 7, 'reason', 'Will pay on salary day'), 'k-inv-1') is not null as issued;
 select public.checkout_invoice(pg_temp.g('inv'), '[{"method":"cash","amount":1000}]',
-  jsonb_build_object('promised_date', current_date + 7, 'reason', 'Will pay on salary day'), 'k-inv-1') is not null as double_submit;
+  jsonb_build_object('promised_date', private.clinic_today() + 7, 'reason', 'Will pay on salary day'), 'k-inv-1') is not null as double_submit;
 select 'after checkout' as t, number is not null as numbered, total, amount_paid, balance,
   (select count(*) from public.payments where customer_id = pg_temp.g('cust')) as payments,
   (select status || '/' || approval_status from public.dues where invoice_id = pg_temp.g('inv')) as due
@@ -120,9 +120,9 @@ select 'reception sees expenses' as t, count(*) from public.expenses;
 -- Big due → needs manager approval
 with i as (insert into public.invoices (customer_id) values (pg_temp.g('cust')) returning id) insert into ctx select 'inv2', id from i;
 insert into public.invoice_items (invoice_id, item_id, quantity, unit_price) values (pg_temp.g('inv2'), pg_temp.g('food'), 5, 0);
-select public.checkout_invoice(pg_temp.g('inv2'), '[]', jsonb_build_object('promised_date', current_date + 3, 'reason', 'Owner forgot wallet'), 'k-inv-2') is not null;
+select public.checkout_invoice(pg_temp.g('inv2'), '[]', jsonb_build_object('promised_date', private.clinic_today() + 3, 'reason', 'Owner forgot wallet'), 'k-inv-2') is not null;
 select 'big due flagged' as t, original_amount, approval_status from public.dues where invoice_id = pg_temp.g('inv2');
-select public.update_due_promise((select id from public.dues where invoice_id = pg_temp.g('inv2')), current_date + 10, 'Owner called, will come Friday');
+select public.update_due_promise((select id from public.dues where invoice_id = pg_temp.g('inv2')), private.clinic_today() + 10, 'Owner called, will come Friday');
 select 'promise history kept' as t, count(*) from public.due_promises where due_id = (select id from public.dues where invoice_id = pg_temp.g('inv2'));
 do $$ begin
   perform public.write_off_due((select id from public.dues where invoice_id = pg_temp.g('inv2')), 'bad debt', 'k-wo');

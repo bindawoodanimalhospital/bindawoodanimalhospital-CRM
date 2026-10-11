@@ -36,7 +36,7 @@ with i as (insert into public.catalog_items (kind, name, category, unit, sale_pr
 with s as (insert into public.suppliers (name) values ('Loan Test Supplier') returning id) insert into ctx select 'sup', id from s;
 with p as (insert into public.purchases (supplier_id) values (pg_temp.g('sup')) returning id) insert into ctx select 'po', id from p;
 insert into public.purchase_lines (purchase_id, item_id, location_id, batch_no, expiry_date, qty, unit_cost)
-select pg_temp.g('po'), pg_temp.g('litter'), id, 'OWN', current_date + 300, 20, 700 from public.inventory_locations where is_default;
+select pg_temp.g('po'), pg_temp.g('litter'), id, 'OWN', private.clinic_today() + 300, 20, 700 from public.inventory_locations where is_default;
 select public.receive_purchase(pg_temp.g('po'));
 
 -- §1 address
@@ -69,7 +69,7 @@ exception when insufficient_privilege then raise notice 'OK store staff cannot w
 -- Cash on delivery: nothing paid now, Rs. 120 charge for a far area
 insert into ctx select 'cod', public.pos_checkout('k-cod', pg_temp.g('cust'), null,
   jsonb_build_array(jsonb_build_object('item_id', pg_temp.g('litter'), 'quantity', 2)), '[]', 0, null,
-  jsonb_build_object('promised_date', current_date, 'reason', 'Cash on delivery'),
+  jsonb_build_object('promised_date', private.clinic_today(), 'reason', 'Cash on delivery'),
   jsonb_build_object('address', public.customer_address_line(pg_temp.g('cust')), 'charge', 120));
 select pg_temp.check((select total = 2120 and balance = 2120 and fulfilment = 'home_delivery' and delivery_status = 'pending'
   from public.invoices where id = pg_temp.g('cod')), 'COD order: total = products + delivery, pending');
@@ -194,8 +194,8 @@ exception when insufficient_privilege then raise notice 'OK recording loans need
 select pg_temp.act('00000000-0000-0000-0000-0000000000e1');
 -- Borrowed 10 bags (their batch)
 insert into ctx select 'borrow', public.record_stock_loan('k-b1', 'borrowed', pg_temp.g('partner'),
-  jsonb_build_array(jsonb_build_object('item_id', pg_temp.g('litter'), 'qty', 10, 'batch_no', 'PC-77', 'expiry_date', current_date + 150)),
-  current_date, current_date + 7, 'Phone: Dr. Ahmed', 'We ran out');
+  jsonb_build_array(jsonb_build_object('item_id', pg_temp.g('litter'), 'qty', 10, 'batch_no', 'PC-77', 'expiry_date', private.clinic_today() + 150)),
+  private.clinic_today(), private.clinic_today() + 7, 'Phone: Dr. Ahmed', 'We ran out');
 select pg_temp.check(public.record_stock_loan('k-b1', 'borrowed', pg_temp.g('partner'),
   jsonb_build_array(jsonb_build_object('item_id', pg_temp.g('litter'), 'qty', 10))) = pg_temp.g('borrow'), 'double submit → same record');
 select pg_temp.check((select usable_qty from public.stock_levels where item_id = pg_temp.g('litter')) = (select qty from base) + 10,
@@ -203,13 +203,13 @@ select pg_temp.check((select usable_qty from public.stock_levels where item_id =
 select pg_temp.check((select status = 'pending_return' from public.stock_loans where id = pg_temp.g('borrow')), 'borrowed → pending return');
 do $$ begin
   perform public.record_stock_loan('k-b2', 'borrowed', pg_temp.g('partner'),
-    jsonb_build_array(jsonb_build_object('item_id', pg_temp.g('litter'), 'qty', 1, 'expiry_date', current_date - 1)));
+    jsonb_build_array(jsonb_build_object('item_id', pg_temp.g('litter'), 'qty', 1, 'expiry_date', private.clinic_today() - 1)));
   raise exception 'FAIL: expired borrowed stock accepted';
 exception when others then perform pg_temp.check(sqlerrm like '%expired%', 'expired stock is not accepted on loan'); end $$;
 
 -- Lent 4 bags (earliest expiry first)
 insert into ctx select 'lend', public.record_stock_loan('k-l1', 'lent', pg_temp.g('partner'),
-  jsonb_build_array(jsonb_build_object('item_id', pg_temp.g('litter'), 'qty', 4)), current_date - 10, current_date - 3);
+  jsonb_build_array(jsonb_build_object('item_id', pg_temp.g('litter'), 'qty', 4)), private.clinic_today() - 10, private.clinic_today() - 3);
 select pg_temp.check((select usable_qty from public.stock_levels where item_id = pg_temp.g('litter')) = (select qty from base) + 6, 'lent stock leaves (−4)');
 do $$ begin
   perform public.record_stock_loan('k-l2', 'lent', pg_temp.g('partner'), jsonb_build_array(jsonb_build_object('item_id', pg_temp.g('litter'), 'qty', 9999)));
@@ -245,7 +245,7 @@ select pg_temp.check((select count(*) = 1 and bool_and(is_overdue) and sum(outst
 select pg_temp.act('00000000-0000-0000-0000-0000000000e1');
 select public.record_stock_loan_return('k-r4', pg_temp.g('lend'), jsonb_build_array(jsonb_build_object('loan_line_id', pg_temp.g('lline'), 'qty', 1)));
 select public.record_stock_loan_return('k-r5', pg_temp.g('lend'),
-  jsonb_build_array(jsonb_build_object('loan_line_id', pg_temp.g('lline'), 'qty', 3, 'batch_no', 'THEIRS-1', 'expiry_date', current_date + 90)));
+  jsonb_build_array(jsonb_build_object('loan_line_id', pg_temp.g('lline'), 'qty', 3, 'batch_no', 'THEIRS-1', 'expiry_date', private.clinic_today() + 90)));
 select pg_temp.check((select status = 'fully_returned' from public.stock_loans where id = pg_temp.g('lend'))
   and not exists (select 1 from public.stock_loan_outstanding where loan_id = pg_temp.g('lend')), 'lent stock returned in two parts (one new batch)');
 select pg_temp.check((select usable_qty from public.stock_levels where item_id = pg_temp.g('litter')) = (select qty from base), 'stock back to the starting count');

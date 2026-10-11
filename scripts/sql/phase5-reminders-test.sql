@@ -22,22 +22,22 @@ create or replace function pg_temp.g(key text) returns uuid language sql as $$ s
 -- ------------------------------------------------ setup as superuser (dates in the past need it)
 with c as (insert into public.customers (full_name, phone, whatsapp, preferred_language) values ('Reminder Owner', '+923451112233', '+923451112233', 'en') returning id)
 insert into ctx select 'cust', id from c;
-with p as (insert into public.pets (name, species_id, date_of_birth) select 'Bravo', id, (current_date - interval '3 years')::date from public.species where name = 'Dog' returning id)
+with p as (insert into public.pets (name, species_id, date_of_birth) select 'Bravo', id, (private.clinic_today() - interval '3 years')::date from public.species where name = 'Dog' returning id)
 insert into ctx select 'pet', id from p;
 insert into public.pet_owners (pet_id, customer_id, is_primary) values (pg_temp.g('pet'), pg_temp.g('cust'), true);
 with d as (insert into public.due_items (pet_id, kind, title, due_on, assigned_to, vaccine_id)
-  select pg_temp.g('pet'), 'vaccination', 'Rabies booster', current_date, '00000000-0000-0000-0000-0000000000d2', id from public.vaccines where name = 'Rabies' returning id)
+  select pg_temp.g('pet'), 'vaccination', 'Rabies booster', private.clinic_today(), '00000000-0000-0000-0000-0000000000d2', id from public.vaccines where name = 'Rabies' returning id)
 insert into ctx select 'vacc', id from d;
-with d as (insert into public.due_items (pet_id, kind, title, due_on) values (pg_temp.g('pet'), 'follow_up', 'Wound recheck', current_date - 5) returning id)
+with d as (insert into public.due_items (pet_id, kind, title, due_on) values (pg_temp.g('pet'), 'follow_up', 'Wound recheck', private.clinic_today() - 5) returning id)
 insert into ctx select 'fu', id from d;
 with i as (insert into public.invoices (customer_id) values (pg_temp.g('cust')) returning id) insert into ctx select 'inv', id from i;
 update public.catalog_items set sale_price = 1000 where name = 'Consultation fee';
 insert into public.invoice_items (invoice_id, item_id, quantity, unit_price) select pg_temp.g('inv'), id, 2, 0 from public.catalog_items where name = 'Consultation fee';
 select set_config('request.jwt.claims', json_build_object('sub', '00000000-0000-0000-0000-0000000000d1', 'role', 'authenticated')::text, true);
-select public.checkout_invoice(pg_temp.g('inv'), '[]', jsonb_build_object('promised_date', current_date, 'reason', 'Salary day'), 'rem-k1') is not null as billed;
-update public.dues set promised_date = current_date - 7 where invoice_id = pg_temp.g('inv');     -- simulate a missed promise
+select public.checkout_invoice(pg_temp.g('inv'), '[]', jsonb_build_object('promised_date', private.clinic_today(), 'reason', 'Salary day'), 'rem-k1') is not null as billed;
+update public.dues set promised_date = private.clinic_today() - 7 where invoice_id = pg_temp.g('inv');     -- simulate a missed promise
 insert into public.appointments (customer_id, pet_id, appointment_type_id, starts_at, ends_at)
-select pg_temp.g('cust'), pg_temp.g('pet'), id, (current_date + 1 + time '11:00') at time zone 'Asia/Karachi', (current_date + 1 + time '11:15') at time zone 'Asia/Karachi'
+select pg_temp.g('cust'), pg_temp.g('pet'), id, (private.clinic_today() + 1 + time '11:00') at time zone 'Asia/Karachi', (private.clinic_today() + 1 + time '11:15') at time zone 'Asia/Karachi'
 from public.appointment_types where name = 'Consultation';
 with t as (insert into public.tasks (title, assigned_to, due_at, created_by) values ('Call owner about lab report', '00000000-0000-0000-0000-0000000000d3', now() - interval '1 day', '00000000-0000-0000-0000-0000000000d1') returning id)
 insert into ctx select 'task', id from t;
@@ -75,11 +75,11 @@ do $$ begin
 exception when others then raise notice 'OK a message can only be marked once';
 end $$;
 do $$ begin
-  perform public.pause_reminder((select id from public.reminder_tracks where rule_key = 'payment_due' and customer_id = pg_temp.g('cust')), current_date + 5, '');
+  perform public.pause_reminder((select id from public.reminder_tracks where rule_key = 'payment_due' and customer_id = pg_temp.g('cust')), private.clinic_today() + 5, '');
   raise exception 'FAIL: paused without reason';
 exception when others then raise notice 'OK pausing reminders needs a reason';
 end $$;
-select public.pause_reminder((select id from public.reminder_tracks where rule_key = 'payment_due' and customer_id = pg_temp.g('cust')), current_date + 5, 'Owner in hospital, will pay next week');
+select public.pause_reminder((select id from public.reminder_tracks where rule_key = 'payment_due' and customer_id = pg_temp.g('cust')), private.clinic_today() + 5, 'Owner in hospital, will pay next week');
 
 -- ------------------------------------------------ task rules
 select pg_temp.act('00000000-0000-0000-0000-0000000000d3');
@@ -98,7 +98,7 @@ update public.tasks set status = 'done', outcome = 'Called — owner will come S
 -- ------------------------------------------------ resolving the source stops reminders
 select pg_temp.act('00000000-0000-0000-0000-0000000000d2');
 insert into public.vaccinations (pet_id, vaccine_id, vaccine_name, batch_no, expiry_date)
-select pg_temp.g('pet'), id, name, 'R1', current_date + 300 from public.vaccines where name = 'Rabies';
+select pg_temp.g('pet'), id, name, 'R1', private.clinic_today() + 300 from public.vaccines where name = 'Rabies';
 select pg_temp.act('00000000-0000-0000-0000-0000000000d1');
 select 'engine after work done' as t, public.run_reminders_now() - 'ran_at' as result;
 select 'tracks closed' as t, rule_key, closed_at is not null as closed from public.reminder_tracks where rule_key in ('vaccination_due', 'task_overdue') and (customer_id = pg_temp.g('cust') or rule_key = 'task_overdue') order by rule_key;
@@ -108,7 +108,7 @@ select 'unsent vaccine message cancelled' as t, status from public.messages wher
 select 'birthday audience (not opted in)' as t, count(*) from public.campaign_audience('birthdays_this_month') where customer_id = pg_temp.g('cust');
 reset role;
 update public.customers set marketing_opt_in = true where id = pg_temp.g('cust');
-update public.pets set date_of_birth = make_date(2023, extract(month from current_date)::int, 1) where id = pg_temp.g('pet');
+update public.pets set date_of_birth = make_date(2023, extract(month from private.clinic_today())::int, 1) where id = pg_temp.g('pet');
 set local role authenticated;
 select pg_temp.act('00000000-0000-0000-0000-0000000000d1');
 select 'birthday audience (opted in)' as t, count(*) from public.campaign_audience('birthdays_this_month') where customer_id = pg_temp.g('cust');

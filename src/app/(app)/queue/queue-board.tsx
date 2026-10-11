@@ -34,6 +34,8 @@ export type QueueVisit = {
   type: string | null;
   /** Set when this is a home visit (staff go to the client). */
   home_address?: string | null;
+  /** Issued bill state for this visit: "paid", the amount still owed, or "none". */
+  bill?: "none" | "paid" | number;
 };
 
 export function QueueBoard({ visits, doctors, canManage, canClinical, canBill = false }: {
@@ -195,8 +197,17 @@ function VisitCard({ v, now, doctors, canManage, canClinical, canBill }: {
       {next && (canManage || canClinical) && (
         <div className="mt-4 flex flex-wrap gap-2">
           <Button className="flex-1" variant={v.status === "waiting" ? "default" : "outline"} disabled={pending}
-            onClick={() => run(() => moveVisit(v.id, next.to))}>
-            {pending ? <Loader2 className="animate-spin" /> : null} {next.label} {!pending && <ArrowRight />}
+            onClick={() => {
+              // Finishing from "Ready to pay" checks the bill: nothing is closed unpaid or unbilled by accident.
+              if (v.status === "ready_for_billing" && v.bill !== undefined && v.bill !== "paid"
+                  && !confirm(v.bill === "none" ? `${v.pet.name} has no bill yet. Finish the visit without billing?`
+                    : `Rs. ${Number(v.bill).toLocaleString("en-PK")} is still unpaid on this visit. Finish anyway? (It stays on Unpaid bills.)`)) return;
+              run(() => moveVisit(v.id, next.to));
+            }}>
+            {pending ? <Loader2 className="animate-spin" /> : null}{" "}
+            {v.status === "ready_for_billing" && v.bill === "none" ? "Finish without a bill"
+              : v.status === "ready_for_billing" && typeof v.bill === "number" ? `Finish — Rs. ${v.bill.toLocaleString("en-PK")} unpaid`
+              : next.label} {!pending && <ArrowRight />}
           </Button>
           {v.status === "ready_for_billing" && canBill && <BillVisitButton visitId={v.id} label="Make bill" className="flex-1" />}
           {v.status === "with_doctor" && (

@@ -104,7 +104,7 @@ exception when others then raise notice 'OK intern can monitor but not change st
 end $$;
 
 select pg_temp.act('00000000-0000-0000-0000-0000000000b2');
-update public.surgeries set status = 'recovery', follow_up_date = current_date + 10 where id = pg_temp.sx();
+update public.surgeries set status = 'recovery', follow_up_date = private.clinic_today() + 10 where id = pg_temp.sx();
 do $$ begin
   update public.surgeries set status = 'discharged' where id = pg_temp.sx();
   raise exception 'FAIL: discharged without instructions';
@@ -112,7 +112,7 @@ exception when others then raise notice 'OK discharge needs written instructions
 end $$;
 update public.surgeries set discharge_instructions = 'Cone for 10 days, no bath, come back for suture removal.' where id = pg_temp.sx();
 update public.surgeries set status = 'discharged' where id = pg_temp.sx();
-select 'post-op follow-up created' as t, title, due_on - current_date as in_days from public.due_items where source_id = pg_temp.sx();
+select 'post-op follow-up created' as t, title, due_on - private.clinic_today() as in_days from public.due_items where source_id = pg_temp.sx();
 do $$ begin
   update public.surgeries set complications = 'edited later' where id = pg_temp.sx();
   raise exception 'FAIL: closed surgery edited';
@@ -211,7 +211,7 @@ do $$ begin
 exception when check_violation then raise notice 'OK discharge needs a summary';
 end $$;
 update public.admissions set status = 'discharged', outcome = 'discharged_home', discharge_summary = 'Recovered well.',
-  discharge_instructions = 'Continue tablets', follow_up_date = current_date + 7 where id = (select v from ctx where k='adm');
+  discharge_instructions = 'Continue tablets', follow_up_date = private.clinic_today() + 7 where id = (select v from ctx where k='adm');
 select 'orders auto-stopped' as t, status, stop_reason from public.admission_orders where id = (select v from ctx where k='ord');
 do $$ begin
   insert into public.admission_notes (admission_id, kind, note) values ((select v from ctx where k='adm'), 'progress', 'late');

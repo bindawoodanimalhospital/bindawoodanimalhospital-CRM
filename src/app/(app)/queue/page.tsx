@@ -10,6 +10,14 @@ import { QueueBoard, type QueueVisit } from "./queue-board";
 
 export const metadata: Metadata = { title: "Today's queue" };
 
+/** "paid" | owed amount | "none" — from the visit's issued bills (drafts and voids don't count). */
+function billState(rows: { status: string; balance: number }[] | null): "none" | "paid" | number {
+  const issued = (rows ?? []).filter((r) => r.status === "issued");
+  if (!issued.length) return "none";
+  const owed = issued.reduce((s, r) => s + Number(r.balance), 0);
+  return owed > 0 ? owed : "paid";
+}
+
 export default async function QueuePage() {
   const me = await requireStaff();
   if (!me.can("queue.manage") && !me.can("clinical.view")) redirect("/dashboard?denied=1");
@@ -18,7 +26,7 @@ export default async function QueuePage() {
     supabase.from("visits")
       .select(`id, token_no, status, priority, reason, checked_in_at, status_changed_at, completed_at, service_location, service_address,
         pets(id, name, special_handling, species(name)), customers(id, full_name),
-        doctor:doctor_id(id, full_name), appointment_types(name)`)
+        doctor:doctor_id(id, full_name), appointment_types(name), invoices(status, balance)`)
       .eq("visit_date", todayPK())
       .neq("status", "cancelled")
       .order("checked_in_at"),
@@ -36,6 +44,7 @@ export default async function QueuePage() {
       doctor: v.doctor as unknown as { id: string; full_name: string } | null,
       type: (v.appointment_types as unknown as { name: string } | null)?.name ?? null,
       home_address: v.service_location === "home_visit" ? v.service_address : null,
+      bill: billState(v.invoices as unknown as { status: string; balance: number }[] | null),
     };
   });
   const waiting = visits.filter((v) => v.status === "waiting").length;
