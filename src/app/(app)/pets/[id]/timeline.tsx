@@ -16,7 +16,7 @@ const ICONS = { visit: Stethoscope, vaccination: Syringe, prescription: Pill, di
 export async function PetTimeline({ petId }: { petId: string }) {
   const supabase = await createClient();
   const [visits, vaccs, rx, dx, sx, adm] = await Promise.all([
-    supabase.from("visits").select(`id, checked_in_at, status, reason, appointment_types(name), doctor:doctor_id(full_name),
+    supabase.from("visits").select(`id, checked_in_at, status, reason, service_location, appointment_types(name), doctor:doctor_id(full_name),
       consultations(status, assessment, chief_complaint, consultation_diagnoses(label, is_primary))`)
       .eq("pet_id", petId).neq("status", "cancelled").order("checked_in_at", { ascending: false }).limit(50),
     supabase.from("vaccinations").select("id, vaccine_name, administered_at, batch_no, next_due_date, voided_at, visit_id")
@@ -41,6 +41,7 @@ export async function PetTimeline({ petId }: { petId: string }) {
         title: (v.appointment_types as unknown as { name: string } | null)?.name ?? "Visit",
         detail: dx || c?.assessment || c?.chief_complaint || v.reason,
         tags: [
+          ...(v.service_location === "home_visit" ? [{ label: "Home visit", tone: "info" as const }] : []),
           ...(c ? [{ label: c.status === "finalized" ? "Finalized" : "Draft notes", tone: c.status === "finalized" ? "success" as const : "warning" as const }] : []),
           ...((v.doctor as unknown as { full_name: string } | null) ? [{ label: (v.doctor as unknown as { full_name: string }).full_name, tone: "neutral" as const }] : []),
         ],

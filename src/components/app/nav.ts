@@ -1,5 +1,5 @@
 import {
-  ChartColumnBig, BedDouble, BellRing, Boxes, CalendarClock, ListTodo, MessageCircle, CalendarDays, CreditCard, FileClock, Receipt, Scissors, ShoppingBag, Truck, Wallet, House, ListOrdered, PawPrint, Settings, ShieldCheck, Syringe, UserCog, Users, type LucideIcon,
+  ArrowLeftRight, ChartColumnBig, BedDouble, BellRing, Boxes, CalendarClock, ListTodo, MessageCircle, CalendarDays, CreditCard, FileClock, PackageCheck, Receipt, Scissors, ShoppingBag, Truck, Wallet, House, ListOrdered, PawPrint, Settings, ShieldCheck, Syringe, UserCog, Users, type LucideIcon,
 } from "lucide-react";
 import type { Permission } from "@/lib/permissions";
 
@@ -50,7 +50,9 @@ export const NAV: NavGroup[] = [
       { title: "Billing", href: "/billing", icon: Receipt, anyOf: ["billing.view"] },
       { title: "Unpaid bills", href: "/billing/dues", icon: CreditCard, anyOf: ["billing.view", "crm.manage"] },
       { title: "Pet store", href: "/pos", icon: ShoppingBag, anyOf: ["pos.use"] },
+      { title: "Home deliveries", href: "/pos/deliveries", icon: PackageCheck, anyOf: ["pos.use", "billing.create"] },
       { title: "Inventory", href: "/inventory", icon: Boxes, anyOf: ["inventory.view", "settings.manage"] },
+      { title: "Borrowed & lent stock", href: "/inventory/loans", icon: ArrowLeftRight, anyOf: ["inventory.view"] },
       { title: "Suppliers", href: "/suppliers", icon: Truck, anyOf: ["suppliers.manage"] },
       { title: "Expenses", href: "/expenses", icon: Wallet, anyOf: ["expenses.view"] },
       { title: "Reports", href: "/reports", icon: ChartColumnBig, anyOf: ["reports.view", "reports.financial", "inventory.view"] },

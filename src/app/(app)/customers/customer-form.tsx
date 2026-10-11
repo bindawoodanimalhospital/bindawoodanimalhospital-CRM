@@ -18,7 +18,7 @@ import { findDuplicates, type DuplicateHit } from "./actions";
 
 export type CustomerDefaults = Partial<{
   id: string; full_name: string; full_name_ur: string | null; phone: string; whatsapp: string | null;
-  alt_phone: string | null; email: string | null; address: string | null; area: string | null; city: string;
+  alt_phone: string | null; email: string | null; house_no: string | null; block: string | null; address: string | null; area: string | null; city: string;
   preferred_channel: string; preferred_language: string; marketing_opt_in: boolean; referral_source: string | null; notes: string | null;
 }>;
 
@@ -91,15 +91,6 @@ export function CustomerForm({
         <FormField label="Email" htmlFor="email" error={errors.email}>
           <Input id="email" name="email" type="email" defaultValue={defaults.email ?? ""} />
         </FormField>
-        <FormField label="Area / society" htmlFor="area" hint="e.g. DHA Phase 5, Johar Town">
-          <Input id="area" name="area" defaultValue={defaults.area ?? ""} />
-        </FormField>
-        <FormField label="City" htmlFor="city">
-          <Input id="city" name="city" defaultValue={defaults.city ?? "Lahore"} />
-        </FormField>
-        <FormField label="Address" htmlFor="address" className="sm:col-span-2">
-          <Input id="address" name="address" defaultValue={defaults.address ?? ""} />
-        </FormField>
         <FormField label="Preferred contact">
           <Select name="preferred_channel" defaultValue={defaults.preferred_channel ?? "whatsapp"}>
             <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
@@ -132,6 +123,24 @@ export function CustomerForm({
           <Checkbox name="marketing_opt_in" defaultChecked={defaults.marketing_opt_in ?? false} />
           OK to receive offers & campaign messages (reminders are sent regardless)
         </Label>
+      </FormSection>
+
+      <FormSection title="Address" description="Saved once — used for home deliveries and home visits, so nobody re-types it.">
+        <FormField label="House number" htmlFor="house_no" hint="e.g. 123 or Flat 4B">
+          <Input id="house_no" name="house_no" defaultValue={defaults.house_no ?? ""} />
+        </FormField>
+        <FormField label="Block" htmlFor="block" hint="e.g. Block C, Sector 2">
+          <Input id="block" name="block" defaultValue={defaults.block ?? ""} />
+        </FormField>
+        <FormField label="Full address" htmlFor="address" className="sm:col-span-2" hint="Street, landmarks, any other directions">
+          <Textarea id="address" name="address" rows={2} defaultValue={defaults.address ?? ""} />
+        </FormField>
+        <FormField label="Area / society" htmlFor="area" hint="e.g. DHA Phase 5, Johar Town">
+          <Input id="area" name="area" defaultValue={defaults.area ?? ""} />
+        </FormField>
+        <FormField label="City" htmlFor="city">
+          <Input id="city" name="city" defaultValue={defaults.city ?? "Lahore"} />
+        </FormField>
       </FormSection>
 
       {species && (

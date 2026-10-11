@@ -4,6 +4,7 @@ import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState, PageHeader } from "@/components/app/page-header";
 import { requireStaff } from "@/lib/auth";
+import type { ServiceLocation } from "@/lib/clinic";
 import { createClient } from "@/lib/supabase/server";
 import { getAppointmentTypes, getDoctors } from "@/lib/queries";
 import { TIMEZONE, todayPK } from "@/lib/format";
@@ -34,7 +35,7 @@ export default async function AppointmentsPage({ searchParams }: PageProps<"/app
 
   const supabase = await createClient();
   let dayQuery = supabase.from("appointments")
-    .select(`id, starts_at, ends_at, status, source, is_urgent, reason, pre_visit_instructions, visit_id, pet_id, doctor_id,
+    .select(`id, starts_at, ends_at, status, source, is_urgent, reason, pre_visit_instructions, visit_id, pet_id, doctor_id, service_location, service_address,
       appointment_type_id, customers(id, full_name, phone, whatsapp, area), pets(name), doctor:doctor_id(full_name), appointment_types(name, tone)`)
     .gte("starts_at", `${day}T00:00:00+05:00`).lt("starts_at", `${shift(day, 1)}T00:00:00+05:00`)
     .order("starts_at");
@@ -64,6 +65,7 @@ export default async function AppointmentsPage({ searchParams }: PageProps<"/app
       date: pkDate(a.starts_at), time: pkTime(a.starts_at),
       minutes: Math.round((new Date(a.ends_at).getTime() - new Date(a.starts_at).getTime()) / 60000),
       source: a.source, is_urgent: a.is_urgent, reason: a.reason, pre_visit_instructions: a.pre_visit_instructions,
+      service_location: a.service_location as ServiceLocation, service_address: a.service_address,
     };
   });
 

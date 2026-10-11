@@ -16,6 +16,7 @@ Product spec: *Bin Dawood Animal Hospital CRM v1.2* (Omer Bin Dawood, Sep 2026).
 | 4 — Billing & store | Bills from visits, split payments (cash/card/JazzCash/Easypaisa/Raast), dues with promises & approvals, returns/refunds, customer ledger & statements, pet store POS, batch/expiry stock (FEFO), suppliers & deliveries, expenses | ✅ Built |
 | 5 — CRM & comms | Reminder & escalation engine, WhatsApp message queue (Urdu/English), tasks, alert centre, notifications, opt-in campaigns | ✅ Built |
 | 6 — Analytics | Reports (money, clinic activity, medicines & stock, data checks), owner month summary, audited Excel/CSV exports | ✅ Built |
+| POS enhancements | Client house no./block/full address; home delivery orders (To dispatch → Out for delivery → Delivered, cash on delivery) with an editable delivery charge as its own bill line (suggested Rs. 50, set in the price list); At hospital / Home visit on appointments, visits and clinic bills (+ optional home visit charge); stock borrowed from / lent to nearby businesses with partial returns and overdue tracking | ✅ Built |
 | 7 — AI | After workflows and data quality are proven | Next |
 
 ## Stack

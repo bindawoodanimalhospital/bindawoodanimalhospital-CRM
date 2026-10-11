@@ -16,7 +16,7 @@ export default async function QueuePage() {
   const supabase = await createClient();
   const [{ data }, doctors, types] = await Promise.all([
     supabase.from("visits")
-      .select(`id, token_no, status, priority, reason, checked_in_at, status_changed_at, completed_at,
+      .select(`id, token_no, status, priority, reason, checked_in_at, status_changed_at, completed_at, service_location, service_address,
         pets(id, name, special_handling, species(name)), customers(id, full_name),
         doctor:doctor_id(id, full_name), appointment_types(name)`)
       .eq("visit_date", todayPK())
@@ -35,6 +35,7 @@ export default async function QueuePage() {
       owner: v.customers as unknown as { id: string; full_name: string },
       doctor: v.doctor as unknown as { id: string; full_name: string } | null,
       type: (v.appointment_types as unknown as { name: string } | null)?.name ?? null,
+      home_address: v.service_location === "home_visit" ? v.service_address : null,
     };
   });
   const waiting = visits.filter((v) => v.status === "waiting").length;

@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { assertCan } from "@/lib/auth";
+import { assertCan, getCurrentStaff } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import type { FormState } from "@/lib/validation";
 
@@ -33,6 +33,8 @@ export async function posCheckout(input: {
   payments: { method: string; amount: number; reference?: string }[];
   invoice_discount?: number; discount_reason?: string;
   pay_later?: { promised_date: string; reason: string } | null;
+  /** Home delivery: address for this order + delivery charge (its own bill line). */
+  delivery?: { address: string; charge: number; notes?: string } | null;
 }): Promise<FormState & { invoiceId?: string }> {
   await assertCan("pos.use");
   const supabase = await createClient();
@@ -40,9 +42,47 @@ export async function posCheckout(input: {
     p_key: input.key, p_customer: input.customer_id, p_pet: input.pet_id, p_lines: input.lines,
     p_payments: input.payments.filter((p) => p.amount > 0), p_invoice_discount: input.invoice_discount ?? 0,
     p_discount_reason: input.discount_reason ?? null, p_pay_later: input.pay_later ?? null,
+    p_delivery: input.delivery ?? null,
   });
   if (error) return { message: error.message };
   revalidatePath("/pos");
   revalidatePath("/billing");
+  if (input.delivery) revalidatePath("/pos/deliveries");
   return { ok: true, invoiceId: data as string };
+}
+
+/** Dispatch / deliver / re-price a home delivery order (rules enforced by public.update_delivery). */
+export async function updateDelivery(invoiceId: string, patch: {
+  status?: "pending" | "dispatched" | "delivered"; charge?: number; address?: string; rider?: string; note?: string;
+}): Promise<FormState> {
+  const me = await getCurrentStaff();
+  if (!me?.can("pos.use") && !me?.can("billing.create")) return { message: "You don't have permission to update deliveries." };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("update_delivery", {
+    p_invoice: invoiceId, p_status: patch.status ?? null, p_charge: patch.charge ?? null,
+    p_address: patch.address ?? null, p_rider: patch.rider ?? null, p_note: patch.note ?? null,
+  });
+  if (error) return { message: error.message };
+  revalidatePath("/pos/deliveries");
+  revalidatePath(`/billing/${invoiceId}`);
+  return { ok: true, message: patch.status === "delivered" ? "Marked as delivered." : patch.status === "dispatched" ? "Out for delivery." : "Delivery updated." };
+}
+
+/** Rider is back with the cash: record the payment on the order, then mark it delivered (both safe to repeat). */
+export async function collectAndDeliver(invoiceId: string, customerId: string, payment: { amount: number; method: string; reference?: string } | null, key: string): Promise<FormState> {
+  const me = await getCurrentStaff();
+  if (!me?.can("pos.use") && !me?.can("billing.create")) return { message: "You don't have permission to update deliveries." };
+  const supabase = await createClient();
+  if (payment && payment.amount > 0) {
+    const { error } = await supabase.rpc("record_payment", {
+      p_customer: customerId, p_amount: payment.amount, p_method: payment.method, p_key: key,
+      p_invoice: invoiceId, p_reference: payment.reference ?? null, p_auto: false, p_notes: "Collected on delivery",
+    });
+    if (error) return { message: error.message };
+  }
+  const r = await updateDelivery(invoiceId, { status: "delivered" });
+  if (!r.ok) return r;
+  revalidatePath("/billing/dues");
+  revalidatePath(`/customers/${customerId}`);
+  return { ok: true, message: payment?.amount ? "Cash recorded — order delivered." : "Marked as delivered." };
 }

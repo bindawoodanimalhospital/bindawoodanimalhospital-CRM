@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { assertCan } from "@/lib/auth";
 import { toE164 } from "@/lib/phone";
+import { addressLine } from "@/lib/clinic";
 import {
   customerRow, customerSchema, dbErrorMessage, fieldErrors, formObject, petSchema, type FormState,
 } from "@/lib/validation";
@@ -73,6 +74,13 @@ export async function searchCustomers(q: string): Promise<CustomerOption[]> {
   const supabase = await createClient();
   const { data } = await supabase.rpc("global_search", { q, max_results: 20 });
   return ((data ?? []) as (CustomerOption & { kind: string })[]).filter((h) => h.kind === "customer").slice(0, 8);
+}
+
+/** The customer's saved address as one line (house, block, full address, area, city) — for deliveries & home visits. */
+export async function customerAddress(customerId: string): Promise<string> {
+  const supabase = await createClient();
+  const { data } = await supabase.from("customers").select("house_no, block, address, area, city").eq("id", customerId).maybeSingle();
+  return addressLine(data);
 }
 
 export async function mergeCustomers(sourceId: string, targetId: string, reason: string): Promise<FormState> {
