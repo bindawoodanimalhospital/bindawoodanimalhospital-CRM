@@ -131,14 +131,14 @@
   --danger: oklch(0.55 0.2 30);
   --danger-soft: oklch(0.96 0.03 30);
 
-  /* Cream sidebar + frame; the white content panel floats on it (inset layout) */
-  --sidebar: oklch(0.955 0.022 80);              /* warm cream */
-  --sidebar-foreground: oklch(0.3 0.02 30);
+  /* Off-white sidebar + frame; the white content panel floats on it (inset layout) */
+  --sidebar: oklch(0.988 0.005 85);              /* soft off-white, a hint of warmth */
+  --sidebar-foreground: oklch(0.32 0.012 30);
   --sidebar-primary: var(--brand);
   --sidebar-primary-foreground: var(--brand-foreground);
-  --sidebar-accent: oklch(0.91 0.03 75);         /* hover: deeper cream */
-  --sidebar-accent-foreground: oklch(0.22 0.02 30);
-  --sidebar-border: oklch(0.88 0.03 75);
+  --sidebar-accent: oklch(0.955 0.01 80);        /* hover: faint warm grey */
+  --sidebar-accent-foreground: oklch(0.22 0.015 30);
+  --sidebar-border: oklch(0.92 0.008 75);
   --sidebar-ring: var(--ring);
 }
 
@@ -166,10 +166,10 @@
   }
 }
 
-/* Cream frame: a gentle top-to-bottom warmth instead of a flat block (desktop frame + mobile drawer). */
+/* Off-white frame with the faintest warmth toward the bottom (desktop frame + mobile drawer). */
 [data-slot="sidebar-wrapper"]:has([data-variant="inset"]),
 [data-slot="sidebar"][data-mobile="true"] {
-  background-image: linear-gradient(180deg, oklch(0.97 0.018 82) 0%, oklch(0.95 0.024 78) 60%, oklch(0.93 0.028 74) 100%);
+  background-image: linear-gradient(180deg, oklch(0.994 0.003 85) 0%, oklch(0.985 0.006 82) 60%, oklch(0.972 0.01 78) 100%);
 }
 [data-slot="sidebar-inner"] { background: transparent; }
 

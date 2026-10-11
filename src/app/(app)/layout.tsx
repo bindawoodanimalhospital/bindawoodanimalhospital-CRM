@@ -7,7 +7,7 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { AppSidebar } from "@/components/app/app-sidebar";
-import { GlobalSearch } from "@/components/app/global-search";
+import { GlobalSearch, type QuickAction } from "@/components/app/global-search";
 import { NotificationBell } from "@/components/app/notification-bell";
 import { requireStaff } from "@/lib/auth";
 
@@ -15,6 +15,14 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
   const me = await requireStaff();
   const sidebarOpen = (await cookies()).get("sidebar_state")?.value !== "false";
   const canCreate = me.can("customers.create") || me.can("pets.create");
+  // Shown in the search window before typing — only what this person is allowed to do.
+  const quickActions = ([
+    me.can("queue.manage") && { label: "Check in a pet", href: "/queue", icon: "checkin" },
+    me.can("customers.create") && { label: "New pet owner + pet", href: "/customers/new", icon: "owner" },
+    me.can("appointments.manage") && { label: "Book an appointment", href: "/appointments", icon: "book" },
+    me.can("billing.create") && { label: "Bills", href: "/billing", icon: "bill" },
+    me.can("pos.use") && { label: "Pet store sale", href: "/pos", icon: "store" },
+  ].filter(Boolean) as QuickAction[]);
 
   return (
     <SidebarProvider defaultOpen={sidebarOpen}>
@@ -25,7 +33,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
       <SidebarInset className="min-w-0">
         <header className="no-print sticky top-0 z-20 flex h-16 items-center gap-3 rounded-t-2xl border-b bg-card/85 px-4 backdrop-blur-md md:px-6">
           <SidebarTrigger className="-ml-1 size-9" />
-          <div className="min-w-0 flex-1"><GlobalSearch /></div>
+          <div className="min-w-0 flex-1"><GlobalSearch actions={quickActions} /></div>
           <NotificationBell userId={me.id} />
           {canCreate && (
             <DropdownMenu>

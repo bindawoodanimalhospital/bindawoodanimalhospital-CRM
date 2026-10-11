@@ -34,8 +34,8 @@ export function Greeting({ name, initial }: { name: string; initial: string }) {
   }, []);
   return (
     <>
-      <p className="text-sm font-medium text-white/60" suppressHydrationWarning>{pkDateLine(now)}</p>
-      <h1 className="mt-1 text-2xl font-bold tracking-tight md:text-3xl" suppressHydrationWarning>{greetingFor(now)}, {name}</h1>
+      <p className="text-sm font-medium text-muted-foreground" suppressHydrationWarning>{pkDateLine(now)}</p>
+      <h1 className="mt-1 text-2xl font-bold tracking-tight text-balance md:text-[2rem]" suppressHydrationWarning>{greetingFor(now)}, {name}</h1>
     </>
   );
 }

@@ -38,7 +38,9 @@ calm, obvious and quick. Live reference: run `npm run dev` and open **http://loc
 
 ## Layout
 
-- **Shell:** warm cream sidebar + cream frame (gentle gradient), with the white content panel floating on it. Active item = white pill with maroon text. Sidebar collapses to icons; on phones it's a cream drawer.
+- **Shell:** off-white sidebar + frame (barely-warm gradient), with the white content panel floating on it. Active item = soft rose pill with maroon text. Sidebar collapses to icons; on phones it's an off-white drawer.
+- **Search:** one search window (Ctrl K, "/", or the homepage box) backed by `public.smart_search` — owners, pets, bills, items, today's tokens; any phone format, IDs, microchips, typos, "pet + owner" words, `pet:`/`owner:`/`bill:`/`item:` prefixes, filter tabs, recent picks and quick actions.
+- **Home:** light greeting card with a big search and example chips, quick actions, "Needs attention" list, today's queue and KPIs — no dark banners.
 - **Greeting:** always Pakistan time (Asia/Karachi), live: morning 4–12, afternoon 12–17, evening 17–4.
 - **Clinic number:** one number everywhere (Settings → Clinic profile: phone = WhatsApp = 0333 1606689); printouts show it once.
 - **Header:** sidebar toggle · big search · one burgundy **New** menu.
