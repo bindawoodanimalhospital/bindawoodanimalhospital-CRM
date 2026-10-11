@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { UserPlus } from "lucide-react";
+import { Crown, Mail, Phone, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageHeader, StatusPill } from "@/components/app/page-header";
 import { requireStaff } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { formatPhone } from "@/lib/phone";
-import { formatDate } from "@/lib/format";
+import { formatDate, initials } from "@/lib/format";
 
 export const metadata: Metadata = { title: "Staff" };
 
@@ -16,9 +16,18 @@ export default async function StaffPage() {
   const supabase = await createClient();
   const { data: staff } = await supabase
     .from("staff")
-    .select("id, full_name, email, phone, title, is_active, is_doctor, created_at, staff_roles!staff_roles_staff_id_fkey(valid_until, roles(name))")
+    .select("id, full_name, email, phone, title, is_active, is_doctor, created_at, staff_roles!staff_roles_staff_id_fkey(valid_until, roles(key, name))")
     .order("is_active", { ascending: false })
     .order("full_name");
+
+  type Row = NonNullable<typeof staff>[number];
+  type RoleLink = { valid_until: string | null; roles: { key: string; name: string } };
+  const currentRoles = (s: Row) => ((s.staff_roles ?? []) as unknown as RoleLink[])
+    .filter((r) => !r.valid_until || new Date(r.valid_until) > new Date());
+  // The clinic owner is shown on top in a card of their own; everyone else in the table below.
+  const isOwner = (s: Row) => currentRoles(s).some((r) => r.roles.key === "owner");
+  const owners = (staff ?? []).filter(isOwner);
+  const team = (staff ?? []).filter((s) => !isOwner(s));
 
   return (
     <>
@@ -29,6 +38,23 @@ export default async function StaffPage() {
           <Button asChild><Link href="/admin/staff/new"><UserPlus /> Add staff</Link></Button>
         )}
       />
+      {owners.map((o) => (
+        <Link key={o.id} href={`/admin/staff/${o.id}`}
+          className="relative mb-5 flex flex-wrap items-center gap-4 overflow-hidden rounded-2xl bg-ink bg-hero-gradient p-5 text-white shadow-float shadow-brand/20 transition hover:brightness-110 md:p-6">
+          <span className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-white/15 text-lg font-bold ring-1 ring-white/25">{initials(o.full_name)}</span>
+          <span className="min-w-0 flex-1">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-0.5 text-[11px] font-semibold tracking-wide uppercase ring-1 ring-white/20">
+              <Crown className="size-3.5" /> Owner
+            </span>
+            <span className="mt-1 block text-xl font-bold tracking-tight md:text-2xl">{o.full_name || o.email}</span>
+            <span className="block text-sm text-white/70">{[o.title, currentRoles(o).map((r) => r.roles.name).join(" · ")].filter(Boolean).join(" · ")}</span>
+          </span>
+          <span className="grid gap-1 text-sm text-white/80">
+            <span className="inline-flex items-center gap-2"><Mail className="size-4" />{o.email}</span>
+            {o.phone && <span className="inline-flex items-center gap-2"><Phone className="size-4" />{formatPhone(o.phone)}</span>}
+          </span>
+        </Link>
+      ))}
       <div className="overflow-hidden rounded-2xl bg-card shadow-card ring-1 ring-border">
         <Table>
           <TableHeader>
@@ -41,9 +67,8 @@ export default async function StaffPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {(staff ?? []).map((s) => {
-              const roles = (s.staff_roles ?? []) as unknown as { valid_until: string | null; roles: { name: string } }[];
-              const current = roles.filter((r) => !r.valid_until || new Date(r.valid_until) > new Date());
+            {team.map((s) => {
+              const current = currentRoles(s);
               return (
                 <TableRow key={s.id} className="relative">
                   <TableCell>
