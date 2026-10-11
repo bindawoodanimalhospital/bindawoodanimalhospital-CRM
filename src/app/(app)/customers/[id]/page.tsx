@@ -86,7 +86,7 @@ export default async function CustomerPage({ params }: PageProps<"/customers/[id
         </div>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Left: contact profile */}
         <Card className="lg:row-span-2">
           <CardHeader><CardTitle>Contact</CardTitle></CardHeader>

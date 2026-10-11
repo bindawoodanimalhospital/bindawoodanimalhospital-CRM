@@ -56,3 +56,20 @@ export const getAppointmentTypes = cache(async (): Promise<AppointmentTypeOption
     .eq("is_active", true).order("sort_order");
   return data ?? [];
 });
+
+/** Kennels with current occupancy (for admit / move pickers). */
+export async function getKennels() {
+  const supabase = await createClient();
+  const [{ data: kennels }, { data: open }] = await Promise.all([
+    supabase.from("kennels").select("id, name, ward, is_isolation").eq("is_active", true).order("sort_order"),
+    supabase.from("admissions").select("kennel_id").eq("status", "admitted").not("kennel_id", "is", null),
+  ]);
+  const taken = new Set((open ?? []).map((a) => a.kennel_id));
+  return (kennels ?? []).map((k) => ({ ...k, occupied: taken.has(k.id) }));
+}
+
+export async function getStaffOptions(): Promise<DoctorOption[]> {
+  const supabase = await createClient();
+  const { data } = await supabase.from("staff").select("id, full_name").eq("is_active", true).order("full_name");
+  return data ?? [];
+}

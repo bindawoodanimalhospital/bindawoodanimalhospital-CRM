@@ -11,6 +11,7 @@ import { EmptyState, Field, PageHeader, StatusPill } from "@/components/app/page
 import { FormField, FormSection } from "@/components/app/form-field";
 import { LogoMark } from "@/components/brand/logo";
 import { QueueBoard, type QueueVisit } from "@/app/(app)/queue/queue-board";
+import { SurgeryWorkspace, type SurgeryData } from "@/app/(app)/surgery/[id]/workspace";
 
 export const metadata: Metadata = { title: "Design system" };
 
@@ -18,10 +19,26 @@ export const metadata: Metadata = { title: "Design system" };
  * Living style guide (development only). Shows the shell and every building block with sample data,
  * so new screens can copy patterns instead of inventing new ones. See docs/DESIGN.md.
  */
+/** Sample timestamps "m minutes ago" for the demo queue. */
+function ago(m: number) {
+  return new Date(Date.now() - m * 60000).toISOString();
+}
+
+const SAMPLE_SURGERY: SurgeryData = {
+  id: "sample", code: "SX-000001", status: "pre_op", urgency: "elective", procedure_name: "Spay (ovariohysterectomy)",
+  fields: { procedure_name: "Spay (ovariohysterectomy)", urgency: "elective", indication: "Elective spay", surgeon_id: "d1",
+    scheduled_at: null, estimate_amount: 25000, estimate_notes: "Includes 1 night in ward", preop_weight_kg: 18.2, asa_class: 1,
+    fasting_confirmed: true, discharge_instructions: null },
+  preop_checklist: { "Owner consent recorded": true, "Fasting confirmed": true }, preop_checked_at: null, preop_checked_by_name: null,
+  procedure_start: null, procedure_end: null, discharged_at: null, emergency_override_reason: null, cancel_reason: null, reopened_reason: null,
+  owner: { name: "Ahmed Raza", phone: "+923001234567" }, pet: { id: "p1", name: "Bella", customer_id: "c1" },
+  consents: [{ id: "k1", signed_by_name: "Ahmed Raza", relationship: "Owner", method: "signed_paper", signed_at: new Date(0).toISOString(), revoked_at: null, revoked_reason: null, witness: "Reception" }],
+  team: [], events: [], consumables: [{ id: "m1", item_name: "Suture — absorbable", quantity: 2, unit: "packs", batch_no: null }], admission_id: null,
+};
+
 export default function DesignPage() {
   if (process.env.NODE_ENV === "production") notFound();
   const perms = ["customers.view", "pets.view", "queue.manage", "appointments.view", "clinical.view", "clinical.reopen", "staff.view", "audit.view", "settings.manage"];
-  const ago = (m: number) => new Date(Date.now() - m * 60000).toISOString();
   const sample: QueueVisit[] = [
     { id: "1", token_no: 7, status: "waiting", priority: "emergency", reason: "Hit by a car, bleeding from the leg", checked_in_at: ago(4), status_changed_at: ago(4), completed_at: null,
       pet: { id: "p1", name: "Sheru", species: "Dog", special_handling: "Aggressive — muzzle first" }, owner: { id: "c1", full_name: "Bilal Ahmed" }, doctor: null, type: "Emergency" },
@@ -62,6 +79,13 @@ export default function DesignPage() {
           <div>
             <PageHeader title="Today's queue" description="Thursday, 25 September · 2 waiting · updates live on every screen" actions={<Button size="lg"><Plus /> Check in a pet</Button>} />
             <QueueBoard visits={sample} doctors={[{ id: "d1", full_name: "Dr. Musab Bin Dawood" }]} canManage canClinical />
+          </div>
+
+          <div>
+            <PageHeader title="Surgery workspace" description="Pre-op stage: consent recorded, pre-op check still missing → Start surgery is locked." />
+            <SurgeryWorkspace s={SAMPLE_SURGERY} doctors={[{ id: "d1", full_name: "Dr. Musab Bin Dawood" }]} staff={[{ id: "d1", full_name: "Dr. Musab Bin Dawood" }]}
+              checklist={["Owner consent recorded", "Fasting confirmed", "Weight taken today", "IV line placed"]} consentText={{ en: "", ur: "" }}
+              perms={{ manage: true, assist: true, consent: true, reopen: true, clinical: true }} />
           </div>
 
           <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
