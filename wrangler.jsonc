@@ -1,0 +1,13 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "bdah-crm",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-10-01",
+  // nodejs_compat is required by Next.js 16 proxy.ts (Node runtime) on Workers.
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
+  "observability": { "enabled": true }
+  // NEXT_PUBLIC_* values are built into the app from the environment at build time.
+  // The one secret, SUPABASE_SECRET_KEY, is set with `npx wrangler secret put SUPABASE_SECRET_KEY`
+  // (never in this file: the repo is public).
+}
