@@ -20,17 +20,20 @@ export default async function StaffMemberPage({ params }: PageProps<"/admin/staf
   const supabase = await createClient();
   const [{ data: s }, { data: allRoles }] = await Promise.all([
     supabase.from("staff")
-      .select("*, staff_roles!staff_roles_staff_id_fkey(role_id, valid_from, valid_until, roles(id, name, description))")
+      .select("*, staff_roles!staff_roles_staff_id_fkey(role_id, valid_from, valid_until, roles(id, key, name, description))")
       .eq("id", id).maybeSingle(),
     supabase.from("roles").select("id, name").order("created_at"),
   ]);
   if (!s) notFound();
 
   const manage = me.can("staff.manage");
-  type Grant = { role_id: string; valid_from: string; valid_until: string | null; roles: { id: string; name: string; description: string | null } };
+  type Grant = { role_id: string; valid_from: string; valid_until: string | null; roles: { id: string; key: string; name: string; description: string | null } };
   const grants = (s.staff_roles ?? []) as Grant[];
   const now = new Date();
   // Expired temporary roles can be granted again.
+  // The owner's email is private: only the owner themself sees it.
+  const isOwner = grants.some((g) => g.roles?.key === "owner" && (!g.valid_until || new Date(g.valid_until) > now));
+  const email = isOwner && s.id !== me.id ? null : s.email;
   const held = new Set(grants.filter((g) => !g.valid_until || new Date(g.valid_until) > now).map((g) => g.role_id));
 
   return (
@@ -38,13 +41,13 @@ export default async function StaffMemberPage({ params }: PageProps<"/admin/staf
       <Suspense><NoticeToast /></Suspense>
       <PageHeader
         back={{ href: "/admin/staff", label: "Staff" }}
-        title={<span className="flex items-center gap-3">{s.full_name || s.email}
+        title={<span className="flex items-center gap-3">{s.full_name || email || "Staff member"}
           <StatusPill tone={s.is_active ? "success" : "warning"}>{s.is_active ? "Active" : "Inactive"}</StatusPill></span>}
-        description={[s.title, s.email].filter(Boolean).join(" · ")}
+        description={[s.title, email].filter(Boolean).join(" · ")}
         actions={manage && (
           <>
             <ResetPasswordDialog staffId={s.id} />
-            {s.id !== me.id && <ActiveToggle staffId={s.id} active={s.is_active} name={s.full_name || s.email} />}
+            {s.id !== me.id && <ActiveToggle staffId={s.id} active={s.is_active} name={s.full_name || email || "this staff member"} />}
           </>
         )}
       />

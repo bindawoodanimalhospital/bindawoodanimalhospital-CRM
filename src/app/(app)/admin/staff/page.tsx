@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Crown, Mail, Phone, UserPlus } from "lucide-react";
+import { Crown, Phone, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { PageHeader, StatusPill } from "@/components/app/page-header";
@@ -46,11 +46,10 @@ export default async function StaffPage() {
             <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-0.5 text-[11px] font-semibold tracking-wide uppercase ring-1 ring-white/20">
               <Crown className="size-3.5" /> Owner
             </span>
-            <span className="mt-1 block text-xl font-bold tracking-tight md:text-2xl">{o.full_name || o.email}</span>
+            <span className="mt-1 block text-xl font-bold tracking-tight md:text-2xl">{o.full_name || "Owner"}</span>
             <span className="block text-sm text-white/70">{[o.title, currentRoles(o).map((r) => r.roles.name).join(" · ")].filter(Boolean).join(" · ")}</span>
           </span>
-          <span className="grid gap-1 text-sm text-white/80">
-            <span className="inline-flex items-center gap-2"><Mail className="size-4" />{o.email}</span>
+          <span className="grid gap-1 text-sm text-white/80 empty:hidden">
             {o.phone && <span className="inline-flex items-center gap-2"><Phone className="size-4" />{formatPhone(o.phone)}</span>}
           </span>
         </Link>
