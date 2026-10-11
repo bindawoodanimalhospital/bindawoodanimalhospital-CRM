@@ -13,7 +13,9 @@ import { PlanSurgeryDialog } from "../../surgery/plan-dialog";
 import { AdmitDialog } from "../../ward/admit-dialog";
 import { BillVisitButton } from "../../billing/bill-visit-button";
 import { whatsappLink } from "@/lib/phone";
-import { PRIORITY, VISIT_STATUS_LABEL, type VisitStatus } from "@/lib/clinic";
+import { PRIORITY, VISIT_STATUS_LABEL, addressLine, type AddressParts, type ServiceLocation, type VisitStatus } from "@/lib/clinic";
+import { ServiceLocationControl } from "@/components/app/service-location";
+import { setVisitServiceLocation } from "../../queue/actions";
 import { ConsultationPanel, type Consultation, type Template } from "./consultation-panel";
 import { VaccinesPanel, type ProtocolOption, type VaccinationRow, type VaccineOption } from "./vaccines-panel";
 import { RxPanel, type Rx } from "./rx-panel";
@@ -34,7 +36,7 @@ export default async function VisitPage({ params, searchParams }: PageProps<"/vi
   const { data: visit } = await supabase.from("visits")
     .select(`*, pets(id, code, name, sex, date_of_birth, dob_is_estimate, special_handling, species_id, species(name), breeds(name), breed_text,
       pet_alerts(label, kind, severity, is_active)),
-      customers(id, full_name, phone, whatsapp), doctor:doctor_id(full_name), appointment_types(name)`)
+      customers(id, full_name, phone, whatsapp, house_no, block, address, area, city), doctor:doctor_id(full_name), appointment_types(name)`)
     .eq("id", id).maybeSingle();
   if (!visit) notFound();
 
@@ -42,7 +44,7 @@ export default async function VisitPage({ params, searchParams }: PageProps<"/vi
     special_handling: string | null; species_id: string; species: { name: string } | null; breeds: { name: string } | null;
     breed_text: string | null; pet_alerts: { label: string; kind: string; severity: string; is_active: boolean }[] };
   const pet = visit.pets as unknown as PetT;
-  const owner = visit.customers as unknown as { id: string; full_name: string; phone: string; whatsapp: string | null };
+  const owner = visit.customers as unknown as { id: string; full_name: string; phone: string; whatsapp: string | null } & AddressParts;
 
   const canSurgery = me.can("surgery.manage");
   const canAdmit = me.can("inpatient.manage");
@@ -172,6 +174,13 @@ export default async function VisitPage({ params, searchParams }: PageProps<"/vi
           ))}
         </div>
       )}
+
+      <div className="-mt-4 mb-6">
+        <ServiceLocationControl location={visit.service_location as ServiceLocation} address={visit.service_address}
+          savedAddress={addressLine(owner)} label="Where was this visit?"
+          canEdit={(me.can("queue.manage") || me.can("clinical.create")) && status !== "cancelled"}
+          onSave={setVisitServiceLocation.bind(null, id)} />
+      </div>
 
       {visit.reason && (
         <p className="-mt-2 mb-6 rounded-xl bg-surface px-4 py-3 ring-1 ring-border">

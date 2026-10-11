@@ -46,7 +46,10 @@ const walkInSchema = z.object({
   priority: z.enum(["normal", "urgent", "emergency"]).default("normal"),
   doctor_id: z.string().optional().transform((v) => (v && v !== "any" ? v : null)).pipe(z.uuid().nullable()),
   visit_type_id: z.string().optional().transform((v) => v || null).pipe(z.uuid().nullable()),
-});
+  service_location: z.enum(["clinic", "home_visit"]).default("clinic"),
+  service_address: z.string().trim().max(500).optional().transform((v) => v || null),
+}).refine((v) => v.service_location === "clinic" || !!v.service_address, { message: "Enter the home visit address", path: ["service_address"] })
+  .transform((v) => ({ ...v, service_address: v.service_location === "home_visit" ? v.service_address : null }));
 
 export async function checkInWalkIn(input: z.input<typeof walkInSchema>): Promise<FormState & { token?: number }> {
   await assertCan("queue.manage");
@@ -102,4 +105,18 @@ export async function cancelVisit(visitId: string, reason: string): Promise<Form
   if (error) return { message: dbErrorMessage(error) };
   revalidatePath("/queue");
   return { ok: true, message: "Removed from the queue." };
+}
+
+/** At hospital / Home visit for a visit (its draft bill follows automatically). */
+export async function setVisitServiceLocation(visitId: string, location: "clinic" | "home_visit", address: string | null): Promise<FormState> {
+  const me = await getCurrentStaff();
+  if (!me?.can("queue.manage") && !me?.can("clinical.create")) return { message: "You don't have permission to change this visit." };
+  if (location === "home_visit" && !address?.trim()) return { message: "Enter the visit address." };
+  const supabase = await createClient();
+  const { error } = await supabase.from("visits")
+    .update({ service_location: location, service_address: location === "home_visit" ? address!.trim() : null }).eq("id", visitId);
+  if (error) return { message: dbErrorMessage(error) };
+  revalidatePath(`/visits/${visitId}`);
+  revalidatePath("/queue");
+  return { ok: true, message: location === "home_visit" ? "Marked as a home visit." : "Marked as at the hospital." };
 }

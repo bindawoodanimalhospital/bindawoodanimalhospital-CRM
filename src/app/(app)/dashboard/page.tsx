@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
-  ArrowRight, ArrowUpRight, BedDouble, Boxes, CalendarClock, CreditCard, ListTodo, MessageCircle, ShoppingBag, Wallet, CalendarDays, CalendarPlus, ListOrdered, PawPrint, Search, ShieldAlert, Syringe,
+  ArrowLeftRight, ArrowRight, ArrowUpRight, BedDouble, PackageCheck, Boxes, CalendarClock, CreditCard, ListTodo, MessageCircle, ShoppingBag, Wallet, CalendarDays, CalendarPlus, ListOrdered, PawPrint, Search, ShieldAlert, Syringe,
   UserCog, UserPlus, Users, type LucideIcon,
 } from "lucide-react";
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -43,7 +43,8 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
   const ymd = todayPK();
 
   const seeMoney = me.can("finance.view") || me.can("billing.create");
-  const [customers, pets, newCustomers, newPets, recent, waiting, inClinic, appts, dueToday, overdue, inWard, theatre, payToday, openDues, stock, toSend, myTasks] = await Promise.all([
+  const canDeliveries = me.can("pos.use") || me.can("billing.create");
+  const [customers, pets, newCustomers, newPets, recent, waiting, inClinic, appts, dueToday, overdue, inWard, theatre, payToday, openDues, stock, toSend, myTasks, deliveries, loansDue] = await Promise.all([
     canCustomers ? supabase.from("customers").select("id", { count: "exact", head: true }).neq("status", "merged") : null,
     canPets ? supabase.from("pets").select("id", { count: "exact", head: true }).eq("status", "active") : null,
     canCustomers ? supabase.from("customers").select("id", { count: "exact", head: true }).gte("created_at", today) : null,
@@ -65,7 +66,12 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
     me.can("inventory.view") ? supabase.from("stock_levels").select("usable_qty, reorder_level, next_expiry, expired_qty") : null,
     me.can("crm.manage") ? supabase.from("messages").select("id", { count: "exact", head: true }).in("status", ["to_send", "queued"]).lte("scheduled_for", ymd) : null,
     supabase.from("tasks").select("id, due_at", { count: "exact" }).eq("assigned_to", me.id).in("status", ["open", "in_progress"]),
+    canDeliveries ? supabase.from("invoices").select("delivery_status").eq("fulfilment", "home_delivery").eq("status", "issued").in("delivery_status", ["pending", "dispatched"]) : null,
+    me.can("inventory.view") ? supabase.from("stock_loans").select("id", { count: "exact", head: true })
+      .in("status", ["pending_return", "partially_returned"]).lt("expected_return_date", ymd) : null,
   ]);
+  const toDispatch = (deliveries?.data ?? []).filter((d) => d.delivery_status === "pending").length;
+  const outForDelivery = (deliveries?.data ?? []).filter((d) => d.delivery_status === "dispatched").length;
   const month = presetRange("mtd");
   const monthReport = me.can("reports.financial")
     ? ((await supabase.rpc("report_financial", { p_from: month.from, p_to: month.to })).data as FinancialReport | null)
@@ -103,6 +109,8 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
     (myTasks?.count ?? 0) > 0 && { label: "My tasks", value: myTasks?.count ?? 0, sub: myOverdueTasks ? `${myOverdueTasks} overdue` : "none overdue", icon: ListTodo, href: "/tasks", tone: myOverdueTasks ? "danger" : undefined },
     seeMoney && { label: "Collected today", value: Math.round(collected), sub: "payments − refunds (Rs.)", icon: Wallet, href: "/billing", money: true },
     me.can("billing.view") && { label: "Owed to the clinic", value: Math.round(owed), sub: overdueMoney ? `Rs. ${Math.round(overdueMoney).toLocaleString("en-PK")} overdue` : "none overdue", icon: CreditCard, href: "/billing/dues", tone: overdueMoney > 0 ? "danger" : undefined, money: true },
+    canDeliveries && toDispatch + outForDelivery > 0 && { label: "Home deliveries", value: toDispatch + outForDelivery, sub: `${toDispatch} to dispatch · ${outForDelivery} on the way`, icon: PackageCheck, href: "/pos/deliveries", tone: toDispatch > 0 ? "warning" : undefined },
+    me.can("inventory.view") && (loansDue?.count ?? 0) > 0 && { label: "Stock loans overdue", value: loansDue?.count ?? 0, sub: "borrowed/lent items not returned", icon: ArrowLeftRight, href: "/inventory/loans", tone: "danger" },
     me.can("inventory.view") && stockAlerts > 0 && { label: "Stock to check", value: stockAlerts, sub: "low or expired items", icon: Boxes, href: "/inventory", tone: "warning" },
     canDue && { label: "Overdue", value: overdue?.count ?? 0, sub: "need a call from reception", icon: CalendarClock, href: "/due?view=overdue", tone: (overdue?.count ?? 0) > 0 ? "danger" : "success" },
   ].filter(Boolean) as Stat[]);

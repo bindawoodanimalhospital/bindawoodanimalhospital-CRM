@@ -17,7 +17,8 @@ export const metadata: Metadata = { title: "Item" };
 const KIND: Record<string, string> = {
   receive: "Received", sale: "Sold (store)", dispense: "Billed (clinic)", surgery_use: "Used in surgery", return_in: "Returned by customer",
   return_to_supplier: "Returned to supplier", adjust: "Count corrected", wastage: "Damaged / wasted", expired: "Expired — removed",
-  transfer_in: "Moved in", transfer_out: "Moved out", reversal: "Bill voided — put back",
+  transfer_in: "Moved in", transfer_out: "Moved out", reversal: "Reversed (bill voided / record cancelled)",
+  borrow_in: "Borrowed from a business", borrow_return: "Given back (borrowed)", lend_out: "Lent to a business", lend_return: "Returned to us (lent)",
 };
 
 export default async function ItemPage({ params }: PageProps<"/inventory/[id]">) {

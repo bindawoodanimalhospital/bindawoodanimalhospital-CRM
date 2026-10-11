@@ -110,3 +110,28 @@ export function treatmentSlots(order: { starts_at: string; ends_at: string | nul
   }
   return out;
 }
+
+// ---------------------------------------------------------------- service location, delivery & address
+
+export type ServiceLocation = "clinic" | "home_visit";
+export const SERVICE_LOCATION: Record<ServiceLocation, { label: string; tone: Tone }> = {
+  clinic: { label: "At hospital", tone: "neutral" },
+  home_visit: { label: "Home visit", tone: "info" },
+};
+
+export type DeliveryStatus = "pending" | "dispatched" | "delivered";
+export const DELIVERY_STATUS: Record<DeliveryStatus, { label: string; tone: Tone; hint: string }> = {
+  pending: { label: "To dispatch", tone: "warning", hint: "Packed or waiting — not left the shop yet" },
+  dispatched: { label: "Out for delivery", tone: "info", hint: "With the rider" },
+  delivered: { label: "Delivered", tone: "success", hint: "Handed to the customer" },
+};
+
+export type AddressParts = { house_no?: string | null; block?: string | null; address?: string | null; area?: string | null; city?: string | null };
+
+/** "House 12, Block C, Street 4, DHA Phase 5, Lahore" — same format as public.customer_address_line(). */
+export function addressLine(c: AddressParts | null | undefined): string {
+  if (!c) return "";
+  const house = c.house_no?.trim();
+  return [house ? `House ${house}` : null, c.block, c.address, c.area, c.city]
+    .map((p) => p?.trim()).filter(Boolean).join(", ");
+}

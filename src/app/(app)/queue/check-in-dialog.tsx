@@ -12,6 +12,9 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
 import { FormField } from "@/components/app/form-field";
+import { ServiceLocationFields } from "@/components/app/service-location";
+import type { ServiceLocation } from "@/lib/clinic";
+import { customerAddress } from "../customers/actions";
 import { cn } from "@/lib/utils";
 import type { AppointmentTypeOption, DoctorOption } from "@/lib/queries";
 import { checkInWalkIn, searchPets, type PetOption } from "./actions";
@@ -35,6 +38,9 @@ export function CheckInDialog({ doctors, types, trigger }: {
   const [doctorId, setDoctorId] = useState("any");
   const [typeId, setTypeId] = useState(types[0]?.id ?? "");
   const [reason, setReason] = useState("");
+  const [location, setLocation] = useState<ServiceLocation>("clinic");
+  const [address, setAddress] = useState("");
+  const [savedAddress, setSavedAddress] = useState("");
   const [pending, start] = useTransition();
   const seq = useRef(0);
 
@@ -51,16 +57,23 @@ export function CheckInDialog({ doctors, types, trigger }: {
 
   const reset = () => {
     setQ(""); setResults([]); setPet(null); setOwnerId(""); setPriority("normal"); setDoctorId("any"); setReason("");
-    setTypeId(types[0]?.id ?? "");
+    setTypeId(types[0]?.id ?? ""); setLocation("clinic"); setAddress(""); setSavedAddress("");
   };
 
-  const choose = (p: PetOption) => { setPet(p); setOwnerId(p.owners[0]?.id ?? ""); };
+  const pickOwner = async (id: string) => {
+    setOwnerId(id);
+    const a = id ? await customerAddress(id) : "";
+    setSavedAddress(a);
+    setAddress((cur) => (location === "home_visit" && !cur ? a : cur));
+  };
+  const choose = (p: PetOption) => { setPet(p); void pickOwner(p.owners[0]?.id ?? ""); };
 
   const submit = () =>
     start(async () => {
       if (!pet) return;
       const res = await checkInWalkIn({
         pet_id: pet.id, customer_id: ownerId, reason, priority, doctor_id: doctorId, visit_type_id: typeId,
+        service_location: location, service_address: address,
       });
       if (res.ok) {
         toast.success(res.message, { description: `${pet.name} is now in the queue.` });
@@ -122,7 +135,7 @@ export function CheckInDialog({ doctors, types, trigger }: {
 
             {pet.owners.length > 1 && (
               <FormField label="Who brought the pet?">
-                <Select value={ownerId} onValueChange={setOwnerId}>
+                <Select value={ownerId} onValueChange={(v) => void pickOwner(v)}>
                   <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                   <SelectContent>{pet.owners.map((o) => <SelectItem key={o.id} value={o.id}>{o.full_name}{o.is_primary ? " (main owner)" : ""}</SelectItem>)}</SelectContent>
                 </Select>
@@ -157,6 +170,11 @@ export function CheckInDialog({ doctors, types, trigger }: {
                 </Select>
               </FormField>
             </div>
+
+            <FormField label="Where is the service given?">
+              <ServiceLocationFields compact location={location} address={address} savedAddress={savedAddress}
+                onChange={(l, a) => { setLocation(l); setAddress(a); }} />
+            </FormField>
 
             <FormField label="Reason (what the owner says)">
               <Textarea value={reason} onChange={(e) => setReason(e.target.value)} rows={2} placeholder="e.g. Not eating since 2 days, vomiting" />

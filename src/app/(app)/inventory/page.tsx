@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { AlertTriangle, Boxes, PackagePlus, Plus, Truck } from "lucide-react";
+import { AlertTriangle, ArrowLeftRight, Boxes, PackagePlus, Plus, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -40,6 +40,7 @@ export default async function InventoryPage({ searchParams }: PageProps<"/invent
     <PageHeader title="Inventory" description="Medicines, vaccines, supplies and pet store products — batches, expiry and prices."
       actions={
         <>
+          {me.can("inventory.view") && <Button asChild variant="outline"><Link href="/inventory/loans"><ArrowLeftRight /> Borrowed & lent</Link></Button>}
           {me.can("suppliers.manage") && <Button asChild variant="outline"><Link href="/suppliers"><Truck /> Receive stock</Link></Button>}
           {canEdit && <Button asChild><Link href="/inventory/new"><Plus /> New item</Link></Button>}
         </>

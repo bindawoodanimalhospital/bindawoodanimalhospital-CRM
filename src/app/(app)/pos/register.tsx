@@ -2,21 +2,24 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
-import { Check, Loader2, Minus, Package, Plus, Printer, ScanBarcode, Search, ShoppingBag, Trash2, User, X } from "lucide-react";
+import { Check, Loader2, MapPin, Minus, Package, Plus, Printer, ScanBarcode, Search, ShoppingBag, Store, Trash2, Truck, User, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { formatPKR, addDaysPK } from "@/lib/format";
+import { formatPKR, addDaysPK, todayPK } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { searchCustomers, type CustomerOption } from "../customers/actions";
+import { customerAddress, searchCustomers, type CustomerOption } from "../customers/actions";
 import { findByCode, posCheckout, searchRetail, type RetailItem } from "./actions";
 
 type CartLine = { item: RetailItem; qty: number; discount: number };
 type Method = { key: string; label: string; needs_reference: boolean };
 const newKey = () => (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
 
-export function Register({ initial, methods, canDiscount }: { initial: RetailItem[]; methods: Method[]; canDiscount: boolean }) {
+export function Register({ initial, methods, canDiscount, defaultDeliveryCharge }: {
+  initial: RetailItem[]; methods: Method[]; canDiscount: boolean; defaultDeliveryCharge: number;
+}) {
   const [q, setQ] = useState("");
   const [items, setItems] = useState(initial);
   const [cart, setCart] = useState<CartLine[]>([]);
@@ -27,6 +30,12 @@ export function Register({ initial, methods, canDiscount }: { initial: RetailIte
   const [billDiscount, setBillDiscount] = useState("");
   const [discountReason, setDiscountReason] = useState("");
   const [done, setDone] = useState<string | null>(null);
+  // Home delivery (spec §2–§3): address from the client profile, editable for this order; charge editable by distance.
+  const [delivery, setDelivery] = useState(false);
+  const [address, setAddress] = useState("");
+  const [charge, setCharge] = useState(String(defaultDeliveryCharge));
+  const [deliveryNotes, setDeliveryNotes] = useState("");
+  const [cod, setCod] = useState(false);
   const [pending, start] = useTransition();
   const scan = useRef<HTMLInputElement>(null);
   const key = useRef(newKey());
@@ -35,6 +44,11 @@ export function Register({ initial, methods, canDiscount }: { initial: RetailIte
     const t = setTimeout(async () => setItems(await searchRetail(q)), 200);
     return () => clearTimeout(t);
   }, [q]);
+
+  const chooseCustomer = async (c: CustomerOption | null) => {
+    setCustomer(c);
+    setAddress(c ? await customerAddress(c.id) : "");
+  };
 
   const add = (item: RetailItem) => {
     const inCart = cart.find((c) => c.item.id === item.id)?.qty ?? 0;
@@ -57,19 +71,29 @@ export function Register({ initial, methods, canDiscount }: { initial: RetailIte
   };
 
   const subtotal = cart.reduce((s, l) => s + l.item.sale_price * l.qty - l.discount, 0);
-  const total = Math.max(0, subtotal - (Number(billDiscount) || 0));
-  const paid = tendered === "" ? total : Number(tendered) || 0;
+  const deliveryCharge = delivery ? Math.max(0, Number(charge) || 0) : 0;
+  const total = Math.max(0, subtotal + deliveryCharge - (Number(billDiscount) || 0));
+  const payNow = !(delivery && cod);
+  const paid = !payNow ? 0 : tendered === "" ? total : Number(tendered) || 0;
   const change = method === "cash" ? Math.max(0, paid - total) : 0;
   const short = total - Math.min(paid, total);
   const m = methods.find((x) => x.key === method);
+  const deliveryProblem = !delivery ? null
+    : !customer ? "Choose the customer for a home delivery."
+    : !address.trim() ? "Enter the delivery address."
+    : charge.trim() === "" || Number(charge) < 0 ? "Enter the delivery charge."
+    : deliveryCharge === 0 && !canDiscount ? "Only staff who can give discounts can waive the delivery charge."
+    : null;
 
   const pay = () => start(async () => {
     const r = await posCheckout({
       key: key.current, customer_id: customer?.id ?? null, pet_id: null,
       lines: cart.map((l) => ({ item_id: l.item.id, quantity: l.qty, discount_amount: l.discount })),
-      payments: [{ method, amount: Math.min(paid, total), reference }],
+      payments: payNow ? [{ method, amount: Math.min(paid, total), reference }] : [],
       invoice_discount: Number(billDiscount) || 0, discount_reason: discountReason,
-      pay_later: short > 0 && customer ? { promised_date: addDaysPK(7), reason: "Store credit — balance to pay" } : null,
+      pay_later: !payNow ? { promised_date: todayPK(), reason: "Cash on delivery" }
+        : short > 0 && customer ? { promised_date: addDaysPK(7), reason: "Store credit — balance to pay" } : null,
+      delivery: delivery ? { address: address.trim(), charge: deliveryCharge, notes: deliveryNotes.trim() || undefined } : null,
     });
     if (r.ok && r.invoiceId) {
       setDone(r.invoiceId); key.current = newKey();
@@ -79,6 +103,7 @@ export function Register({ initial, methods, canDiscount }: { initial: RetailIte
 
   const reset = () => {
     setCart([]); setCustomer(null); setTendered(""); setReference(""); setBillDiscount(""); setDiscountReason(""); setMethod("cash"); setDone(null);
+    setDelivery(false); setAddress(""); setCharge(String(defaultDeliveryCharge)); setDeliveryNotes(""); setCod(false);
     setTimeout(() => scan.current?.focus(), 50);
   };
 
@@ -143,42 +168,99 @@ export function Register({ initial, methods, canDiscount }: { initial: RetailIte
         </section>
 
         <section className="grid gap-3 rounded-2xl bg-card p-4 shadow-card ring-1 ring-border">
-          <CustomerPicker value={customer} onChange={setCustomer} />
+          <div className="grid grid-cols-2 gap-1 rounded-xl bg-muted p-1" role="radiogroup" aria-label="How the customer gets the order">
+            {([[false, "In store", Store], [true, "Home delivery", Truck]] as const).map(([v, label, Icon]) => (
+              <button key={label} type="button" role="radio" aria-checked={delivery === v} onClick={() => setDelivery(v)}
+                className={cn("flex h-10 items-center justify-center gap-2 rounded-lg text-sm font-semibold transition",
+                  delivery === v ? "bg-card text-foreground shadow-sm ring-1 ring-border" : "text-muted-foreground hover:text-foreground")}>
+                <Icon className="size-4" /> {label}
+              </button>
+            ))}
+          </div>
+          <CustomerPicker value={customer} onChange={chooseCustomer} required={delivery} />
+          {delivery && (
+            <div className="grid gap-2 rounded-xl bg-surface p-3 ring-1 ring-border">
+              <label className="grid gap-1 text-sm font-medium">
+                <span className="flex items-center gap-1.5"><MapPin className="size-4 text-brand" /> Deliver to</span>
+                <Textarea rows={2} value={address} onChange={(e) => setAddress(e.target.value)}
+                  placeholder={customer ? "No address saved — type it here (house, block, street, area)" : "Choose the customer first"} />
+                <span className="text-xs font-normal text-muted-foreground">Filled from the customer&apos;s profile. Change it here if this order goes somewhere else.</span>
+              </label>
+              <div className="grid grid-cols-[1fr_auto] items-end gap-2">
+                <label className="grid gap-1 text-sm font-medium">
+                  Delivery charge (Rs.)
+                  <Input inputMode="decimal" value={charge} onChange={(e) => setCharge(e.target.value.replace(/[^\d.]/g, ""))} className="tabular" />
+                </label>
+                <div className="flex gap-1 pb-0.5">
+                  {[defaultDeliveryCharge, 100, 150].filter((v, i, a) => a.indexOf(v) === i).map((v) => (
+                    <Button key={v} type="button" size="sm" variant={Number(charge) === v ? "default" : "outline"} onClick={() => setCharge(String(v))}>{v}</Button>
+                  ))}
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">Suggested {formatPKR(defaultDeliveryCharge)} — change it by distance.{canDiscount ? " Enter 0 to waive it." : ""}</p>
+              <Input placeholder="Delivery note (optional) — e.g. call before coming, gate 2" value={deliveryNotes} onChange={(e) => setDeliveryNotes(e.target.value)} />
+            </div>
+          )}
           {canDiscount && cart.length > 0 && (
             <div className="grid grid-cols-2 gap-2">
               <Input inputMode="decimal" placeholder="Bill discount" value={billDiscount} onChange={(e) => setBillDiscount(e.target.value)} />
               <Input placeholder="Reason" value={discountReason} onChange={(e) => setDiscountReason(e.target.value)} />
             </div>
           )}
+          {delivery && (
+            <dl className="grid gap-1 border-t pt-3 text-sm">
+              <div className="flex justify-between"><dt className="text-muted-foreground">Products</dt><dd className="tabular">{formatPKR(Math.max(0, subtotal - (Number(billDiscount) || 0)))}</dd></div>
+              <div className="flex justify-between"><dt className="text-muted-foreground">Delivery charge</dt><dd className="tabular">{deliveryCharge === 0 ? "Waived" : formatPKR(deliveryCharge)}</dd></div>
+            </dl>
+          )}
           <div className="flex items-baseline justify-between border-t pt-3">
             <span className="font-semibold">Total</span><span className="text-3xl font-bold tabular">{formatPKR(total)}</span>
           </div>
-          <div className="grid grid-cols-3 gap-1.5">
-            {methods.slice(0, 6).map((x) => (
-              <button key={x.key} type="button" onClick={() => setMethod(x.key)}
-                className={cn("h-10 rounded-xl text-sm font-semibold ring-1", method === x.key ? "bg-ink text-white ring-ink" : "bg-card ring-border")}>{x.label.split(" ")[0]}</button>
-            ))}
-          </div>
-          {method === "cash" ? (
+          {delivery && (
+            <div className="grid grid-cols-2 gap-1 rounded-xl bg-muted p-1" role="radiogroup" aria-label="When the customer pays">
+              {([[false, "Pay now"], [true, "Cash on delivery"]] as const).map(([v, label]) => (
+                <button key={label} type="button" role="radio" aria-checked={cod === v} onClick={() => setCod(v)}
+                  className={cn("h-9 rounded-lg text-sm font-semibold transition", cod === v ? "bg-card shadow-sm ring-1 ring-border" : "text-muted-foreground hover:text-foreground")}>{label}</button>
+              ))}
+            </div>
+          )}
+          {payNow && (
+            <div className="grid grid-cols-3 gap-1.5">
+              {methods.slice(0, 6).map((x) => (
+                <button key={x.key} type="button" onClick={() => setMethod(x.key)}
+                  className={cn("h-10 rounded-xl text-sm font-semibold ring-1", method === x.key ? "bg-ink text-white ring-ink" : "bg-card ring-border")}>{x.label.split(" ")[0]}</button>
+              ))}
+            </div>
+          )}
+          {!payNow ? (
+            <p className="rounded-xl bg-info-soft px-3 py-2 text-sm text-info">The rider collects {formatPKR(total)}. Record the cash on <b>Home deliveries</b> when it&apos;s delivered.</p>
+          ) : method === "cash" ? (
             <Input className="h-12 text-right text-lg font-semibold tabular" inputMode="decimal" placeholder={`Cash received (${formatPKR(total)})`}
               value={tendered} onChange={(e) => setTendered(e.target.value.replace(/[^\d.]/g, ""))} />
           ) : m?.needs_reference && <Input placeholder={`${m.label} transaction ID`} value={reference} onChange={(e) => setReference(e.target.value)} />}
           {change > 0 && <p className="rounded-xl bg-info-soft px-3 py-2 text-center text-lg font-bold text-info">Change: {formatPKR(change)}</p>}
-          {short > 0 && <p className="rounded-xl bg-warning-soft px-3 py-2 text-sm text-warning">{customer ? `${formatPKR(short)} will be added to ${customer.title}'s account.` : "Walk-in sales must be paid in full — or choose the customer."}</p>}
+          {deliveryProblem && cart.length > 0 && <p className="text-xs text-danger">{deliveryProblem}</p>}
+          {payNow && short > 0 && <p className="rounded-xl bg-warning-soft px-3 py-2 text-sm text-warning">{customer ? `${formatPKR(short)} will be added to ${customer.title}'s account.` : "Walk-in sales must be paid in full — or choose the customer."}</p>}
           {discountReason.trim() === "" && Number(billDiscount) > 0 && <p className="text-xs text-danger">Give a reason for the discount.</p>}
           <Button size="lg" className="h-14 text-lg" onClick={pay}
-            disabled={pending || cart.length === 0 || (short > 0 && !customer) || (m?.needs_reference && !reference.trim()) || (Number(billDiscount) > 0 && !discountReason.trim())}>
-            {pending ? <Loader2 className="animate-spin" /> : <Check />} Pay {formatPKR(Math.min(paid, total))}
+            disabled={pending || cart.length === 0 || !!deliveryProblem || (payNow && short > 0 && !customer) || (payNow && m?.needs_reference && !reference.trim()) || (Number(billDiscount) > 0 && !discountReason.trim())}>
+            {pending ? <Loader2 className="animate-spin" /> : delivery ? <Truck /> : <Check />}
+            {!payNow ? "Confirm order — cash on delivery" : `Pay ${formatPKR(Math.min(paid, total))}`}
           </Button>
         </section>
       </aside>
 
       <Dialog open={!!done} onOpenChange={(o) => !o && reset()}>
         <DialogContent className="rounded-2xl text-center">
-          <DialogHeader><DialogTitle className="text-2xl">Sale complete</DialogTitle><DialogDescription>Stock has been updated.</DialogDescription></DialogHeader>
+          <DialogHeader>
+            <DialogTitle className="text-2xl">{delivery ? "Delivery order saved" : "Sale complete"}</DialogTitle>
+            <DialogDescription>{delivery ? "Stock updated. It's on the Home deliveries list as “To dispatch”." : "Stock has been updated."}</DialogDescription>
+          </DialogHeader>
+          {delivery && <p className="rounded-xl bg-surface p-3 text-sm ring-1 ring-border"><MapPin className="mr-1 inline size-4 text-brand" />{address}</p>}
           {change > 0 && <p className="text-xl font-bold text-info">Give change: {formatPKR(change)}</p>}
           <DialogFooter className="sm:justify-center">
             <Button asChild variant="outline"><Link href={`/print/invoice/${done}?receipt=1`} target="_blank"><Printer /> Print receipt</Link></Button>
+            {delivery && <Button asChild variant="outline"><Link href="/pos/deliveries"><Truck /> Deliveries</Link></Button>}
             <Button onClick={reset}><Plus /> New sale</Button>
           </DialogFooter>
         </DialogContent>
@@ -187,7 +269,7 @@ export function Register({ initial, methods, canDiscount }: { initial: RetailIte
   );
 }
 
-function CustomerPicker({ value, onChange }: { value: CustomerOption | null; onChange: (c: CustomerOption | null) => void }) {
+function CustomerPicker({ value, onChange, required }: { value: CustomerOption | null; onChange: (c: CustomerOption | null) => void; required?: boolean }) {
   const [q, setQ] = useState("");
   const [opts, setOpts] = useState<CustomerOption[]>([]);
   useEffect(() => {
@@ -203,7 +285,7 @@ function CustomerPicker({ value, onChange }: { value: CustomerOption | null; onC
   );
   return (
     <div className="relative">
-      <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Customer (optional) — name or phone" />
+      <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder={required ? "Customer (required for delivery) — name or phone" : "Customer (optional) — name or phone"} />
       {q.trim().length >= 2 && opts.length > 0 && (
         <ul className="absolute z-20 mt-1 w-full rounded-xl bg-popover p-1 shadow-float ring-1 ring-border">
           {opts.map((o) => <li key={o.id}><button type="button" onClick={() => { onChange(o); setQ(""); setOpts([]); }} className="w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-muted"><b>{o.title}</b> <span className="text-muted-foreground">{o.subtitle}</span></button></li>)}

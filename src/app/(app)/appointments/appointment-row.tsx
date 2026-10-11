@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Check, CircleCheck, EllipsisVertical, Loader2, LogIn, MessageCircle, Pencil, Phone, UserX, X } from "lucide-react";
+import { Check, CircleCheck, EllipsisVertical, House, Loader2, LogIn, MessageCircle, Pencil, Phone, UserX, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -57,6 +57,7 @@ export function AppointmentRow({ a, doctors, types, canManage, canCheckIn }: {
           <span className="font-normal text-muted-foreground"> · {a.customer.title}</span>
         </p>
         <p className="truncate text-sm text-muted-foreground">
+          {a.service_location === "home_visit" && <StatusPill tone="info" className="mr-1.5 h-5"><House className="mr-1 size-3" />Home visit</StatusPill>}
           {[a.type_name, a.doctor_name ?? "Any doctor", a.reason].filter(Boolean).join(" · ")}
         </p>
       </div>

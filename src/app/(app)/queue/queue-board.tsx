@@ -4,7 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  ArrowRight, Clock, EllipsisVertical, Loader2, OctagonAlert, Stethoscope, UserRound, X,
+  ArrowRight, Clock, EllipsisVertical, House, Loader2, OctagonAlert, Stethoscope, UserRound, X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -32,6 +32,8 @@ export type QueueVisit = {
   owner: { id: string; full_name: string };
   doctor: { id: string; full_name: string } | null;
   type: string | null;
+  /** Set when this is a home visit (staff go to the client). */
+  home_address?: string | null;
 };
 
 export function QueueBoard({ visits, doctors, canManage, canClinical, canBill = false }: {
@@ -164,6 +166,12 @@ function VisitCard({ v, now, doctors, canManage, canClinical, canBill }: {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+
+      {v.home_address && (
+        <p className="mt-3 flex items-start gap-1.5 rounded-lg bg-info-soft px-2.5 py-1.5 text-xs font-medium text-info">
+          <House className="mt-px size-3.5 shrink-0" /> <span><b>Home visit</b> · {v.home_address}</span>
+        </p>
+      )}
 
       {(v.pet.special_handling || v.priority !== "normal") && (
         <div className="mt-3 flex flex-wrap gap-1.5">

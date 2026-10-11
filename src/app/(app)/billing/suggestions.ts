@@ -13,8 +13,8 @@ export type Suggestion = {
 export async function visitSuggestions(visitId: string): Promise<{ suggestions: Suggestion[]; unmatched: string[] }> {
   const supabase = await createClient();
   const [{ data: visit }, { data: catalog }, { data: billed }] = await Promise.all([
-    supabase.from("visits").select("id, visit_type_id, pet_id").eq("id", visitId).single(),
-    supabase.from("catalog_items").select("id, name, kind, sale_price, appointment_type_id, vaccine_id, medicine_id, diagnostic_type_id, procedure_id, is_ward_daily_fee").eq("is_active", true),
+    supabase.from("visits").select("id, visit_type_id, pet_id, service_location").eq("id", visitId).single(),
+    supabase.from("catalog_items").select("id, name, kind, sale_price, appointment_type_id, vaccine_id, medicine_id, diagnostic_type_id, procedure_id, is_ward_daily_fee, system_role").eq("is_active", true),
     supabase.from("invoice_items").select("source_table, source_id, invoices!inner(status, visit_id)").eq("invoices.visit_id", visitId).neq("invoices.status", "void"),
   ]);
   if (!visit) return { suggestions: [], unmatched: [] };
@@ -41,6 +41,9 @@ export async function visitSuggestions(visitId: string): Promise<{ suggestions: 
 
   if (visit.visit_type_id) {
     push("visits", visit.id, find((c) => c.appointment_type_id === visit.visit_type_id), 1, "Visit fee", "Visit fee (no price set for this visit type)");
+  }
+  if (visit.service_location === "home_visit") {
+    push("visit_home_charge", visit.id, find((c) => c.system_role === "home_visit_charge"), 1, "Home visit", "Home visit charge");
   }
   for (const v of vacc.data ?? []) push("vaccinations", v.id, find((c) => c.vaccine_id === v.vaccine_id), 1, "Vaccine given", v.vaccine_name);
   for (const d of dx.data ?? []) push("diagnostic_orders", d.id, find((c) => c.diagnostic_type_id === d.type_id), 1, "Test",

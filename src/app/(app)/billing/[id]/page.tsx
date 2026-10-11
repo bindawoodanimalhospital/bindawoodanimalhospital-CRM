@@ -2,14 +2,18 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { Stethoscope } from "lucide-react";
+import { MapPin, Stethoscope, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHeader, StatusPill } from "@/components/app/page-header";
 import { NoticeToast } from "@/components/app/notice-toast";
 import { requireStaff } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { customerCredit, paymentMethods } from "@/lib/billing";
-import { formatDateTime } from "@/lib/format";
+import { formatDateTime, formatPKR } from "@/lib/format";
+import { DELIVERY_STATUS, addressLine, type AddressParts, type DeliveryStatus, type ServiceLocation } from "@/lib/clinic";
+import { ServiceLocationControl } from "@/components/app/service-location";
+import { setInvoiceServiceLocation } from "../actions";
+import { DeliveryActions } from "../../pos/deliveries/delivery-actions";
 import { formatPhone } from "@/lib/phone";
 import { visitSuggestions } from "../suggestions";
 import { InvoiceEditor, type Line } from "./editor";
@@ -23,13 +27,13 @@ export default async function InvoicePage({ params }: PageProps<"/billing/[id]">
   const { id } = await params;
   const supabase = await createClient();
   const { data: inv } = await supabase.from("invoices")
-    .select(`*, customers(id, full_name, phone), pets(id, name), visits(id, token_no, visit_date),
-      invoice_items(id, item_id, description, kind, quantity, unit_price, discount_amount, line_total, returned_qty, sort_order, catalog_items(price_is_editable, track_stock)),
+    .select(`*, customers(id, full_name, phone, house_no, block, address, area, city), pets(id, name), visits(id, token_no, visit_date),
+      invoice_items(id, item_id, description, kind, quantity, unit_price, discount_amount, line_total, returned_qty, sort_order, line_role, catalog_items(price_is_editable, track_stock)),
       dues(status, promised_date, approval_status)`)
     .eq("id", id).maybeSingle();
   if (!inv) notFound();
 
-  const customer = inv.customers as unknown as { id: string; full_name: string; phone: string } | null;
+  const customer = inv.customers as unknown as ({ id: string; full_name: string; phone: string } & AddressParts) | null;
   const pet = inv.pets as unknown as { id: string; name: string } | null;
   const visit = inv.visits as unknown as { id: string; token_no: number } | null;
   const items = ((inv.invoice_items ?? []) as (Line & { sort_order: number; returned_qty: number; catalog_items: { price_is_editable: boolean; track_stock: boolean } })[])
@@ -45,7 +49,8 @@ export default async function InvoicePage({ params }: PageProps<"/billing/[id]">
         <StatusPill tone={inv.status === "draft" ? "warning" : inv.status === "void" ? "neutral" : inv.balance > 0 ? "danger" : "success"}>
           {inv.status === "draft" ? "Draft" : inv.status === "void" ? "Void" : inv.balance > 0 ? "Unpaid balance" : "Paid"}
         </StatusPill>
-        {inv.kind === "store" && <StatusPill tone="info">Pet store</StatusPill>}</span>}
+        {inv.kind === "store" && <StatusPill tone="info">Pet store</StatusPill>}
+        {inv.fulfilment === "home_delivery" && <StatusPill tone="brand"><Truck className="mr-1 size-3" />Home delivery</StatusPill>}</span>}
       description={[customer ? `${customer.full_name} · ${formatPhone(customer.phone)}` : "Walk-in customer", pet?.name,
         inv.issued_at ? `issued ${formatDateTime(inv.issued_at)}` : null].filter(Boolean).join(" · ")}
       actions={
@@ -57,6 +62,42 @@ export default async function InvoicePage({ params }: PageProps<"/billing/[id]">
     />
   );
 
+  // Where the service was given (clinic bills): editable on drafts, shown on issued bills.
+  const serviceLocation = inv.kind === "clinic" ? (
+    <div className="-mt-4 mb-6">
+      <ServiceLocationControl location={inv.service_location as ServiceLocation} address={inv.service_address}
+        savedAddress={addressLine(customer)} label="Where was the service given?"
+        canEdit={inv.status === "draft" && me.can("billing.create")} onSave={setInvoiceServiceLocation.bind(null, inv.id)} />
+    </div>
+  ) : null;
+
+  const deliveryLine = items.find((i) => (i as { line_role?: string | null }).line_role === "delivery_charge");
+  const deliveryCard = inv.fulfilment === "home_delivery" && inv.status === "issued" ? (
+    <div className="mb-6 flex flex-wrap items-start gap-3 rounded-2xl bg-card p-4 shadow-card ring-1 ring-border">
+      <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand"><Truck className="size-5" /></span>
+      <div className="min-w-0 flex-1">
+        <p className="flex flex-wrap items-center gap-2 font-semibold">Home delivery
+          <StatusPill tone={DELIVERY_STATUS[inv.delivery_status as DeliveryStatus].tone}>{DELIVERY_STATUS[inv.delivery_status as DeliveryStatus].label}</StatusPill>
+          <span className="text-sm font-normal text-muted-foreground">Delivery charge {Number(deliveryLine?.unit_price ?? 0) === 0 ? "waived" : formatPKR(deliveryLine?.unit_price ?? 0)}</span>
+        </p>
+        <p className="mt-1 flex items-start gap-1.5 text-sm"><MapPin className="mt-0.5 size-4 shrink-0 text-brand" />{inv.delivery_address}</p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          {inv.dispatched_at ? `Left ${formatDateTime(inv.dispatched_at)}${inv.delivery_rider ? ` with ${inv.delivery_rider}` : ""}` : "Not dispatched yet"}
+          {inv.delivered_at && ` · delivered ${formatDateTime(inv.delivered_at)}`}
+        </p>
+        {inv.delivery_notes && <p className="mt-1 text-xs whitespace-pre-wrap text-muted-foreground">Note: {inv.delivery_notes}</p>}
+      </div>
+      {(me.can("pos.use") || me.can("billing.create")) && inv.delivery_status !== "delivered" && (
+        <div className="flex flex-wrap gap-2">
+          <DeliveryActions order={{ id: inv.id, number: inv.number!, status: inv.delivery_status as DeliveryStatus, balance: Number(inv.balance),
+            address: inv.delivery_address ?? "", charge: Number(deliveryLine?.unit_price ?? 0), customerId: customer?.id ?? null, rider: inv.delivery_rider }}
+            chargeLocked={inv.delivery_status !== "pending" || Number(inv.amount_paid) !== 0 || Number(inv.returned_amount) !== 0}
+            canWaive={me.can("billing.discount")} methods={methodsNoWriteOff} />
+        </div>
+      )}
+    </div>
+  ) : null;
+
   if (inv.status === "draft") {
     if (!me.can("billing.create") && !(inv.kind === "store" && me.can("pos.use"))) redirect("/billing?denied=1");
     const { suggestions, unmatched } = inv.visit_id ? await visitSuggestions(inv.visit_id) : { suggestions: [], unmatched: [] };
@@ -66,6 +107,7 @@ export default async function InvoicePage({ params }: PageProps<"/billing/[id]">
       <>
         <Suspense><NoticeToast /></Suspense>
         {header}
+        {serviceLocation}
         <InvoiceEditor invoiceId={inv.id} lines={lines} suggestions={suggestions} unmatched={unmatched} methods={methodsNoWriteOff}
           totals={{ subtotal: Number(inv.subtotal), line_discounts: Number(inv.line_discounts), invoice_discount: Number(inv.invoice_discount),
             tax_total: Number(inv.tax_total), total: Number(inv.total), discount_reason: inv.discount_reason }}
@@ -90,6 +132,8 @@ export default async function InvoicePage({ params }: PageProps<"/billing/[id]">
     <>
       <Suspense><NoticeToast /></Suspense>
       {header}
+      {serviceLocation}
+      {deliveryCard}
       <IssuedPanel
         inv={{ id: inv.id, number: inv.number!, status: inv.status, customer_id: customer?.id ?? null, total: Number(inv.total),
           amount_paid: Number(inv.amount_paid), returned_amount: Number(inv.returned_amount), balance: Number(inv.balance),

@@ -13,15 +13,18 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
 import { FormField } from "@/components/app/form-field";
+import { ServiceLocationFields } from "@/components/app/service-location";
+import type { ServiceLocation } from "@/lib/clinic";
 import { formatTime, todayPK } from "@/lib/format";
 import type { AppointmentTypeOption, DoctorOption } from "@/lib/queries";
-import { searchCustomers, type CustomerOption } from "../customers/actions";
+import { customerAddress, searchCustomers, type CustomerOption } from "../customers/actions";
 import { findConflicts, getCustomerPets, saveAppointment } from "./actions";
 
 export type EditableAppointment = {
   id: string; customer: { id: string; title: string; subtitle: string }; pet_id: string | null; appointment_type_id: string;
   doctor_id: string | null; date: string; time: string; minutes: number; source: string; is_urgent: boolean;
   reason: string | null; pre_visit_instructions: string | null;
+  service_location: ServiceLocation; service_address: string | null;
 };
 
 export function BookingDialog({ doctors, types, defaultDate, appointment, trigger }: {
@@ -44,6 +47,9 @@ export function BookingDialog({ doctors, types, defaultDate, appointment, trigge
   const [urgent, setUrgent] = useState(a?.is_urgent ?? false);
   const [reason, setReason] = useState(a?.reason ?? "");
   const [instructions, setInstructions] = useState(a?.pre_visit_instructions ?? "");
+  const [location, setLocation] = useState<ServiceLocation>(a?.service_location ?? "clinic");
+  const [address, setAddress] = useState(a?.service_address ?? "");
+  const [savedAddress, setSavedAddress] = useState("");
   const [conflicts, setConflicts] = useState<{ id: string; starts_at: string; customer_name: string; pet_name: string | null }[]>([]);
   const [pending, start] = useTransition();
 
@@ -56,6 +62,7 @@ export function BookingDialog({ doctors, types, defaultDate, appointment, trigge
   useEffect(() => {
     if (!customer) return;
     let live = true;
+    customerAddress(customer.id).then((addr) => { if (live) setSavedAddress(addr); });
     getCustomerPets(customer.id).then((p) => {
       if (!live) return;
       setPets(p);
@@ -80,8 +87,9 @@ export function BookingDialog({ doctors, types, defaultDate, appointment, trigge
     const r = await saveAppointment({
       id: a?.id, customer_id: customer.id, pet_id: petId, appointment_type_id: typeId, doctor_id: doctorId, date, time,
       minutes, source: source as "phone", is_urgent: urgent, reason, pre_visit_instructions: instructions,
+      service_location: location, service_address: address,
     });
-    if (r.ok) { toast.success(r.message); setOpen(false); if (!a) { setCustomer(null); setQ(""); setTime(""); setReason(""); setInstructions(""); setPetId("none"); } }
+    if (r.ok) { toast.success(r.message); setOpen(false); if (!a) { setCustomer(null); setQ(""); setTime(""); setReason(""); setInstructions(""); setPetId("none"); setLocation("clinic"); setAddress(""); } }
     else toast.error(r.message);
   });
 
@@ -176,6 +184,10 @@ export function BookingDialog({ doctors, types, defaultDate, appointment, trigge
                 </div>
               )}
 
+              <FormField label="Where is the service given?" hint="Home visit: a doctor or groomer goes to the client's home">
+                <ServiceLocationFields compact location={location} address={address} savedAddress={savedAddress}
+                  onChange={(l, addr) => { setLocation(l); setAddress(addr); }} />
+              </FormField>
               <FormField label="Reason">
                 <Input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="e.g. Second puppy vaccine" />
               </FormField>

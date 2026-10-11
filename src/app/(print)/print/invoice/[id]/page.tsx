@@ -11,7 +11,7 @@ import { formatPhone } from "@/lib/phone";
 
 export const metadata: Metadata = { title: "Bill" };
 
-type Item = { description: string; quantity: number; unit_price: number; discount_amount: number; line_total: number; returned_qty: number; sort_order: number };
+type Item = { description: string; quantity: number; unit_price: number; discount_amount: number; line_total: number; returned_qty: number; sort_order: number; line_role: string | null };
 
 export default async function InvoicePrint({ params, searchParams }: PageProps<"/print/invoice/[id]">) {
   const me = await requireStaff();
@@ -22,13 +22,19 @@ export default async function InvoicePrint({ params, searchParams }: PageProps<"
   const [{ data: inv }, clinic, cfg, { data: allocs }] = await Promise.all([
     supabase.from("invoices").select(`number, kind, status, subtotal, line_discounts, invoice_discount, discount_reason, tax_total, total, amount_paid,
       returned_amount, balance, issued_at, void_reason, notes, customers(full_name, phone, area), pets(name, code),
-      invoice_items(description, quantity, unit_price, discount_amount, line_total, returned_qty, sort_order), dues(promised_date, status)`).eq("id", id).maybeSingle(),
+      fulfilment, delivery_status, delivery_address, delivery_notes, service_location, service_address,
+      invoice_items(description, quantity, unit_price, discount_amount, line_total, returned_qty, sort_order, line_role), dues(promised_date, status)`).eq("id", id).maybeSingle(),
     getSetting<ClinicProfile>("clinic.profile"),
     getSetting<{ invoice_footer?: string }>("billing.config"),
     supabase.from("payment_allocations").select("amount, payments(kind, method, received_at, reference)").eq("invoice_id", id).order("id"),
   ]);
   if (!inv || inv.status === "draft") notFound();
-  const items = ((inv.invoice_items ?? []) as Item[]).sort((a, b) => a.sort_order - b.sort_order);
+  // Products/services first, then the delivery charge as its own line (spec §3).
+  const all = ((inv.invoice_items ?? []) as Item[]).sort((a, b) => a.sort_order - b.sort_order);
+  const items = all.filter((i) => i.line_role !== "delivery_charge");
+  const deliveryLine = all.find((i) => i.line_role === "delivery_charge") ?? null;
+  const isDelivery = inv.fulfilment === "home_delivery";
+  const isHomeVisit = inv.service_location === "home_visit";
   const customer = inv.customers as unknown as { full_name: string; phone: string; area: string | null } | null;
   const pet = inv.pets as unknown as { name: string; code: string } | null;
   const due = (Array.isArray(inv.dues) ? inv.dues[0] : inv.dues) as { promised_date: string; status: string } | null;
@@ -59,6 +65,13 @@ export default async function InvoicePrint({ params, searchParams }: PageProps<"
             <p className="mt-1">{inv.number} · {formatDateTime(inv.issued_at)}</p>
             {customer && <p>{customer.full_name}</p>}
           </div>
+          {(isDelivery || isHomeVisit) && (
+            <div className="mt-2 border border-dashed border-ink p-1.5">
+              <p className="font-bold">{isDelivery ? "HOME DELIVERY" : "HOME VISIT"}</p>
+              <p>{isDelivery ? inv.delivery_address : inv.service_address}</p>
+              {isDelivery && inv.delivery_notes && <p>Note: {inv.delivery_notes}</p>}
+            </div>
+          )}
           <hr className="my-2 border-dashed border-ink" />
           {items.map((i, n) => (
             <div key={n} className="mb-1">
@@ -66,6 +79,9 @@ export default async function InvoicePrint({ params, searchParams }: PageProps<"
               <p className="flex justify-between"><span>{Number(i.quantity)} × {Number(i.unit_price).toLocaleString("en-PK")}{Number(i.discount_amount) ? ` − ${Number(i.discount_amount)}` : ""}</span><span>{Number(i.line_total).toLocaleString("en-PK")}</span></p>
             </div>
           ))}
+          {deliveryLine && (
+            <p className="mt-1 flex justify-between border-t border-dotted border-ink pt-1"><span>Delivery charge</span><span>{Number(deliveryLine.line_total) === 0 ? "Waived" : Number(deliveryLine.line_total).toLocaleString("en-PK")}</span></p>
+          )}
           <hr className="my-2 border-dashed border-ink" />
           {totals}
           {pays.map((p, n) => <p key={n} className="flex justify-between"><span>{p.kind === "refund" ? "Refund" : p.method}</span><span>{p.amount.toLocaleString("en-PK")}</span></p>)}
@@ -83,6 +99,9 @@ export default async function InvoicePrint({ params, searchParams }: PageProps<"
         <InfoGrid rows={[
           ["Customer", customer ? `${customer.full_name} · ${formatPhone(customer.phone)}` : "Walk-in"],
           ["Pet", pet ? `${pet.name} (${pet.code})` : null],
+          ["Service at", inv.kind === "clinic" ? (isHomeVisit ? `Home visit — ${inv.service_address}` : "Bin Dawood Animal Hospital") : null],
+          ["Fulfilment", inv.kind === "store" ? (isDelivery ? "Home delivery" : "In store") : null],
+          ["Deliver to", isDelivery ? inv.delivery_address : null],
         ]} />
       </div>
       <table className="mt-5 w-full border-collapse">
@@ -97,6 +116,15 @@ export default async function InvoicePrint({ params, searchParams }: PageProps<"
               <td className="text-right font-semibold">{formatPKR(i.line_total)}</td>
             </tr>
           ))}
+          {deliveryLine && (
+            <tr className="border-b bg-surface/60">
+              <td className="py-1.5 font-medium">Delivery charge</td>
+              <td className="text-right">1</td>
+              <td className="text-right">{formatPKR(deliveryLine.unit_price)}</td>
+              <td className="text-right"></td>
+              <td className="text-right font-semibold">{Number(deliveryLine.line_total) === 0 ? "Waived" : formatPKR(deliveryLine.line_total)}</td>
+            </tr>
+          )}
         </tbody>
       </table>
       <div className="mt-4 ml-auto w-72">{totals}</div>

@@ -16,6 +16,7 @@ import { formatPhone, whatsappLink } from "@/lib/phone";
 import { MergeCustomerDialog } from "./merge-dialog";
 import { CustomerSummaryCards } from "./summary-cards";
 import { ContactHistory } from "./contact-history";
+import { ServiceHistory } from "./service-history";
 
 export async function generateMetadata({ params }: PageProps<"/customers/[id]">): Promise<Metadata> {
   const { id } = await params;
@@ -99,9 +100,11 @@ export default async function CustomerPage({ params }: PageProps<"/customers/[id
               <Field label="Alternate">{formatPhone(c.alt_phone)}</Field>
               <Field label="Prefers">{CHANNEL[c.preferred_channel]}</Field>
               <Field label="Email" className="col-span-2">{c.email}</Field>
+              <Field label="House number">{c.house_no}</Field>
+              <Field label="Block">{c.block}</Field>
+              <Field label="Full address" className="col-span-2">{c.address}</Field>
               <Field label="Area">{c.area}</Field>
               <Field label="City">{c.city}</Field>
-              <Field label="Address" className="col-span-2">{c.address}</Field>
               <Field label="Found us via">{c.referral_source}</Field>
               <Field label="Campaign messages">{c.marketing_opt_in ? "Opted in" : "No"}</Field>
             </dl>
@@ -164,6 +167,7 @@ export default async function CustomerPage({ params }: PageProps<"/customers/[id
         </Card>
 
         <CustomerSummaryCards customerId={c.id} petIds={pets.map((p) => p.id)} me={me} />
+        <ServiceHistory customerId={c.id} me={me} />
         {me.can("crm.view") && <ContactHistory customerId={c.id} canLog={me.can("crm.manage")} />}
       </div>
 

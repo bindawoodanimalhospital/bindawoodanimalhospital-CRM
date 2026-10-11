@@ -33,6 +33,8 @@ export const customerSchema = z.object({
   whatsapp: phone("WhatsApp", false),
   alt_phone: phone("Alternate phone", false),
   email: z.union([z.literal(""), z.email("Invalid email")]).optional().transform((v) => v || null),
+  house_no: optionalText,
+  block: optionalText,
   address: optionalText,
   area: optionalText,
   city: z.string().trim().default("Lahore").transform((v) => v || "Lahore"),

@@ -34,7 +34,10 @@ const bookingSchema = z.object({
   is_urgent: z.boolean().default(false),
   reason: z.string().trim().max(500).optional().transform((v) => v || null),
   pre_visit_instructions: z.string().trim().max(1000).optional().transform((v) => v || null),
-});
+  service_location: z.enum(["clinic", "home_visit"]).default("clinic"),
+  service_address: z.string().trim().max(500).optional().transform((v) => v || null),
+}).refine((v) => v.service_location === "clinic" || !!v.service_address, { message: "Enter the home visit address", path: ["service_address"] })
+  .transform((v) => ({ ...v, service_address: v.service_location === "home_visit" ? v.service_address : null }));
 export type BookingInput = z.input<typeof bookingSchema>;
 
 export async function findConflicts(doctorId: string | null, date: string, time: string, minutes: number, excludeId?: string) {
