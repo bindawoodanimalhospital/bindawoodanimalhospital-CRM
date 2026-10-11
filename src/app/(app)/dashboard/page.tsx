@@ -160,24 +160,23 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
       )}
 
       {/* Greeting + spotlight search */}
-      <section className="relative overflow-hidden rounded-3xl bg-card px-5 py-6 shadow-card ring-1 ring-border md:px-8 md:py-8">
-        <div aria-hidden className="pointer-events-none absolute inset-0 bg-[radial-gradient(55%_100%_at_100%_0%,var(--brand-soft),transparent_75%)]" />
-        <LogoMark tone="burgundy" className="pointer-events-none absolute -right-4 -bottom-8 hidden w-44 opacity-[0.06] md:block" />
+      <section className="relative overflow-hidden rounded-3xl bg-ink bg-hero-gradient px-5 py-6 text-white shadow-float shadow-brand/20 md:px-8 md:py-8">
+        <LogoMark tone="white" className="pointer-events-none absolute -right-6 -bottom-10 hidden w-52 opacity-[0.07] md:block" />
         <div className="relative max-w-3xl">
           <Greeting name={displayName} initial={new Date().toISOString()} />
-          <p className="mt-1.5 text-sm text-muted-foreground">{summary}</p>
+          <p className="mt-1.5 text-sm text-white/70">{summary}</p>
           {canSearch && (
             <>
-              <OpenSearch className="mt-6 flex h-14 w-full items-center gap-3 rounded-2xl bg-surface px-5 text-left text-muted-foreground ring-1 ring-border transition hover:bg-card hover:shadow-float hover:ring-brand-muted">
+              <OpenSearch className="mt-6 flex h-14 w-full items-center gap-3 rounded-2xl bg-white px-5 text-left text-muted-foreground shadow-lg transition hover:ring-4 hover:ring-white/20">
                 <Search className="size-5 shrink-0 text-brand" />
                 <span className="flex-1 truncate text-base">Search owners, pets, phone numbers, bills, products…</span>
                 <kbd className="hidden rounded-md border bg-card px-1.5 py-0.5 font-mono text-[11px] sm:inline">Ctrl K</kbd>
               </OpenSearch>
               <div className="mt-3 flex flex-wrap items-center gap-1.5 text-xs">
-                <span className="mr-0.5 text-muted-foreground">Try</span>
+                <span className="mr-0.5 text-white/60">Try</span>
                 {TRY.map((t) => (
-                  <OpenSearch key={t.label} q={t.q} className="rounded-full bg-card px-2.5 py-1 ring-1 ring-border transition hover:text-brand hover:ring-brand-muted">
-                    <code className="font-mono font-semibold">{t.q.trim()}</code> <span className="text-muted-foreground">{t.label}</span>
+                  <OpenSearch key={t.label} q={t.q} className="rounded-full bg-white/10 px-2.5 py-1 text-white ring-1 ring-white/20 transition hover:bg-white/20">
+                    <code className="font-mono font-semibold">{t.q.trim()}</code> <span className="text-white/65">{t.label}</span>
                   </OpenSearch>
                 ))}
               </div>
