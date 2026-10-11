@@ -11,9 +11,11 @@ import { paymentMethods } from "@/lib/billing";
 import { formatDate, formatPKR, todayPK } from "@/lib/format";
 import { formatPhone, whatsappLink } from "@/lib/phone";
 import { cn } from "@/lib/utils";
+import { Pagination } from "@/components/app/pagination";
 import { DueActions } from "./due-actions";
 
 export const metadata: Metadata = { title: "Unpaid bills" };
+const PAGE = 50;
 
 const VIEWS = [
   { key: "overdue", label: "Overdue" }, { key: "today", label: "Promised today" }, { key: "upcoming", label: "Upcoming" },
@@ -27,7 +29,8 @@ function daysLate(promised: string, today: string) {
 export default async function DuesPage({ searchParams }: PageProps<"/billing/dues">) {
   const me = await requireStaff();
   if (!me.can("billing.view") && !me.can("crm.manage")) redirect("/dashboard?denied=1");
-  const { view: v } = await searchParams;
+  const { view: v, page: pg } = await searchParams;
+  const page = Math.max(1, Number(pg) || 1);
   const view = VIEWS.some((x) => x.key === v) ? (v as string) : "overdue";
   const today = todayPK();
   const supabase = await createClient();
@@ -87,7 +90,8 @@ export default async function DuesPage({ searchParams }: PageProps<"/billing/due
 
       {shown.length === 0 ? <EmptyState icon={CircleCheck} title="Nothing here" description="No unpaid bills in this list." /> : (
         <ul className="grid gap-3">
-          {shown.map((r) => {
+          {/* Totals and counts above cover every open bill; the list itself is paged so a busy clinic stays fast. */}
+          {shown.slice((page - 1) * PAGE, page * PAGE).map((r) => {
             const wa = whatsappLink(r.customer.whatsapp,
               `Assalam o Alaikum ${r.customer.full_name}, a gentle reminder from ${clinicName}: ${formatPKR(r.balance)} is due on bill ${r.inv.number}${r.late > 0 ? ` (promised ${formatDate(r.promised_date)})` : ""}. JazzCash / bank transfer details on request. Thank you!`);
             return (
@@ -119,6 +123,7 @@ export default async function DuesPage({ searchParams }: PageProps<"/billing/due
           })}
         </ul>
       )}
+      <Pagination page={page} pageSize={PAGE} total={shown.length} params={{ view }} />
     </>
   );
 }
