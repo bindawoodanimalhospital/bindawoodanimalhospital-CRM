@@ -1,5 +1,5 @@
 import {
-  FileClock, House, PawPrint, Settings, ShieldCheck, UserCog, Users, type LucideIcon,
+  CalendarClock, CalendarDays, FileClock, House, ListOrdered, PawPrint, Settings, ShieldCheck, Syringe, UserCog, Users, type LucideIcon,
 } from "lucide-react";
 import type { Permission } from "@/lib/permissions";
 
@@ -21,6 +21,14 @@ export const NAV: NavGroup[] = [
   {
     items: [
       { title: "Home", href: "/dashboard", icon: House },
+      { title: "Today's queue", href: "/queue", icon: ListOrdered, anyOf: ["queue.manage", "clinical.view"] },
+      { title: "Appointments", href: "/appointments", icon: CalendarDays, anyOf: ["appointments.view"] },
+      { title: "Due & follow-ups", href: "/due", icon: CalendarClock, anyOf: ["clinical.view", "crm.view"] },
+    ],
+  },
+  {
+    label: "Records",
+    items: [
       { title: "Pet owners", href: "/customers", icon: Users, anyOf: ["customers.view"] },
       { title: "Pets", href: "/pets", icon: PawPrint, anyOf: ["pets.view"] },
     ],
@@ -31,6 +39,7 @@ export const NAV: NavGroup[] = [
       { title: "Staff", href: "/admin/staff", icon: UserCog, anyOf: ["staff.view"] },
       { title: "Who can do what", href: "/admin/roles", icon: ShieldCheck, anyOf: ["staff.view"] },
       { title: "History log", href: "/admin/audit", icon: FileClock, anyOf: ["audit.view"] },
+      { title: "Vaccine schedules", href: "/settings/vaccines", icon: Syringe, anyOf: ["clinical.reopen"] },
       { title: "Settings", href: "/settings", icon: Settings, anyOf: ["settings.manage"] },
     ],
   },

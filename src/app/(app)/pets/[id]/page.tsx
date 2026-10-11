@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { History, MessageCircle, OctagonAlert, Pencil, PawPrint } from "lucide-react";
+import { MessageCircle, OctagonAlert, Pencil, PawPrint } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field, PageHeader, StatusPill } from "@/components/app/page-header";
@@ -12,6 +12,7 @@ import { createClient } from "@/lib/supabase/server";
 import { formatAge, formatDate, formatDateTime, sentence } from "@/lib/format";
 import { formatPhone, whatsappLink } from "@/lib/phone";
 import { AddOwnerDialog, AlertForm, MakePrimaryButton, ResolveAlertButton, WeightForm } from "./widgets";
+import { PetDueCard, PetTimeline } from "./timeline";
 
 export async function generateMetadata({ params }: PageProps<"/pets/[id]">): Promise<Metadata> {
   const { id } = await params;
@@ -178,15 +179,8 @@ export default async function PetPage({ params }: PageProps<"/pets/[id]">) {
           </CardContent>
         </Card>
 
-        <Card className="border-dashed shadow-none lg:col-span-2">
-          <CardHeader><CardTitle className="flex items-center gap-2"><History className="size-4" /> Medical timeline</CardTitle></CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Consultations, vaccinations, prescriptions, diagnostics and surgeries will appear here in one chronological
-              timeline from Phase 2.
-            </p>
-          </CardContent>
-        </Card>
+        {me.can("clinical.view") && <PetTimeline petId={p.id} />}
+        {(me.can("clinical.view") || me.can("crm.view")) && <PetDueCard petId={p.id} />}
       </div>
       <p className="mt-6 text-xs text-muted-foreground">Last updated {formatDateTime(p.updated_at)}</p>
     </>
