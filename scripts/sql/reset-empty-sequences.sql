@@ -14,3 +14,19 @@ begin
     end if;
   end loop;
 end $$;
+
+-- Bill numbers and queue tokens are kept in counter tables, not sequences: clear any counter
+-- that no real row uses (otherwise the first real bill could be BD-26-000004, or the first
+-- patient of the day token #7, after test or demo data was removed).
+do $$
+declare n int;
+begin
+  delete from public.invoice_counters ic
+   where not exists (select 1 from public.invoices i where i.number like ic.prefix || '-%');
+  get diagnostics n = row_count;
+  if n > 0 then raise notice 'reset % bill-number counter(s)', n; end if;
+  delete from public.visit_token_counters tc
+   where not exists (select 1 from public.visits v where v.visit_date = tc.visit_date);
+  get diagnostics n = row_count;
+  if n > 0 then raise notice 'reset % queue-token counter(s)', n; end if;
+end $$;

@@ -6,7 +6,7 @@ import { PrintButton } from "@/components/print/print-button";
 import { requireStaff } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getSetting } from "@/lib/queries";
-import { formatDateTime, formatPKR } from "@/lib/format";
+import { formatDate, formatDateTime, formatPKR } from "@/lib/format";
 import { formatPhone } from "@/lib/phone";
 
 export const metadata: Metadata = { title: "Bill" };
@@ -137,7 +137,7 @@ export default async function InvoicePrint({ params, searchParams }: PageProps<"
         </div>
       )}
       {due && due.status === "open" && Number(inv.balance) > 0 && (
-        <p className="mt-4 rounded-lg border-2 border-brand p-2 text-sm"><b>Balance {formatPKR(inv.balance)}</b> — promised by {due.promised_date}.</p>
+        <p className="mt-4 rounded-lg border-2 border-brand p-2 text-sm"><b>Balance {formatPKR(inv.balance)}</b> — promised by {formatDate(due.promised_date)}.</p>
       )}
       {inv.notes && <p className="mt-4 text-sm">{inv.notes}</p>}
     </PrintShell>

@@ -16,14 +16,14 @@ export function PrintShell({ clinic, title, children, footer }: {
   return (
     <div className="min-h-svh bg-muted py-8 print:bg-white print:py-0">
       <div className="no-print mx-auto mb-4 flex max-w-[210mm] justify-end px-4"><PrintButton /></div>
-      <article className="mx-auto flex min-h-[297mm] max-w-[210mm] flex-col bg-white p-[14mm] text-[13px] leading-relaxed text-ink shadow-float print:min-h-0 print:p-[10mm] print:shadow-none">
-        <header className="flex items-center gap-4 border-b-2 border-brand pb-4">
+      <article className="mx-auto flex min-h-[297mm] max-w-[210mm] flex-col bg-white p-5 sm:p-[14mm] text-[13px] leading-relaxed text-ink shadow-float print:min-h-0 print:p-[10mm] print:shadow-none">
+        <header className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b-2 border-brand pb-4 print:flex-nowrap">
           <LogoMark tone="ink" className="w-14" priority />
-          <div className="flex-1">
+          <div className="min-w-0 flex-1">
             <p className="font-heading text-xl leading-tight font-bold tracking-tight">{(clinic.name || "Bin Dawood Animal Hospital").toUpperCase()}</p>
             <p className="text-xs font-medium tracking-[0.12em] text-brand">BY DR. MUSAB BIN DAWOOD</p>
           </div>
-          <div className="text-right text-[11px] text-muted-foreground">
+          <div className="basis-full text-[11px] break-words text-muted-foreground sm:basis-auto sm:text-right print:basis-auto print:text-right">
             {contact && <p>{contact}</p>}
             {phones && <p>{phones}</p>}
             {clinic.email && <p>{clinic.email}</p>}
@@ -41,11 +41,11 @@ export function PrintShell({ clinic, title, children, footer }: {
 
 export function InfoGrid({ rows }: { rows: [string, React.ReactNode][] }) {
   return (
-    <dl className="grid grid-cols-2 gap-x-6 gap-y-1.5 rounded-lg bg-surface p-3 print:bg-transparent print:p-0">
+    <dl className="grid grid-cols-1 gap-x-6 gap-y-1.5 rounded-lg bg-surface p-3 sm:grid-cols-2 print:grid-cols-2 print:bg-transparent print:p-0">
       {rows.filter(([, v]) => v).map(([k, v]) => (
         <div key={k} className="flex gap-2">
           <dt className="w-24 shrink-0 text-muted-foreground">{k}</dt>
-          <dd className="font-medium">{v}</dd>
+          <dd className="min-w-0 font-medium break-words">{v}</dd>
         </div>
       ))}
     </dl>

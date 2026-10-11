@@ -24,7 +24,7 @@ export function OwnerSummary({ h, showMoney }: { h: OwnerHistory; showMoney: boo
     ...(showMoney ? [["Total billed", rs(s.billed)], ["Still owed", rs(s.owed), s.owed > 0]] as [string, string, boolean][] : []),
   ];
   return (
-    <div className="grid gap-3">
+    <div className="grid grid-cols-1 gap-3">
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 print:grid-cols-4">
         {tiles.map(([k, v, bad]) => (
           <div key={k} className="rounded-xl bg-surface p-3 ring-1 ring-border print:p-2">
@@ -47,7 +47,7 @@ export function OwnerSummary({ h, showMoney }: { h: OwnerHistory; showMoney: boo
 export function OwnerPets({ h, print }: { h: OwnerHistory; print?: boolean }) {
   if (!h.pets.length) return null;
   return (
-    <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 print:grid-cols-3">
+    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 print:grid-cols-3">
       {h.pets.map((p) => {
         const body = (
           <>

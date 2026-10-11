@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { FormField } from "@/components/app/form-field";
 import { StatusPill } from "@/components/app/page-header";
-import { formatDateTime, formatPKR } from "@/lib/format";
+import { formatDate, formatDateTime, formatPKR } from "@/lib/format";
 import type { FormState } from "@/lib/validation";
 import { applyCredit, recordPayment, refundInvoice, returnItems, voidInvoice } from "../actions";
 import type { Method } from "./editor";
@@ -35,15 +35,21 @@ export function IssuedPanel({ inv, lines, payments, methods, perms, credit }: {
       <section className="min-w-0 rounded-2xl bg-card p-5 shadow-card ring-1 ring-border">
         <h2 className="mb-3 text-lg font-semibold">Items</h2>
         <table className="w-full text-sm">
-          <thead><tr className="text-left text-xs text-muted-foreground"><th className="py-1">Item</th><th className="text-right">Qty</th><th className="text-right">Price</th><th className="text-right">Discount</th><th className="text-right">Total</th></tr></thead>
+          <thead><tr className="text-left text-xs text-muted-foreground"><th className="py-1">Item</th><th className="pl-3 text-right">Qty</th><th className="hidden pl-3 text-right sm:table-cell">Price</th><th className="hidden pl-3 text-right sm:table-cell">Discount</th><th className="pl-3 text-right">Total</th></tr></thead>
           <tbody>
             {lines.map((l) => (
-              <tr key={l.id} className="border-t">
-                <td className="py-2 font-medium">{l.description}{l.returned_qty > 0 && <StatusPill className="ml-2">{Number(l.returned_qty)} returned</StatusPill>}</td>
-                <td className="text-right tabular">{Number(l.quantity)}</td>
-                <td className="text-right tabular">{formatPKR(l.unit_price)}</td>
-                <td className="text-right tabular">{l.discount_amount ? formatPKR(l.discount_amount) : "—"}</td>
-                <td className="text-right font-semibold tabular">{formatPKR(l.line_total)}</td>
+              <tr key={l.id} className="border-t align-top">
+                <td className="py-2 font-medium">
+                  {l.description}{l.returned_qty > 0 && <StatusPill className="ml-2">{Number(l.returned_qty)} returned</StatusPill>}
+                  {/* On phones the price and discount columns fold in under the item. */}
+                  <span className="block text-xs font-normal text-muted-foreground sm:hidden">
+                    {Number(l.quantity)} × {formatPKR(l.unit_price)}{l.discount_amount ? ` · discount ${formatPKR(l.discount_amount)}` : ""}
+                  </span>
+                </td>
+                <td className="py-2 pl-3 text-right tabular">{Number(l.quantity)}</td>
+                <td className="hidden py-2 pl-3 text-right whitespace-nowrap tabular sm:table-cell">{formatPKR(l.unit_price)}</td>
+                <td className="hidden py-2 pl-3 text-right whitespace-nowrap tabular sm:table-cell">{l.discount_amount ? formatPKR(l.discount_amount) : "—"}</td>
+                <td className="py-2 pl-3 text-right font-semibold whitespace-nowrap tabular">{formatPKR(l.line_total)}</td>
               </tr>
             ))}
           </tbody>
@@ -80,7 +86,7 @@ export function IssuedPanel({ inv, lines, payments, methods, perms, credit }: {
           {voided && <p className="mt-3 rounded-xl bg-muted px-3 py-2 text-sm">Void: {inv.void_reason}</p>}
           {inv.due && inv.due.status === "open" && (
             <p className="mt-3 rounded-xl bg-warning-soft px-3 py-2 text-sm text-warning">
-              Due — promised by {inv.due.promised_date}{inv.due.approval_status === "pending" ? " · waiting for manager approval" : ""}
+              Due — promised by {formatDate(inv.due.promised_date)}{inv.due.approval_status === "pending" ? " · waiting for manager approval" : ""}
             </p>
           )}
           <div className="mt-4 flex flex-wrap gap-2">

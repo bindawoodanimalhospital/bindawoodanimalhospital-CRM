@@ -57,7 +57,7 @@ export default async function PetHistoryPage({ params, searchParams }: PageProps
 
   const owners = (pet.pet_owners ?? []) as unknown as { is_primary: boolean; customers: { id: string; full_name: string } }[];
   const owner = owners.find((o) => o.is_primary)?.customers ?? owners[0]?.customers;
-  const sel = "h-10 rounded-xl border border-input bg-card px-3 text-sm";
+  const sel = "h-10 max-w-full min-w-0 rounded-xl border border-input bg-card px-3 text-sm";
 
   return (
     <>
@@ -87,7 +87,7 @@ export default async function PetHistoryPage({ params, searchParams }: PageProps
         <EmptyState icon={History} title={h.episodes.length ? "Nothing matches" : "No history yet"}
           description={h.episodes.length ? "Try a different filter." : "Visits, medicines, vaccines and bills will appear here."} />
       ) : (
-        <div className="grid gap-3">
+        <div className="grid grid-cols-1 gap-3">
           <p className="text-xs text-muted-foreground">{episodes.length} of {h.episodes.length} entries · newest first · tap one to see everything</p>
           {episodes.map((e, i) => <EpisodeCard key={e.key} e={e} showMoney={showMoney} showPrivate={showPrivate} open={i < 2 || !!q} />)}
         </div>

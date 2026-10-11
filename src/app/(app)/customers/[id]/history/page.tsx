@@ -62,7 +62,7 @@ export default async function OwnerHistoryPage({ params, searchParams }: PagePro
     (!show || MATCH[show](i))
     && (!pet || i.episode?.petId === pet || (!!petName && i.event?.petName === petName))
     && (!q || JSON.stringify(i).toLowerCase().includes(q)));
-  const sel = "h-10 rounded-xl border border-input bg-card px-3 text-sm";
+  const sel = "h-10 max-w-full min-w-0 rounded-xl border border-input bg-card px-3 text-sm";
 
   return (
     <>
@@ -93,7 +93,7 @@ export default async function OwnerHistoryPage({ params, searchParams }: PagePro
         <EmptyState icon={History} title={items.length ? "Nothing matches" : "No history yet"}
           description={items.length ? "Try a different filter." : "Visits, appointments, payments and calls will appear here."} />
       ) : (
-        <div className="grid gap-3">
+        <div className="grid grid-cols-1 gap-3">
           <p className="text-xs text-muted-foreground">{shown.length} of {items.length} entries · newest first</p>
           {shown.map((i, n) => i.episode
             ? <EpisodeCard key={i.key} e={i.episode} showMoney={showMoney} showPrivate={me.can("clinical.create")} showPet open={n < 2 || !!q} />

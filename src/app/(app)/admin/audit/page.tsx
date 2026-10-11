@@ -11,6 +11,7 @@ import { requireStaff } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { formatDate, formatDateTime, formatTime, initials, TIMEZONE, todayPK } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { AuditGroup } from "./audit-group";
 
 export const metadata: Metadata = { title: "Activity log" };
 const PAGE_SIZE = 300;
@@ -285,7 +286,7 @@ export default async function AuditPage({ searchParams }: PageProps<"/admin/audi
       </form>
 
       {!groups.length ? <EmptyState icon={FileClock} title={filtered ? "Nothing matches these filters" : "Nothing logged yet"} /> : (
-        <div className="grid gap-5">
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-5">
           {days.map((d) => (
             <section key={d.day}>
               <h2 className="mb-2 text-sm font-semibold text-muted-foreground">{dayLabel(d.day)}</h2>
@@ -295,8 +296,9 @@ export default async function AuditPage({ searchParams }: PageProps<"/admin/audi
                   const types = [...new Set(g.rows.map((r) => r.table_name).filter(Boolean))];
                   const extra = g.rows.length - 1;
                   return (
-                    <details key={g.key} className="group text-sm open:bg-muted/30">
-                      <summary className="flex cursor-pointer list-none items-start gap-3 px-4 py-3">
+                    <AuditGroup key={g.key}
+                      rows={g.rows.map((r) => { const x = describe(r); return { id: r.id, text: x.text, detail: x.detail ?? null, href: x.href ?? null, reason: r.reason, isChange: CHANGES.includes(r.action) }; })}
+                      header={<>
                         <span className={cn("mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg", main.tone)}><main.icon className="size-4" /></span>
                         <span className="min-w-0 flex-1">
                           <span className="block">
@@ -310,25 +312,7 @@ export default async function AuditPage({ searchParams }: PageProps<"/admin/audi
                           )}
                         </span>
                         <span className="shrink-0 text-xs text-muted-foreground tabular-nums" title={formatDateTime(g.at)}>{formatTime(g.at)}</span>
-                      </summary>
-                      <div className="grid gap-2 px-4 pb-3 pl-15">
-                        {g.rows.map((r) => {
-                          const x = describe(r);
-                          const fields = r.action === "update" ? (r.changed ?? []).filter((f) => !HIDDEN.has(f)) : null;
-                          return (
-                            <div key={r.id} className="rounded-xl bg-card p-3 ring-1 ring-border">
-                              <p className="flex flex-wrap items-center gap-x-2 text-sm">
-                                <span className="font-medium">{x.text}</span>
-                                {x.href && <Link href={x.href} className="text-xs font-semibold text-brand hover:underline">open</Link>}
-                              </p>
-                              {x.detail && <p className="text-xs break-all text-muted-foreground">{x.detail}</p>}
-                              {r.reason && <p className="mt-1 text-xs"><b>Reason:</b> {r.reason}</p>}
-                              {CHANGES.includes(r.action) && <Diff before={r.old_data} after={r.new_data} only={fields} />}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </details>
+                      </>} />
                   );
                 })}
               </div>
@@ -341,27 +325,8 @@ export default async function AuditPage({ searchParams }: PageProps<"/admin/audi
   );
 }
 
-const SELECT = "h-10 rounded-xl border border-input bg-card px-3 text-sm";
+const SELECT = "h-10 max-w-full min-w-0 rounded-xl border border-input bg-card px-3 text-sm";
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return <label className="grid gap-1 text-xs font-medium text-muted-foreground">{label}{children}</label>;
-}
-
-function Diff({ before, after, only }: { before: Record<string, unknown> | null; after: Record<string, unknown> | null; only: string[] | null }) {
-  const keys = (only ?? Object.keys(after ?? before ?? {})).filter((k) => !HIDDEN.has(k));
-  if (!keys.length) return null;
-  const show = (v: unknown) => (v == null ? "—" : typeof v === "object" ? JSON.stringify(v) : String(v));
-  return (
-    <table className="mt-2 w-full text-xs">
-      <tbody>
-        {keys.map((k) => (
-          <tr key={k} className="align-top">
-            <td className="w-40 py-0.5 pr-3 text-muted-foreground">{k.replace(/_/g, " ")}</td>
-            {only && <td className="py-0.5 pr-3 break-all text-danger line-through">{show(before?.[k])}</td>}
-            <td className="py-0.5 break-all">{show((after ?? before)?.[k])}</td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  );
 }

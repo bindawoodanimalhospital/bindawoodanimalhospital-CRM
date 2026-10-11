@@ -23,7 +23,7 @@ export function HistorySummary({ h, showMoney }: { h: PetHistory; showMoney: boo
     ...(showMoney ? [["Total billed", rs(s.billed)], ["Still owed", rs(s.owed)]] as [string, string][] : []),
   ];
   return (
-    <div className="grid gap-3">
+    <div className="grid grid-cols-1 gap-3">
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 print:grid-cols-4">
         {tiles.map(([k, v]) => (
           <div key={k} className="rounded-xl bg-surface p-3 ring-1 ring-border print:p-2">
@@ -49,7 +49,7 @@ export function EpisodeCard({ e, print, showMoney, showPrivate, open, showPet }:
   const dx = c?.diagnoses.map((d) => `${d.label}${d.primary ? " (primary)" : ""}${d.certainty && d.certainty !== "confirmed" ? ` — ${d.certainty}` : ""}`).join(", ");
   const headline = [dx || c?.assessment || c?.complaint || e.reason].find(Boolean);
   const body = (
-    <div className="grid gap-4 pt-3 text-sm">
+    <div className="grid grid-cols-1 gap-4 pt-3 text-sm">
       {/* Who and when */}
       <Facts rows={[
         ["Brought by", e.broughtBy],
