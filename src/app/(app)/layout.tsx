@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { AppSidebar } from "@/components/app/app-sidebar";
 import { GlobalSearch } from "@/components/app/global-search";
+import { NotificationBell } from "@/components/app/notification-bell";
 import { requireStaff } from "@/lib/auth";
 
 export default async function AppLayout({ children }: LayoutProps<"/">) {
@@ -25,6 +26,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
         <header className="no-print sticky top-0 z-20 flex h-16 items-center gap-3 rounded-t-2xl border-b bg-card/85 px-4 backdrop-blur-md md:px-6">
           <SidebarTrigger className="-ml-1 size-9" />
           <div className="min-w-0 flex-1"><GlobalSearch /></div>
+          <NotificationBell userId={me.id} />
           {canCreate && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>

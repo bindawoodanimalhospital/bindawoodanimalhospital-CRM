@@ -31,6 +31,14 @@ export default async function SettingsPage() {
           </span>
           <ArrowRight className="size-5 text-brand transition group-hover:translate-x-0.5" />
         </Link>
+        <Link href="/settings/reminders" className="group flex items-center gap-4 rounded-2xl bg-card p-5 shadow-card ring-1 ring-border transition hover:ring-brand-muted">
+          <span className="flex size-12 items-center justify-center rounded-2xl bg-brand-soft text-brand"><Syringe className="size-6" /></span>
+          <span className="flex-1">
+            <span className="block font-semibold">Reminders & messages</span>
+            <span className="block text-sm text-muted-foreground">When owners are reminded, when staff are alerted, escalation, and message wording (English / Urdu).</span>
+          </span>
+          <ArrowRight className="size-5 text-brand transition group-hover:translate-x-0.5" />
+        </Link>
         <Card>
           <CardHeader>
             <CardTitle>Clinic profile</CardTitle>

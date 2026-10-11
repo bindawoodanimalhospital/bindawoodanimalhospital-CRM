@@ -15,6 +15,7 @@ import { formatAge, formatDate, formatDateTime, sentence } from "@/lib/format";
 import { formatPhone, whatsappLink } from "@/lib/phone";
 import { MergeCustomerDialog } from "./merge-dialog";
 import { CustomerSummaryCards } from "./summary-cards";
+import { ContactHistory } from "./contact-history";
 
 export async function generateMetadata({ params }: PageProps<"/customers/[id]">): Promise<Metadata> {
   const { id } = await params;
@@ -163,6 +164,7 @@ export default async function CustomerPage({ params }: PageProps<"/customers/[id
         </Card>
 
         <CustomerSummaryCards customerId={c.id} petIds={pets.map((p) => p.id)} me={me} />
+        {me.can("crm.view") && <ContactHistory customerId={c.id} canLog={me.can("crm.manage")} />}
       </div>
 
       <p className="mt-6 text-xs text-muted-foreground">Last updated {formatDateTime(c.updated_at)}</p>

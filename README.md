@@ -14,8 +14,8 @@ Product spec: *Bin Dawood Animal Hospital CRM v1.2* (Omer Bin Dawood, Sep 2026).
 | 2 — Clinic operations | Appointments, live walk-in queue (tokens), consultations with locked records, vaccinations with approved schedules, prescriptions, diagnostics & files, due list, printouts | ✅ Built |
 | 3 — Surgery & inpatient | Surgery workflow with consent & pre-op gates, theatre log, materials, ward board, treatment chart, discharge sheets | ✅ Built |
 | 4 — Billing & store | Bills from visits, split payments (cash/card/JazzCash/Easypaisa/Raast), dues with promises & approvals, returns/refunds, customer ledger & statements, pet store POS, batch/expiry stock (FEFO), suppliers & deliveries, expenses | ✅ Built |
-| 5 — CRM & comms | Reminder/escalation engine, WhatsApp, tasks, campaigns | Next |
-| 6 — Analytics | Owner command center, KPIs, exports | |
+| 5 — CRM & comms | Reminder & escalation engine, WhatsApp message queue (Urdu/English), tasks, alert centre, notifications, opt-in campaigns | ✅ Built |
+| 6 — Analytics | Owner command center, KPIs, exports | Next |
 | 7 — AI | After workflows and data quality are proven | |
 
 ## Stack
@@ -131,6 +131,16 @@ src/app/(app)/           dashboard, customers, pets, admin (staff, roles, audit)
 - Discounts need permission; above the configured % they need a manager.
 - Stock changes only through movements; never negative; expired batches can never be sold; earliest-expiry first,
   with a reason required to pick another batch. Cost prices and expenses are visible only to finance roles.
+
+## Reminders (Phase 5)
+
+- The engine (`private.run_reminders`, every 30 min via pg_cron, or "Check now") follows the source records —
+  vaccine/follow-up due items, unpaid bills, appointments, tasks. It never closes anything itself: when the dose is
+  given, the bill paid or the task done (with an outcome), the reminder stops and unsent messages are cancelled.
+- Timing, repeats, staff alerts and the escalation ladder are configured in Settings → Reminders; wording in English
+  and Urdu. Pausing needs a reason; a new promised date restarts escalation.
+- With no WhatsApp provider, messages wait in "Messages to send": one tap opens WhatsApp with the text, then
+  Sent / Couldn't reach (note required). Promotional campaigns only reach customers who opted in.
 
 ## Security notes
 

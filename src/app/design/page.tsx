@@ -13,6 +13,7 @@ import { LogoMark } from "@/components/brand/logo";
 import { QueueBoard, type QueueVisit } from "@/app/(app)/queue/queue-board";
 import { SurgeryWorkspace, type SurgeryData } from "@/app/(app)/surgery/[id]/workspace";
 import { InvoiceEditor } from "@/app/(app)/billing/[id]/editor";
+import { MessageQueue } from "@/app/(app)/messages/queue";
 
 export const metadata: Metadata = { title: "Design system" };
 
@@ -80,6 +81,18 @@ export default function DesignPage() {
           <div>
             <PageHeader title="Today's queue" description="Thursday, 25 September · 2 waiting · updates live on every screen" actions={<Button size="lg"><Plus /> Check in a pet</Button>} />
             <QueueBoard visits={sample} doctors={[{ id: "d1", full_name: "Dr. Musab Bin Dawood" }]} canManage canClinical />
+          </div>
+
+          <div>
+            <PageHeader title="Messages to send" description="Prepared by the reminder engine — one tap opens WhatsApp with the text." />
+            <MessageQueue canSend items={[
+              { id: "m1", channel: "whatsapp", to_phone: "+923001234567", template_label: "Vaccination due", language: "ur", is_promotional: false, attempts: 2,
+                customer: { id: "c1", full_name: "Ahmed Raza" },
+                body: "السلام علیکم Ahmed Raza، Bin Dawood Animal Hospital کی جانب سے یاد دہانی: Moti کی DHPPi Dose 2 کی تاریخ 28 Sep 2026 ہے۔ وقت طے کرنے کے لیے جواب دیں۔ شکریہ!" },
+              { id: "m2", channel: "whatsapp", to_phone: "+923217654321", template_label: "Payment reminder", language: "en", is_promotional: false, attempts: 1,
+                customer: { id: "c2", full_name: "Ayesha Khan" },
+                body: "Assalam o Alaikum Ayesha Khan, a gentle reminder from Bin Dawood Animal Hospital: Rs. 15,000 is due on bill BD-26-000012 (promised 25 Sep 2026). You can pay at the clinic, by JazzCash/Easypaisa or bank transfer. Thank you!" },
+            ]} />
           </div>
 
           <div>
