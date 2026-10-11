@@ -34,13 +34,13 @@ export function AppSidebar({ permissions, user }: Props) {
     <Sidebar collapsible="icon" variant="inset">
       <SidebarHeader className="px-2 pt-3 pb-4">
         <Link href="/dashboard" className="rounded-xl outline-none" onClick={() => setOpenMobile(false)}>
-          <Logo onDark className="text-white group-data-[collapsible=icon]:[&>div:last-child]:hidden" />
+          <Logo className="group-data-[collapsible=icon]:[&>div:last-child]:hidden" />
         </Link>
       </SidebarHeader>
       <SidebarContent>
         {groups.map((group, i) => (
           <SidebarGroup key={group.label ?? i}>
-            {group.label && <SidebarGroupLabel className="text-[11px] tracking-wider text-white/55 uppercase">{group.label}</SidebarGroupLabel>}
+            {group.label && <SidebarGroupLabel className="text-[11px] tracking-wider text-sidebar-foreground/55 uppercase">{group.label}</SidebarGroupLabel>}
             <SidebarMenu className="gap-1">
               {group.items.map((item) => {
                 const active = (pathname === item.href || pathname.startsWith(`${item.href}/`))
@@ -67,13 +67,13 @@ export function AppSidebar({ permissions, user }: Props) {
               <DropdownMenuTrigger asChild>
                 <SidebarMenuButton size="lg" className="data-[state=open]:bg-sidebar-accent">
                   <Avatar className="size-9 rounded-xl">
-                    <AvatarFallback className="rounded-xl bg-white text-xs font-bold text-brand">{initials(user.name)}</AvatarFallback>
+                    <AvatarFallback className="rounded-xl bg-brand-gradient text-xs font-bold text-white">{initials(user.name)}</AvatarFallback>
                   </Avatar>
                   <div className="grid flex-1 text-left leading-tight">
                     <span className="truncate text-sm font-semibold">{user.name}</span>
-                    <span className="truncate text-xs text-white/60">{user.roles.join(" + ") || "No role"}</span>
+                    <span className="truncate text-xs text-muted-foreground">{user.roles.join(" + ") || "No role"}</span>
                   </div>
-                  <ChevronsUpDown className="text-white/60" />
+                  <ChevronsUpDown className="text-muted-foreground" />
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent side="top" align="start" className="w-60 rounded-xl">

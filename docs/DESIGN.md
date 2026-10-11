@@ -38,7 +38,7 @@ calm, obvious and quick. Live reference: run `npm run dev` and open **http://loc
 
 ## Layout
 
-- **Shell:** maroon sidebar + maroon frame (gentle gradient), with the white content panel floating on it. Active item = white pill with maroon text. Sidebar collapses to icons; on phones it's a maroon drawer.
+- **Shell:** warm cream sidebar + cream frame (gentle gradient), with the white content panel floating on it. Active item = white pill with maroon text. Sidebar collapses to icons; on phones it's a cream drawer.
 - **Greeting:** always Pakistan time (Asia/Karachi), live: morning 4–12, afternoon 12–17, evening 17–4.
 - **Clinic number:** one number everywhere (Settings → Clinic profile: phone = WhatsApp = 0333 1606689); printouts show it once.
 - **Header:** sidebar toggle · big search · one burgundy **New** menu.
