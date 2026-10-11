@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { LogoMark } from "@/components/brand/logo";
 import { OpenSearch } from "@/components/app/open-search";
+import { Greeting } from "@/components/app/greeting";
 import { requireStaff } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { formatDateTime, initials, isPast, TIMEZONE, todayPK } from "@/lib/format";
@@ -24,10 +25,6 @@ function startOfTodayPK() {
   return new Date(`${ymd}T00:00:00+05:00`).toISOString();
 }
 
-function greeting() {
-  const h = Number(new Intl.DateTimeFormat("en-GB", { hour: "numeric", hour12: false, timeZone: TIMEZONE }).format(new Date()));
-  return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
-}
 
 export default async function DashboardPage({ searchParams }: PageProps<"/dashboard">) {
   const me = await requireStaff();
@@ -85,7 +82,6 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
   // Doctors are greeted as "Dr. Musab"; everyone else by first name.
   const firstName = me.fullName.replace(/^dr\.?\s+/i, "").split(" ")[0];
   const displayName = me.isDoctor ? `Dr. ${firstName}` : firstName;
-  const dateLine = new Intl.DateTimeFormat("en-GB", { weekday: "long", day: "numeric", month: "long", timeZone: TIMEZONE }).format(new Date());
 
   type Action = { title: string; text: string; icon: LucideIcon; href?: string; search?: boolean; primary?: boolean };
   const actions = ([
@@ -133,8 +129,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
       <section className="relative overflow-hidden rounded-3xl bg-ink bg-hero-gradient px-6 py-6 text-white shadow-float shadow-brand/20 md:px-8 md:py-7">
         <LogoMark tone="white" className="pointer-events-none absolute -right-6 -bottom-10 w-48 opacity-[0.07]" />
         <div className="relative">
-          <p className="text-sm font-medium text-white/60">{dateLine}</p>
-          <h1 className="mt-1 text-2xl font-bold tracking-tight md:text-3xl">{greeting()}, {displayName}</h1>
+          <Greeting name={displayName} initial={new Date().toISOString()} />
           
           {(canCustomers || canPets) && (
             <OpenSearch className="mt-5 flex h-12 w-full max-w-xl items-center gap-3 rounded-2xl bg-white px-5 text-left text-muted-foreground shadow-lg transition hover:ring-4 hover:ring-white/15">

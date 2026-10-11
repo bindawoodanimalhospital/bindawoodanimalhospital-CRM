@@ -20,17 +20,21 @@ export function LogoMark({ tone = "ink", className, priority }: {
   );
 }
 
-/** Mark on a burgundy gradient tile + two-line wordmark. Used in the sidebar. */
-export function Logo({ className, compact = false }: { className?: string; compact?: boolean }) {
+/**
+ * Mark on a tile + two-line wordmark. `onDark` (the maroon sidebar): white tile with the maroon mark and white text;
+ * otherwise a burgundy gradient tile with the white mark.
+ */
+export function Logo({ className, compact = false, onDark = false }: { className?: string; compact?: boolean; onDark?: boolean }) {
   return (
     <div className={cn("flex items-center gap-2.5", className)}>
-      <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-gradient shadow-md shadow-brand/30">
-        <LogoMark tone="white" className="w-6" priority />
+      <div className={cn("flex size-10 shrink-0 items-center justify-center rounded-xl",
+        onDark ? "bg-white shadow-md shadow-black/20" : "bg-brand-gradient shadow-md shadow-brand/30")}>
+        <LogoMark tone={onDark ? "burgundy" : "white"} className="w-6" priority />
       </div>
       {!compact && (
         <div className="grid leading-none">
           <span className="font-heading text-[15px] font-bold tracking-tight">BIN DAWOOD</span>
-          <span className="mt-1 text-[10.5px] font-semibold tracking-[0.14em] text-muted-foreground">ANIMAL HOSPITAL</span>
+          <span className={cn("mt-1 text-[10.5px] font-semibold tracking-[0.14em]", onDark ? "text-white/65" : "text-muted-foreground")}>ANIMAL HOSPITAL</span>
         </div>
       )}
     </div>

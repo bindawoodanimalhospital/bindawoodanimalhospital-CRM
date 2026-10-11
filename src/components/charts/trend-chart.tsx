@@ -26,11 +26,12 @@ export function TrendChart({ series, points, kind = "line", money = false, heigh
 }) {
   const box = useRef<HTMLDivElement>(null);
   const [w, setW] = useState(640);
+  const [measured, setMeasured] = useState(false);   // until the box is measured, clip so phones never scroll sideways
   const [hover, setHover] = useState<number | null>(null);
   useEffect(() => {
     const el = box.current;
     if (!el) return;
-    const ro = new ResizeObserver(([e]) => setW(Math.max(280, Math.round(e.contentRect.width))));
+    const ro = new ResizeObserver(([e]) => { setW(Math.max(280, Math.round(e.contentRect.width))); setMeasured(true); });
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
@@ -65,7 +66,7 @@ export function TrendChart({ series, points, kind = "line", money = false, heigh
           ))}
         </ul>
       )}
-      <div ref={box} className="relative w-full">
+      <div ref={box} className={cn("relative w-full", !measured && "overflow-hidden")}>
         <svg width={w} height={height} role="img" aria-label={`${series.map((s) => s.name).join(" and ")} over time`}
           onPointerMove={onMove} onPointerLeave={() => setHover(null)} className="block touch-pan-y select-none">
           {ticks.map((t) => (

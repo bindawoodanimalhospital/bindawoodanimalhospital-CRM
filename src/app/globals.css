@@ -131,15 +131,15 @@
   --danger: oklch(0.55 0.2 30);
   --danger-soft: oklch(0.96 0.03 30);
 
-  /* Sidebar sits on the canvas; content floats on a white panel (inset layout) */
-  --sidebar: var(--background);
-  --sidebar-foreground: oklch(0.3 0.01 20);
-  --sidebar-primary: var(--brand);
-  --sidebar-primary-foreground: var(--brand-foreground);
-  --sidebar-accent: oklch(0.93 0.006 30);
-  --sidebar-accent-foreground: oklch(0.2 0.008 20);
-  --sidebar-border: oklch(0.91 0.005 40);
-  --sidebar-ring: var(--ring);
+  /* Maroon sidebar + frame; the white content panel floats on it (inset layout) */
+  --sidebar: oklch(0.31 0.1 12);                 /* deep maroon, a shade darker than the brand */
+  --sidebar-foreground: oklch(0.96 0.012 12);
+  --sidebar-primary: var(--brand-foreground);
+  --sidebar-primary-foreground: var(--brand);
+  --sidebar-accent: oklch(1 0 0 / 0.1);          /* hover: soft white wash */
+  --sidebar-accent-foreground: oklch(1 0 0);
+  --sidebar-border: oklch(1 0 0 / 0.14);
+  --sidebar-ring: oklch(1 0 0 / 0.5);
 }
 
 @layer base {
@@ -165,6 +165,13 @@
     background: var(--brand-muted);
   }
 }
+
+/* Maroon frame: a gentle top-to-bottom depth instead of a flat block (desktop frame + mobile drawer). */
+[data-slot="sidebar-wrapper"]:has([data-variant="inset"]),
+[data-slot="sidebar"][data-mobile="true"] {
+  background-image: linear-gradient(180deg, oklch(0.35 0.11 12) 0%, oklch(0.29 0.095 12) 55%, oklch(0.25 0.075 12) 100%);
+}
+[data-slot="sidebar-inner"] { background: transparent; }
 
 /* Burgundy gradients — brand surfaces only (buttons, logo tile, hero banners). */
 @utility bg-brand-gradient {

@@ -38,7 +38,9 @@ calm, obvious and quick. Live reference: run `npm run dev` and open **http://loc
 
 ## Layout
 
-- **Shell:** inset sidebar on the canvas + white floating content panel. Sidebar collapses to icons; on phones it's a drawer.
+- **Shell:** maroon sidebar + maroon frame (gentle gradient), with the white content panel floating on it. Active item = white pill with maroon text. Sidebar collapses to icons; on phones it's a maroon drawer.
+- **Greeting:** always Pakistan time (Asia/Karachi), live: morning 4–12, afternoon 12–17, evening 17–4.
+- **Clinic number:** one number everywhere (Settings → Clinic profile: phone = WhatsApp = 0333 1606689); printouts show it once.
 - **Header:** sidebar toggle · big search · one burgundy **New** menu.
 - **Page:** `PageHeader` (title, one-line description, actions right) → content. Max width 7xl.
 - **Home:** dark welcome banner with search → large action tiles → numbers → recent activity.

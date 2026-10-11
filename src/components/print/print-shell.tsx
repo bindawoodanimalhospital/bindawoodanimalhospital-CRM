@@ -9,8 +9,10 @@ export function PrintShell({ clinic, title, children, footer }: {
   clinic: ClinicProfile; title: string; children: React.ReactNode; footer?: React.ReactNode;
 }) {
   const contact = [clinic.address, clinic.city].filter(Boolean).join(", ");
-  const phones = [clinic.phone && `Tel ${formatPhone(clinic.phone)}`, clinic.whatsapp && `WhatsApp ${formatPhone(clinic.whatsapp)}`]
-    .filter(Boolean).join(" · ");
+  // One clinic number everywhere: when phone and WhatsApp are the same, show it once.
+  const tel = formatPhone(clinic.phone), wa = formatPhone(clinic.whatsapp);
+  const phones = tel && wa && tel === wa ? `Tel / WhatsApp ${tel}`
+    : [tel && `Tel ${tel}`, wa && `WhatsApp ${wa}`].filter(Boolean).join(" · ");
   return (
     <div className="min-h-svh bg-muted py-8 print:bg-white print:py-0">
       <div className="no-print mx-auto mb-4 flex max-w-[210mm] justify-end px-4"><PrintButton /></div>

@@ -108,7 +108,7 @@ export function Register({ initial, methods, canDiscount, defaultDeliveryCharge 
   };
 
   return (
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_400px]">
+    <div className={cn("grid grid-cols-1 gap-6 lg:grid-cols-[1fr_400px]", cart.length > 0 && "pb-24 lg:pb-0")}>
       <section className="grid min-w-0 content-start gap-4">
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="relative">
@@ -141,7 +141,7 @@ export function Register({ initial, methods, canDiscount, defaultDeliveryCharge 
         </div>
       </section>
 
-      <aside className="grid content-start gap-4 lg:sticky lg:top-20 lg:max-h-[calc(100svh-6rem)] lg:overflow-x-hidden lg:overflow-y-auto lg:overscroll-contain lg:pr-1 lg:pb-2 [scrollbar-width:thin]">
+      <aside id="checkout" className="grid scroll-mt-20 content-start gap-4 lg:sticky lg:top-20 lg:max-h-[calc(100svh-6rem)] lg:overflow-x-hidden lg:overflow-y-auto lg:overscroll-contain lg:pr-1 lg:pb-2 [scrollbar-width:thin]">
         <section className="rounded-2xl bg-card p-4 shadow-card ring-1 ring-border">
           <div className="mb-3 flex items-center gap-2"><ShoppingBag className="size-5 text-brand" /><h2 className="font-semibold">Cart</h2>
             {cart.length > 0 && <Button variant="ghost" size="sm" className="ml-auto" onClick={() => setCart([])}>Clear</Button>}</div>
@@ -159,7 +159,7 @@ export function Register({ initial, methods, canDiscount, defaultDeliveryCharge 
                     <Button variant="outline" size="icon-sm" onClick={() => setQty(l.item.id, l.qty + 1)} aria-label="More"><Plus /></Button>
                     {canDiscount && <Input className="h-8 w-20 text-xs" inputMode="decimal" placeholder="Disc." value={l.discount || ""}
                       onChange={(e) => setCart((c) => c.map((x) => x.item.id === l.item.id ? { ...x, discount: Math.min(Number(e.target.value) || 0, x.item.sale_price * x.qty) } : x))} />}
-                    <span className="ml-auto font-bold tabular">{formatPKR(l.item.sale_price * l.qty - l.discount)}</span>
+                    <span className="ml-auto font-bold whitespace-nowrap tabular">{formatPKR(l.item.sale_price * l.qty - l.discount)}</span>
                   </div>
                 </li>
               ))}
@@ -249,6 +249,18 @@ export function Register({ initial, methods, canDiscount, defaultDeliveryCharge 
           </Button>
         </section>
       </aside>
+
+      {/* Phones: products come first, so keep the total and a way to pay always in reach. */}
+      {cart.length > 0 && !done && (
+        <div className="fixed inset-x-3 bottom-3 z-30 flex items-center gap-3 rounded-2xl bg-ink p-2 pl-4 text-white shadow-float lg:hidden">
+          <ShoppingBag className="size-5 shrink-0 text-white/70" />
+          <span className="min-w-0 flex-1 leading-tight">
+            <span className="block text-xs text-white/60">{cart.reduce((n, l) => n + l.qty, 0)} item{cart.reduce((n, l) => n + l.qty, 0) === 1 ? "" : "s"}{delivery ? " · home delivery" : ""}</span>
+            <span className="block text-lg font-bold tabular">{formatPKR(total)}</span>
+          </span>
+          <Button onClick={() => document.getElementById("checkout")?.scrollIntoView({ behavior: "smooth", block: "start" })}>Checkout</Button>
+        </div>
+      )}
 
       <Dialog open={!!done} onOpenChange={(o) => !o && reset()}>
         <DialogContent className="rounded-2xl text-center">
