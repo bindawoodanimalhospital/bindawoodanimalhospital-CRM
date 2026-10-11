@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
-  MessageCircle, Pencil, PawPrint, Phone, Plus, TriangleAlert,
+  CalendarPlus, MessageCircle, Pencil, PawPrint, Phone, Plus, Receipt, ShoppingBag, TriangleAlert,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,6 +14,7 @@ import { createClient } from "@/lib/supabase/server";
 import { formatAge, formatDate, formatDateTime, sentence } from "@/lib/format";
 import { formatPhone, whatsappLink } from "@/lib/phone";
 import { MergeCustomerDialog } from "./merge-dialog";
+import { NewBillButton } from "../../billing/new-bill";
 import { CustomerSummaryCards } from "./summary-cards";
 import { ContactHistory } from "./contact-history";
 import { ServiceHistory } from "./service-history";
@@ -89,9 +90,18 @@ export default async function CustomerPage({ params }: PageProps<"/customers/[id
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      {c.status !== "merged" && (
+        <div className="-mt-4 mb-6 flex flex-wrap gap-2">
+          {me.can("billing.create") && <NewBillButton customer={{ id: c.id }} label="New bill" />}
+          {me.can("pos.use") && <Button asChild variant="outline"><Link href="/pos"><ShoppingBag /> Pet store sale</Link></Button>}
+          {me.can("appointments.manage") && <Button asChild variant="outline"><Link href="/appointments"><CalendarPlus /> Book appointment</Link></Button>}
+          {me.can("billing.view") && <Button asChild variant="ghost"><Link href={`/customers/${c.id}/account`}><Receipt /> Account & statement</Link></Button>}
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-3">
         {/* Left: contact profile */}
-        <Card className="lg:row-span-2">
+        <Card className="lg:sticky lg:top-20">
           <CardHeader><CardTitle>Contact</CardTitle></CardHeader>
           <CardContent>
             <dl className="grid grid-cols-2 gap-4">
@@ -114,8 +124,10 @@ export default async function CustomerPage({ params }: PageProps<"/customers/[id
           </CardContent>
         </Card>
 
-        {/* Right: pets */}
-        <Card className="lg:col-span-2">
+        {/* Right: money & bookings at a glance, pets, history */}
+        <div className="grid min-w-0 gap-6 lg:col-span-2">
+        <CustomerSummaryCards customerId={c.id} petIds={pets.map((p) => p.id)} me={me} />
+        <Card>
           <CardHeader>
             <CardTitle>Pets <span className="font-normal text-muted-foreground">({pets.length})</span></CardTitle>
             {me.can("pets.create") && c.status !== "merged" && (
@@ -166,9 +178,9 @@ export default async function CustomerPage({ params }: PageProps<"/customers/[id
           </CardContent>
         </Card>
 
-        <CustomerSummaryCards customerId={c.id} petIds={pets.map((p) => p.id)} me={me} />
         <ServiceHistory customerId={c.id} me={me} />
         {me.can("crm.view") && <ContactHistory customerId={c.id} canLog={me.can("crm.manage")} />}
+        </div>
       </div>
 
       <p className="mt-6 text-xs text-muted-foreground">Last updated {formatDateTime(c.updated_at)}</p>

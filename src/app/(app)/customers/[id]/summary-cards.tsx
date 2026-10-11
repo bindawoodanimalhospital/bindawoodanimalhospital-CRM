@@ -22,7 +22,7 @@ export async function CustomerSummaryCards({ customerId, petIds, me }: { custome
   const dues = (due?.data ?? []) as unknown as { title: string; due_on: string; pets: { name: string } | null }[];
 
   return (
-    <div className="grid gap-6 sm:grid-cols-3 lg:col-span-2">
+    <div className="grid gap-4 sm:grid-cols-3">
       {bal && (
         <Link href={`/customers/${customerId}/account`}>
           <Card className={cn("h-full transition hover:ring-brand-muted", balance > 0 && "ring-danger/40")}>

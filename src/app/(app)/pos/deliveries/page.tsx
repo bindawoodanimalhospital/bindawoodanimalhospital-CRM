@@ -89,7 +89,7 @@ export default async function DeliveriesPage({ searchParams }: PageProps<"/pos/d
                       <Link href={`/billing/${o.id}`} className="font-semibold hover:underline">{o.number}</Link>
                       <StatusPill tone={DELIVERY_STATUS[status].tone}>{DELIVERY_STATUS[status].label}</StatusPill>
                       {Number(o.balance) > 0
-                        ? <StatusPill tone="danger">Collect {formatPKR(o.balance)}</StatusPill>
+                        ? <StatusPill tone="danger">{status === "delivered" ? "Unpaid" : "Collect"} {formatPKR(o.balance)}</StatusPill>
                         : <StatusPill tone="success">Paid</StatusPill>}
                     </div>
                     {c && (

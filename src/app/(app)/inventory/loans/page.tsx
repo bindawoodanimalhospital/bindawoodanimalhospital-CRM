@@ -115,22 +115,22 @@ export default async function StockLoansPage({ searchParams }: PageProps<"/inven
         </section>
       )}
 
-      <form className="mb-4 grid gap-2 rounded-2xl bg-card p-3 shadow-card ring-1 ring-border sm:grid-cols-2 lg:grid-cols-7">
+      <form className="mb-4 grid gap-2 rounded-2xl bg-card p-3 shadow-card ring-1 ring-border sm:grid-cols-2 lg:grid-cols-[repeat(4,minmax(0,1fr))_9.5rem_9.5rem_auto]">
         <input type="hidden" name="view" value={view} />
-        <select name="dir" defaultValue={direction} className="h-10 rounded-xl border bg-card px-3 text-sm" aria-label="Borrowed or lent">
+        <select name="dir" defaultValue={direction} className="h-10 w-full min-w-0 rounded-xl border border-input bg-card px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50" aria-label="Borrowed or lent">
           <option value="">Borrowed & lent</option><option value="borrowed">Borrowed (we owe)</option><option value="lent">Lent (owed to us)</option>
         </select>
-        <select name="partner" defaultValue={partner} className="h-10 rounded-xl border bg-card px-3 text-sm" aria-label="Business">
+        <select name="partner" defaultValue={partner} className="h-10 w-full min-w-0 rounded-xl border border-input bg-card px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50" aria-label="Business">
           <option value="">All businesses</option>
           {(partners ?? []).map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
         </select>
-        <select name="status" defaultValue={status} className="h-10 rounded-xl border bg-card px-3 text-sm" aria-label="Return status">
+        <select name="status" defaultValue={status} className="h-10 w-full min-w-0 rounded-xl border border-input bg-card px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50" aria-label="Return status">
           <option value="">Any status</option>
           {Object.entries(LOAN_STATUS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
         </select>
         <Input name="q" defaultValue={product} placeholder="Product…" aria-label="Product" />
-        <Input name="from" type="date" defaultValue={from} aria-label="From date" />
-        <Input name="to" type="date" defaultValue={to} aria-label="To date" />
+        <Input name="from" type="date" defaultValue={from} aria-label="From date" title="From date" />
+        <Input name="to" type="date" defaultValue={to} aria-label="To date" title="To date" />
         <Button type="submit" variant="outline">Filter</Button>
       </form>
 

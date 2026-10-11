@@ -67,7 +67,7 @@ export default async function DuesPage({ searchParams }: PageProps<"/billing/due
 
       <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-5">
         {buckets.map((b, i) => (
-          <div key={b.label} className={cn("rounded-2xl p-4 ring-1", i === 0 ? "bg-card ring-border" : i < 2 ? "bg-warning-soft ring-warning/30" : "bg-danger-soft ring-danger/30")}>
+          <div key={b.label} className={cn("rounded-2xl p-4 ring-1", i === 0 || b.items.length === 0 ? "bg-card ring-border" : i < 2 ? "bg-warning-soft ring-warning/30" : "bg-danger-soft ring-danger/30")}>
             <p className="text-xs font-semibold text-muted-foreground">{b.label}</p>
             <p className="mt-1 text-xl font-bold tabular">{formatPKR(sum(b.items))}</p>
             <p className="text-xs text-muted-foreground">{b.items.length} bill{b.items.length === 1 ? "" : "s"}</p>

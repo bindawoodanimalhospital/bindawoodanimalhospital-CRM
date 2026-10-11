@@ -38,7 +38,7 @@ export async function ServiceHistory({ customerId, me }: { customerId: string; m
   ].sort((a, b) => b.at.localeCompare(a.at)).slice(0, 8);
 
   return (
-    <Card className="lg:col-span-2">
+    <Card>
       <CardHeader><CardTitle>Deliveries & home visits</CardTitle></CardHeader>
       <CardContent>
         {entries.length === 0 ? (

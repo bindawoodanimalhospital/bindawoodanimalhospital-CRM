@@ -130,14 +130,14 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
       )}
 
       {/* Welcome banner */}
-      <section className="relative overflow-hidden rounded-3xl bg-ink bg-hero-gradient px-6 py-8 text-white shadow-float shadow-brand/20 md:px-10 md:py-10">
-        <LogoMark tone="white" className="pointer-events-none absolute -right-8 -bottom-12 w-60 opacity-[0.07]" />
+      <section className="relative overflow-hidden rounded-3xl bg-ink bg-hero-gradient px-6 py-6 text-white shadow-float shadow-brand/20 md:px-8 md:py-7">
+        <LogoMark tone="white" className="pointer-events-none absolute -right-6 -bottom-10 w-48 opacity-[0.07]" />
         <div className="relative">
           <p className="text-sm font-medium text-white/60">{dateLine}</p>
-          <h1 className="mt-1 text-3xl font-bold tracking-tight md:text-4xl">{greeting()}, {displayName}</h1>
-          <p className="mt-2 max-w-lg text-white/70">What would you like to do today?</p>
+          <h1 className="mt-1 text-2xl font-bold tracking-tight md:text-3xl">{greeting()}, {displayName}</h1>
+          
           {(canCustomers || canPets) && (
-            <OpenSearch className="mt-6 flex h-13 w-full max-w-xl items-center gap-3 rounded-2xl bg-white px-5 text-left text-muted-foreground shadow-lg transition hover:ring-4 hover:ring-white/15">
+            <OpenSearch className="mt-5 flex h-12 w-full max-w-xl items-center gap-3 rounded-2xl bg-white px-5 text-left text-muted-foreground shadow-lg transition hover:ring-4 hover:ring-white/15">
               <Search className="size-5 text-brand" />
               <span className="flex-1 truncate">Search a pet, owner or phone number…</span>
               <kbd className="hidden rounded-md border px-1.5 py-0.5 font-mono text-[10px] sm:inline">Ctrl K</kbd>
@@ -146,40 +146,52 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
         </div>
       </section>
 
-      {todayStats.length > 0 && (
-        <section className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-          {todayStats.map((s) => (
-            <Link key={s.label} href={s.href} className="group rounded-2xl bg-card p-4 shadow-card ring-1 ring-border transition hover:ring-brand-muted">
-              <div className="flex items-center gap-2 text-sm text-muted-foreground"><s.icon className="size-4" /> {s.label}</div>
-              <p className={cn("mt-2 text-3xl font-bold tabular", s.tone === "danger" && "text-danger", s.tone === "warning" && "text-warning")}>{s.money ? `Rs. ${s.value.toLocaleString("en-PK")}` : s.value}</p>
-              <p className="mt-0.5 text-xs text-muted-foreground">{s.sub}</p>
-            </Link>
-          ))}
-        </section>
-      )}
-
       {/* Big, obvious actions */}
       {actions.length > 0 && (
-        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           {actions.map((a) => {
             const body = (
               <>
-                <span className={cn("flex size-12 items-center justify-center rounded-2xl",
+                <span className={cn("flex size-12 shrink-0 items-center justify-center rounded-2xl",
                   a.primary ? "bg-brand-gradient text-white shadow-md shadow-brand/30" : "bg-brand-soft text-brand")}>
                   <a.icon className="size-6" />
                 </span>
-                <span className="mt-4 flex items-center gap-1 text-base font-semibold">
-                  {a.title}
-                  <ArrowRight className="size-4 opacity-0 transition group-hover:translate-x-0.5 group-hover:opacity-100" />
+                <span className="min-w-0">
+                  <span className="flex items-center gap-1 text-base font-semibold">
+                    {a.title}
+                    <ArrowRight className="size-4 opacity-0 transition group-hover:translate-x-0.5 group-hover:opacity-100" />
+                  </span>
+                  <span className="mt-0.5 line-clamp-2 block text-sm text-muted-foreground">{a.text}</span>
                 </span>
-                <span className="mt-1 text-sm text-muted-foreground">{a.text}</span>
               </>
             );
-            const cls = "group flex flex-col items-start rounded-2xl bg-card p-5 text-left shadow-card ring-1 ring-border transition hover:-translate-y-0.5 hover:shadow-float hover:ring-brand-muted";
+            const cls = "group flex items-center gap-4 rounded-2xl bg-card p-4 text-left shadow-card ring-1 ring-border transition hover:-translate-y-0.5 hover:shadow-float hover:ring-brand-muted";
             return a.search
               ? <OpenSearch key={a.title} className={cls}>{body}</OpenSearch>
               : <Link key={a.title} href={a.href!} className={cls}>{body}</Link>;
           })}
+        </section>
+      )}
+
+      {todayStats.length > 0 && (
+        <section>
+          <h2 className="mb-3 text-sm font-semibold tracking-wide text-muted-foreground uppercase">Today at a glance</h2>
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-[repeat(auto-fill,minmax(15rem,1fr))]">
+            {todayStats.map((s) => (
+              <Link key={s.label} href={s.href} className="group flex items-start gap-3 rounded-2xl bg-card p-4 shadow-card ring-1 ring-border transition hover:ring-brand-muted">
+                <span className={cn("flex size-10 shrink-0 items-center justify-center rounded-xl",
+                  s.tone === "danger" ? "bg-danger-soft text-danger" : s.tone === "warning" ? "bg-warning-soft text-warning"
+                    : s.tone === "success" ? "bg-success-soft text-success" : "bg-muted text-foreground/70")}>
+                  <s.icon className="size-5" />
+                </span>
+                <span className="min-w-0">
+                  <span className="block truncate text-sm text-muted-foreground">{s.label}</span>
+                  <span className={cn("block text-2xl font-bold tabular", s.tone === "danger" && "text-danger", s.tone === "warning" && "text-warning")}>{s.money ? `Rs. ${s.value.toLocaleString("en-PK")}` : s.value}</span>
+                  <span className="block truncate text-xs text-muted-foreground">{s.sub}</span>
+                </span>
+              </Link>
+            ))}
+          </div>
         </section>
       )}
 

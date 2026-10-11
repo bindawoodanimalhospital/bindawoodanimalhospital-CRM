@@ -189,7 +189,7 @@ export default async function VisitPage({ params, searchParams }: PageProps<"/vi
       )}
 
       <Tabs defaultValue={activeTab} className="gap-6">
-        <TabsList className="h-12 w-full justify-start gap-1 overflow-x-auto rounded-2xl bg-muted p-1 sm:w-fit">
+        <TabsList className="h-12 w-full justify-start gap-1 overflow-x-auto overflow-y-hidden rounded-2xl bg-muted p-1 [scrollbar-width:none] sm:w-fit">
           <TabsTrigger value="consultation" className="h-10 gap-2 rounded-xl px-4"><Stethoscope /> Consultation</TabsTrigger>
           <TabsTrigger value="vaccines" className="h-10 gap-2 rounded-xl px-4"><Syringe /> Vaccines</TabsTrigger>
           <TabsTrigger value="rx" className="h-10 gap-2 rounded-xl px-4"><Pill /> Prescription</TabsTrigger>

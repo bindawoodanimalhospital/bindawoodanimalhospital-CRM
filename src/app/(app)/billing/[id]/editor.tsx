@@ -94,29 +94,45 @@ function AddItem({ invoiceId, retailOnly = false }: { invoiceId: string; retailO
   const [q, setQ] = useState("");
   const [hits, setHits] = useState<CatalogHit[]>([]);
   const [open, setOpen] = useState(false);
+  const [active, setActive] = useState(0);
   const [pending, start] = useTransition();
   const seq = useRef(0);
   useEffect(() => {
     if (!open) return;
     const id = ++seq.current;
-    const t = setTimeout(async () => { const r = await searchCatalog(q, retailOnly); if (id === seq.current) setHits(r); }, 200);
+    const t = setTimeout(async () => { const r = await searchCatalog(q, retailOnly); if (id === seq.current) { setHits(r); setActive(0); } }, 200);
     return () => clearTimeout(t);
   }, [q, open, retailOnly]);
   const add = (h: CatalogHit) => start(async () => {
     const r = await addLine(invoiceId, { item_id: h.id, quantity: 1 });
-    if (!r.ok) toast.error(r.message); else { setQ(""); setOpen(false); }
+    if (!r.ok) toast.error(r.message); else { setQ(""); setHits([]); setOpen(false); }
   });
+  // Keyboard & barcode scanners: ↑/↓ to choose, Enter adds. A scanner may press Enter before results arrive,
+  // so Enter searches right away and adds the first match.
+  const onKeyDown = async (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      setOpen(true);
+      setActive((i) => (hits.length ? (i + (e.key === "ArrowDown" ? 1 : -1) + hits.length) % hits.length : 0));
+    } else if (e.key === "Enter" && q.trim()) {
+      e.preventDefault();
+      const fresh = await searchCatalog(q, retailOnly);
+      const pick = fresh.find((h) => h.id === hits[active]?.id) ?? fresh[0];
+      if (pick) add(pick); else toast.error(`Nothing in the price list matches “${q.trim()}”.`);
+    } else if (e.key === "Escape") setOpen(false);
+  };
   return (
     <div className="relative">
       <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-      <Input value={q} onChange={(e) => setQ(e.target.value)} onFocus={() => setOpen(true)} onBlur={() => setTimeout(() => setOpen(false), 150)}
+      <Input value={q} onChange={(e) => { setQ(e.target.value); setOpen(true); }} onKeyDown={onKeyDown} onFocus={() => setOpen(true)} onBlur={() => setTimeout(() => setOpen(false), 150)}
+        role="combobox" aria-expanded={open && hits.length > 0} aria-label="Add service or product"
         placeholder="Add service or product — type a name or scan a barcode" className="h-12 pl-9 text-base" />
       {open && hits.length > 0 && (
         <ul className="absolute z-20 mt-1 max-h-72 w-full overflow-auto rounded-xl bg-popover p-1 shadow-float ring-1 ring-border">
-          {hits.map((h) => (
+          {hits.map((h, i) => (
             <li key={h.id}>
-              <button type="button" disabled={pending} onMouseDown={(e) => e.preventDefault()} onClick={() => add(h)}
-                className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left hover:bg-muted">
+              <button type="button" disabled={pending} onMouseDown={(e) => e.preventDefault()} onClick={() => add(h)} onMouseEnter={() => setActive(i)}
+                className={cn("flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left", i === active ? "bg-muted" : "hover:bg-muted")}>
                 {h.kind === "product" ? <Package className="size-4 text-muted-foreground" /> : <Sparkles className="size-4 text-muted-foreground" />}
                 <span className="min-w-0 flex-1 truncate"><b>{h.name}</b> <span className="text-xs text-muted-foreground">{h.category}</span></span>
                 <span className="tabular text-sm font-semibold">{h.price_is_editable ? "set price" : formatPKR(h.sale_price)}</span>
@@ -137,27 +153,37 @@ function LineRow({ invoiceId, line, canDiscount }: { invoiceId: string; line: Li
   const save = (patch: Parameters<typeof updateLine>[2]) => start(async () => { const r = await updateLine(invoiceId, line.id, patch); if (!r.ok) toast.error(r.message); });
   const step = (d: number) => { const n = Math.max(1, Number(qty) + d); setQty(String(n)); save({ quantity: n }); };
   return (
-    <li className="flex flex-wrap items-center gap-3 rounded-xl bg-surface p-3 ring-1 ring-border">
-      <div className="min-w-40 flex-1">
-        <p className="font-semibold">{line.description}</p>
-        <p className="text-xs text-muted-foreground">{line.kind === "product" ? (line.track_stock ? "Product · taken from stock" : "Product") : "Service"}</p>
+    <li className="grid gap-2.5 rounded-xl bg-surface p-3 ring-1 ring-border">
+      <div className="flex items-start gap-3">
+        <div className="min-w-0 flex-1">
+          <p className="font-semibold leading-snug">{line.description}</p>
+          <p className="text-xs text-muted-foreground">{line.kind === "product" ? (line.track_stock ? "Product · taken from stock" : "Product") : "Service"}</p>
+        </div>
+        <span className="pt-0.5 text-right text-base font-bold tabular">{formatPKR(line.line_total)}</span>
+        <Button size="icon-sm" variant="ghost" className="-mt-0.5 -mr-1 text-muted-foreground hover:text-danger" disabled={pending}
+          onClick={() => start(async () => { const r = await removeLine(invoiceId, line.id); if (!r.ok) toast.error(r.message); })} aria-label={`Remove ${line.description}`}><Trash2 /></Button>
       </div>
-      <div className="flex items-center gap-1">
-        <Button size="icon-sm" variant="outline" disabled={pending} onClick={() => step(-1)} aria-label="Less"><Minus /></Button>
-        <Input className="h-8 w-16 text-center tabular" inputMode="decimal" value={qty} onChange={(e) => setQty(e.target.value)}
-          onBlur={() => Number(qty) > 0 && Number(qty) !== line.quantity && save({ quantity: Number(qty) })} />
-        <Button size="icon-sm" variant="outline" disabled={pending} onClick={() => step(1)} aria-label="More"><Plus /></Button>
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+        <div className="flex items-center gap-1">
+          <Button size="icon-sm" variant="outline" disabled={pending} onClick={() => step(-1)} aria-label="Less"><Minus /></Button>
+          <Input className="h-8 w-14 px-1 text-center tabular" inputMode="decimal" value={qty} onChange={(e) => setQty(e.target.value)} aria-label="Quantity"
+            onBlur={() => Number(qty) > 0 && Number(qty) !== line.quantity && save({ quantity: Number(qty) })} />
+          <Button size="icon-sm" variant="outline" disabled={pending} onClick={() => step(1)} aria-label="More"><Plus /></Button>
+        </div>
+        <span className="text-muted-foreground">×</span>
+        {line.price_is_editable ? (
+          <label className="flex items-center gap-1.5 text-muted-foreground">Price
+            <Input className="h-8 w-28 text-right tabular" inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value)}
+              onBlur={() => Number(price) !== line.unit_price && save({ unit_price: Number(price) })} />
+          </label>
+        ) : <span className="tabular text-muted-foreground" title="Price from the price list">{formatPKR(line.unit_price)} each</span>}
+        {canDiscount && (
+          <label className="ml-auto flex items-center gap-1.5 text-muted-foreground">Discount
+            <Input className="h-8 w-24 text-right tabular" inputMode="decimal" placeholder="0" value={disc} onChange={(e) => setDisc(e.target.value)}
+              onBlur={() => Number(disc || 0) !== line.discount_amount && save({ discount_amount: Number(disc || 0) })} />
+          </label>
+        )}
       </div>
-      {line.price_is_editable ? (
-        <Input className="h-8 w-28 tabular" inputMode="decimal" value={price} onChange={(e) => setPrice(e.target.value)} aria-label="Price"
-          onBlur={() => Number(price) !== line.unit_price && save({ unit_price: Number(price) })} />
-      ) : <span className="w-24 text-right text-sm tabular text-muted-foreground">{formatPKR(line.unit_price)}</span>}
-      {canDiscount && (
-        <Input className="h-8 w-24 tabular" inputMode="decimal" placeholder="Discount" value={disc} onChange={(e) => setDisc(e.target.value)} aria-label="Discount"
-          onBlur={() => Number(disc || 0) !== line.discount_amount && save({ discount_amount: Number(disc || 0) })} />
-      )}
-      <span className="w-28 text-right font-bold tabular">{formatPKR(line.line_total)}</span>
-      <Button size="icon-sm" variant="ghost" disabled={pending} onClick={() => start(async () => { const r = await removeLine(invoiceId, line.id); if (!r.ok) toast.error(r.message); })} aria-label="Remove"><Trash2 /></Button>
     </li>
   );
 }
@@ -250,7 +276,7 @@ function Checkout({ invoiceId, totals, methods, canDiscount, hasLines, credit, c
         })}
         <div className="flex flex-wrap gap-2">
           <Button variant="outline" size="sm" onClick={() => { setTouched(true); setPays([...shown, { method: "jazzcash", amount: Math.max(0, balance) }]); }}><Plus /> Split payment</Button>
-          <Button variant="ghost" size="sm" onClick={() => { setTouched(true); setPays([{ method: "cash", amount: 0 }]); }}>Nothing paid now</Button>
+          <Button variant="ghost" size="sm" onClick={() => { setTouched(true); setPays([{ method: "cash", amount: 0 }]); }}><CalendarClock /> Pay later</Button>
         </div>
 
         {change > 0 && <p className="rounded-xl bg-info-soft px-3 py-2 text-sm font-semibold text-info">Give change: {formatPKR(change)}</p>}

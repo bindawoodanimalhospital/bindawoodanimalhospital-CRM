@@ -9,15 +9,29 @@ import { formatDateTime } from "@/lib/format";
 export const metadata: Metadata = { title: "Audit log" };
 const PAGE_SIZE = 50;
 
-const TABLES = ["customers", "pets", "pet_owners", "pet_alerts", "staff", "staff_roles", "roles", "role_permissions",
-  "system_settings", "species", "breeds"];
 
 const TONE: Record<string, "success" | "info" | "danger" | "warning"> = {
   insert: "success", update: "info", delete: "danger",
 };
 
+/** Plain-language names for what changed (anything not listed is shown with underscores removed). */
+const TABLE_LABEL: Record<string, string> = {
+  customers: "Pet owner", pets: "Pet", pet_owners: "Pet ↔ owner link", pet_alerts: "Pet alert", pet_weights: "Weight",
+  staff: "Staff", staff_roles: "Staff role", roles: "Role", role_permissions: "Permission", system_settings: "Setting",
+  appointments: "Appointment", visits: "Visit", consultations: "Consultation", vaccinations: "Vaccination",
+  prescriptions: "Prescription", diagnostic_orders: "Test", surgeries: "Surgery", admissions: "Ward admission",
+  invoices: "Bill", invoice_items: "Bill line", payments: "Payment", dues: "Unpaid bill", invoice_returns: "Return",
+  catalog_items: "Price-list item", catalog_costs: "Cost price", suppliers: "Supplier", purchases: "Stock delivery",
+  supplier_payments: "Supplier payment", expenses: "Expense", tasks: "Task", messages: "Message",
+  partner_businesses: "Nearby business", stock_loans: "Stock loan", stock_loan_lines: "Stock loan item",
+  stock_loan_returns: "Stock loan return", payment_methods: "Payment method",
+};
+const TABLES = Object.keys(TABLE_LABEL);
+const ACTION_LABEL: Record<string, string> = { insert: "Added", update: "Changed", delete: "Deleted" };
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 /** Keys that are noise in a diff view. */
-const HIDDEN = new Set(["search_text", "updated_at", "created_at"]);
+const HIDDEN = new Set(["search_text", "updated_at", "created_at", "idempotency_key"]);
 
 export default async function AuditPage({ searchParams }: PageProps<"/admin/audit">) {
   await requireStaff("audit.view");
@@ -44,7 +58,7 @@ export default async function AuditPage({ searchParams }: PageProps<"/admin/audi
       <form className="mb-4 flex flex-wrap gap-2">
         <select name="table" defaultValue={table} className="h-10 rounded-xl border border-input bg-card px-3 text-sm">
           <option value="">All records</option>
-          {TABLES.map((t) => <option key={t} value={t}>{t.replace(/_/g, " ")}</option>)}
+          {TABLES.map((t) => <option key={t} value={t}>{TABLE_LABEL[t]}</option>)}
         </select>
         <select name="actor" defaultValue={actor} className="h-10 rounded-xl border border-input bg-card px-3 text-sm">
           <option value="">Everyone</option>
@@ -58,15 +72,16 @@ export default async function AuditPage({ searchParams }: PageProps<"/admin/audi
           {rows.map((r) => {
             const fields = (r.changed as string[] | null)?.filter((f) => !HIDDEN.has(f)) ?? [];
             const data = (r.new_data ?? r.old_data) as Record<string, unknown> | null;
-            const label = (data?.full_name ?? data?.name ?? data?.label ?? data?.code ?? r.record_id) as string;
+            const raw = (data?.full_name ?? data?.name ?? data?.label ?? data?.number ?? data?.code ?? data?.description ?? r.record_id) as string | null;
+            const label = raw && !UUID.test(String(raw)) ? String(raw) : null;
             return (
               <details key={r.id} className="group px-4 py-2.5 text-sm open:bg-muted/30">
                 <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-1">
                   <span className="w-40 shrink-0 text-xs text-muted-foreground tabular-nums">{formatDateTime(r.occurred_at)}</span>
-                  <StatusPill tone={TONE[r.action] ?? "warning"}>{r.action}</StatusPill>
-                  <span className="text-muted-foreground">{r.table_name?.replace(/_/g, " ")}</span>
-                  <span className="max-w-64 truncate font-medium">{label}</span>
-                  {fields.length > 0 && <span className="truncate text-xs text-muted-foreground">changed: {fields.join(", ")}</span>}
+                  <StatusPill tone={TONE[r.action] ?? "warning"}>{ACTION_LABEL[r.action] ?? r.action.replace(/[._]/g, " ")}</StatusPill>
+                  <span className="text-muted-foreground">{TABLE_LABEL[r.table_name ?? ""] ?? r.table_name?.replace(/_/g, " ")}</span>
+                  {label && <span className="max-w-64 truncate font-medium">{label}</span>}
+                  {fields.length > 0 && <span className="truncate text-xs text-muted-foreground">{fields.map((f) => f.replace(/_/g, " ")).join(", ")}</span>}
                   <span className="ml-auto text-xs">{r.actor_id ? names.get(r.actor_id) ?? "Unknown user" : "System"}</span>
                 </summary>
                 {r.reason && <p className="mt-2 text-xs"><b>Reason:</b> {r.reason}</p>}

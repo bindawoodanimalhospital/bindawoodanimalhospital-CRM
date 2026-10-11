@@ -141,7 +141,7 @@ export function Register({ initial, methods, canDiscount, defaultDeliveryCharge 
         </div>
       </section>
 
-      <aside className="grid content-start gap-4 lg:sticky lg:top-20">
+      <aside className="grid content-start gap-4 lg:sticky lg:top-20 lg:max-h-[calc(100svh-6rem)] lg:overflow-x-hidden lg:overflow-y-auto lg:overscroll-contain lg:pr-1 lg:pb-2 [scrollbar-width:thin]">
         <section className="rounded-2xl bg-card p-4 shadow-card ring-1 ring-border">
           <div className="mb-3 flex items-center gap-2"><ShoppingBag className="size-5 text-brand" /><h2 className="font-semibold">Cart</h2>
             {cart.length > 0 && <Button variant="ghost" size="sm" className="ml-auto" onClick={() => setCart([])}>Clear</Button>}</div>

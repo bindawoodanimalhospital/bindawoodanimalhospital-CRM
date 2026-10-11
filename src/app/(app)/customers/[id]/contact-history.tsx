@@ -22,7 +22,7 @@ export async function ContactHistory({ customerId, canLog }: { customerId: strin
   ]);
   const names = new Map((staff ?? []).map((s) => [s.id, s.full_name]));
   return (
-    <Card className="lg:col-span-2">
+    <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2"><MessageSquare className="size-4" /> Contact history</CardTitle>
         {canLog && <CardAction><LogContactDialog customerId={customerId} /></CardAction>}
