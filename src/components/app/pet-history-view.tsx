@@ -43,7 +43,7 @@ export function HistorySummary({ h, showMoney }: { h: PetHistory; showMoney: boo
 }
 
 /** One visit (or other event) with everything that happened in it. */
-export function EpisodeCard({ e, print, showMoney, showPrivate, open }: { e: Episode; print?: boolean; showMoney: boolean; showPrivate: boolean; open?: boolean }) {
+export function EpisodeCard({ e, print, showMoney, showPrivate, open, showPet }: { e: Episode; print?: boolean; showMoney: boolean; showPrivate: boolean; open?: boolean; showPet?: boolean }) {
   const Icon = ICON[e.kind];
   const c = e.consultation;
   const dx = c?.diagnoses.map((d) => `${d.label}${d.primary ? " (primary)" : ""}${d.certainty && d.certainty !== "confirmed" ? ` — ${d.certainty}` : ""}`).join(", ");
@@ -160,6 +160,7 @@ export function EpisodeCard({ e, print, showMoney, showPrivate, open }: { e: Epi
       <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand print:hidden"><Icon className="size-5" /></span>
       <span className="min-w-0 flex-1">
         <span className="flex flex-wrap items-center gap-x-2 font-semibold">
+          {showPet && e.petName && <span className="rounded-full bg-brand-soft px-2 text-xs font-semibold text-brand print:bg-transparent print:px-0">{e.petName}</span>}
           {e.title}
           {e.status === "cancelled" && <span className="rounded-full bg-muted px-2 text-xs font-medium text-muted-foreground">cancelled</span>}
           {e.homeVisit && <span className="inline-flex items-center gap-1 rounded-full bg-info-soft px-2 text-xs font-medium text-info"><Home className="size-3" />home</span>}

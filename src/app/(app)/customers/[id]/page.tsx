@@ -2,9 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import {
-  CalendarPlus, MessageCircle, Pencil, PawPrint, Phone, Plus, Receipt, ShoppingBag, TriangleAlert,
-} from "lucide-react";
+import { CalendarPlus, History, MessageCircle, PawPrint, Pencil, Phone, Plus, Receipt, ShoppingBag, TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field, PageHeader, StatusPill } from "@/components/app/page-header";
@@ -95,6 +93,7 @@ export default async function CustomerPage({ params }: PageProps<"/customers/[id
           {me.can("billing.create") && <NewBillButton customer={{ id: c.id }} label="New bill" />}
           {me.can("pos.use") && <Button asChild variant="outline"><Link href="/pos"><ShoppingBag /> Pet store sale</Link></Button>}
           {me.can("appointments.manage") && <Button asChild variant="outline"><Link href="/appointments"><CalendarPlus /> Book appointment</Link></Button>}
+          <Button asChild variant="outline"><Link href={`/customers/${c.id}/history`}><History /> Full history — all pets</Link></Button>
           {me.can("billing.view") && <Button asChild variant="ghost"><Link href={`/customers/${c.id}/account`}><Receipt /> Account & statement</Link></Button>}
         </div>
       )}

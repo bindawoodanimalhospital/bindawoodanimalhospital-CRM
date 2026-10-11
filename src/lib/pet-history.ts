@@ -23,7 +23,7 @@ export type Bill = { id: string; number: string | null; status: string; at: stri
 export type Consultation = { status: string; doctor: Who; finalizedAt: string | null; finalizedBy: Who; complaint: string | null; history: string | null; vitals: [string, string][]; exam: string | null; observations: string | null; assessment: string | null; treatment: string | null; medicinesGiven: string | null; followUpPlan: string | null; followUpDate: string | null; doctorNotes: string | null; diagnoses: { label: string; primary: boolean; certainty: string | null }[]; revisions: number };
 
 export type Episode = {
-  key: string; at: string; kind: "visit" | "surgery" | "ward" | "vaccination" | "bill";
+  key: string; petId: string | null; petName: string | null; at: string; kind: "visit" | "surgery" | "ward" | "vaccination" | "bill";
   title: string; visitId: string | null; token: number | null; status: string | null; reason: string | null;
   doctor: Who; broughtBy: string | null; checkedInBy: Who; homeVisit: string | null;
   steps: { at: string; label: string; by: Who }[];
@@ -42,35 +42,47 @@ const STATUS_LABEL: Record<string, string> = {
   waiting: "Checked in", with_doctor: "With doctor", in_treatment: "In treatment", ready_for_billing: "Ready to bill", completed: "Visit completed", cancelled: "Cancelled",
 };
 
-export async function loadPetHistory(petId: string): Promise<PetHistory> {
+export function loadPetHistory(petId: string): Promise<PetHistory> {
+  return loadHistory({ petIds: [petId] });
+}
+
+/**
+ * History for several pets at once (an owner's whole family), newest first. With `customerId`,
+ * that owner's bills that aren't tied to one pet (pet-store sales, deliveries) are included too.
+ */
+export async function loadHistory({ petIds, customerId }: { petIds: string[]; customerId?: string }): Promise<PetHistory> {
   const supabase = await createClient();
-  const [visits, consults, rx, vacc, tests, surg, team, cons, adm, orders, doses, notes, bills, weights, staff, steps] = await Promise.all([
-    supabase.from("visits").select("id, token_no, status, reason, priority, checked_in_at, started_at, completed_at, doctor_id, created_by, service_location, service_address, customers(full_name), appointment_types(name)")
-      .eq("pet_id", petId).order("checked_in_at", { ascending: false }).limit(CAP),
-    supabase.from("consultations").select("*, consultation_diagnoses(label, is_primary, certainty), consultation_revisions(id)").eq("pet_id", petId).limit(CAP),
-    supabase.from("prescriptions").select("id, code, status, issued_at, created_at, visit_id, doctor_id, notes, prescription_items(sort_order, medicine_name, strength, form, dose, frequency, duration, route, quantity, instructions)")
-      .eq("pet_id", petId).neq("status", "draft").limit(CAP),
-    supabase.from("vaccinations").select("id, visit_id, vaccine_name, manufacturer, batch_no, administered_at, dose, route, site, administered_by, next_due_date, adverse_reaction, notes")
-      .eq("pet_id", petId).is("voided_at", null).limit(CAP),
+  const ids = petIds.length ? petIds : ["00000000-0000-0000-0000-000000000000"];
+  const billFilter = customerId ? `pet_id.in.(${ids.join(",")}),customer_id.eq.${customerId}` : `pet_id.in.(${ids.join(",")})`;
+  const [visits, consults, rx, vacc, tests, surg, team, cons, adm, orders, doses, notes, bills, weights, staff, pets, steps] = await Promise.all([
+    supabase.from("visits").select("id, pet_id, token_no, status, reason, priority, checked_in_at, started_at, completed_at, doctor_id, created_by, service_location, service_address, customers(full_name), appointment_types(name)")
+      .in("pet_id", ids).order("checked_in_at", { ascending: false }).limit(CAP),
+    supabase.from("consultations").select("*, consultation_diagnoses(label, is_primary, certainty), consultation_revisions(id)").in("pet_id", ids).limit(CAP),
+    supabase.from("prescriptions").select("id, code, status, issued_at, created_at, pet_id, visit_id, doctor_id, notes, prescription_items(sort_order, medicine_name, strength, form, dose, frequency, duration, route, quantity, instructions)")
+      .in("pet_id", ids).neq("status", "draft").limit(CAP),
+    supabase.from("vaccinations").select("id, pet_id, visit_id, vaccine_name, manufacturer, batch_no, administered_at, dose, route, site, administered_by, next_due_date, adverse_reaction, notes")
+      .in("pet_id", ids).is("voided_at", null).limit(CAP),
     supabase.from("diagnostic_orders").select("id, code, visit_id, status, reason, is_urgent, ordered_by, created_at, external_lab, findings, impression, result_values, resulted_at, resulted_by, reviewed_by, diagnostic_types(name)")
-      .eq("pet_id", petId).neq("status", "cancelled").limit(CAP),
-    supabase.from("surgeries").select("id, code, visit_id, procedure_name, status, urgency, scheduled_at, procedure_start, created_at, surgeon_id, indication, asa_class, anaesthesia_protocol, complications, intra_op_notes, recovery_notes, discharged_by, follow_up_date")
-      .eq("pet_id", petId).neq("status", "cancelled").limit(CAP),
-    supabase.from("surgery_team").select("surgery_id, staff_id, role, surgeries!inner(pet_id)").eq("surgeries.pet_id", petId).limit(CAP),
-    supabase.from("surgery_consumables").select("surgery_id, item_name, quantity, unit, surgeries!inner(pet_id)").eq("surgeries.pet_id", petId).limit(CAP),
-    supabase.from("admissions").select("id, code, visit_id, surgery_id, reason, status, admitted_at, admitted_by, attending_doctor_id, discharged_at, discharged_by, outcome, discharge_summary")
-      .eq("pet_id", petId).neq("status", "cancelled").limit(CAP),
-    supabase.from("admission_orders").select("id, admission_id, description, dose, route, every_hours, ordered_by, status, admissions!inner(pet_id)").eq("admissions.pet_id", petId).limit(CAP),
-    supabase.from("admission_administrations").select("admission_id, order_id, given_at, due_at, result, given_by, note, admissions!inner(pet_id)").eq("admissions.pet_id", petId).not("given_at", "is", null).limit(CAP),
-    supabase.from("admission_notes").select("admission_id, kind, note, created_by, created_at, admissions!inner(pet_id)").eq("admissions.pet_id", petId).limit(CAP),
-    supabase.from("invoices").select("id, number, status, visit_id, surgery_id, admission_id, issued_at, created_at, total, amount_paid, balance, issued_by, invoice_items(sort_order, description, quantity, line_total)")
-      .eq("pet_id", petId).neq("status", "draft").limit(CAP),
-    supabase.from("pet_weights").select("weight_kg, measured_at, visit_id, recorded_by, note").eq("pet_id", petId).order("measured_at", { ascending: false }).limit(CAP),
+      .in("pet_id", ids).neq("status", "cancelled").limit(CAP),
+    supabase.from("surgeries").select("id, code, pet_id, visit_id, procedure_name, status, urgency, scheduled_at, procedure_start, created_at, surgeon_id, indication, asa_class, anaesthesia_protocol, complications, intra_op_notes, recovery_notes, discharged_by, follow_up_date")
+      .in("pet_id", ids).neq("status", "cancelled").limit(CAP),
+    supabase.from("surgery_team").select("surgery_id, staff_id, role, surgeries!inner(pet_id)").in("surgeries.pet_id", ids).limit(CAP),
+    supabase.from("surgery_consumables").select("surgery_id, item_name, quantity, unit, surgeries!inner(pet_id)").in("surgeries.pet_id", ids).limit(CAP),
+    supabase.from("admissions").select("id, code, pet_id, visit_id, surgery_id, reason, status, admitted_at, admitted_by, attending_doctor_id, discharged_at, discharged_by, outcome, discharge_summary")
+      .in("pet_id", ids).neq("status", "cancelled").limit(CAP),
+    supabase.from("admission_orders").select("id, admission_id, description, dose, route, every_hours, ordered_by, status, admissions!inner(pet_id)").in("admissions.pet_id", ids).limit(CAP),
+    supabase.from("admission_administrations").select("admission_id, order_id, given_at, due_at, result, given_by, note, admissions!inner(pet_id)").in("admissions.pet_id", ids).not("given_at", "is", null).limit(CAP),
+    supabase.from("admission_notes").select("admission_id, kind, note, created_by, created_at, admissions!inner(pet_id)").in("admissions.pet_id", ids).limit(CAP),
+    supabase.from("invoices").select("id, number, status, pet_id, visit_id, surgery_id, admission_id, issued_at, created_at, total, amount_paid, balance, issued_by, invoice_items(sort_order, description, quantity, line_total)")
+      .or(billFilter).neq("status", "draft").limit(CAP),
+    supabase.from("pet_weights").select("weight_kg, measured_at, visit_id, recorded_by, note").in("pet_id", ids).order("measured_at", { ascending: false }).limit(CAP),
     supabase.from("staff").select("id, full_name"),
-    supabase.from("visit_status_events").select("visit_id, to_status, changed_at, changed_by, visits!inner(pet_id)").eq("visits.pet_id", petId).order("changed_at").limit(CAP),
+    supabase.from("pets").select("id, name").in("id", ids),
+    supabase.from("visit_status_events").select("visit_id, to_status, changed_at, changed_by, visits!inner(pet_id)").in("visits.pet_id", ids).order("changed_at").limit(CAP),
   ]);
 
   const names = new Map((staff.data ?? []).map((s) => [s.id as string, s.full_name as string]));
+  const petNames = new Map((pets.data ?? []).map((p) => [p.id as string, p.name as string]));
   const who = (id: unknown): Who => (typeof id === "string" ? names.get(id) ?? "Former staff" : null);
   const str = (v: unknown) => (v == null || v === "" ? null : String(v));
   const num = (v: unknown) => Number(v ?? 0);
@@ -153,14 +165,14 @@ export async function loadPetHistory(petId: string): Promise<PetHistory> {
   const stepsBy = by(steps.data as Obj[] | null, "visit_id");
   const usedSurg = new Set<string>(), usedAdm = new Set<string>(), usedBill = new Set<string>();
 
-  const blank = (key: string, at: string, kind: Episode["kind"], title: string): Episode => ({
-    key, at, kind, title, visitId: null, token: null, status: null, reason: null, doctor: null, broughtBy: null, checkedInBy: null, homeVisit: null,
+  const blank = (key: string, at: string, kind: Episode["kind"], title: string, petId?: unknown): Episode => ({
+    key, at, kind, title, petId: typeof petId === "string" ? petId : null, petName: typeof petId === "string" ? petNames.get(petId) ?? null : null, visitId: null, token: null, status: null, reason: null, doctor: null, broughtBy: null, checkedInBy: null, homeVisit: null,
     steps: [], weight: null, consultation: null, prescriptions: [], vaccinations: [], tests: [], surgeries: [], ward: [], bills: [],
   });
 
   const episodes: Episode[] = (visits.data ?? []).map((v) => {
     const id = v.id as string;
-    const e = blank(`v-${id}`, v.checked_in_at as string, "visit", (v.appointment_types as unknown as { name: string } | null)?.name ?? "Clinic visit");
+    const e = blank(`v-${id}`, v.checked_in_at as string, "visit", (v.appointment_types as unknown as { name: string } | null)?.name ?? "Clinic visit", v.pet_id);
     e.visitId = id; e.token = v.token_no as number; e.status = v.status as string; e.reason = str(v.reason); e.doctor = who(v.doctor_id);
     e.broughtBy = (v.customers as unknown as { full_name: string } | null)?.full_name ?? null; e.checkedInBy = who(v.created_by);
     e.homeVisit = v.service_location === "home_visit" ? str(v.service_address) ?? "Home visit" : null;
@@ -181,7 +193,7 @@ export async function loadPetHistory(petId: string): Promise<PetHistory> {
   // Things that happened outside a visit get their own entry.
   for (const s of surg.data ?? []) {
     if (usedSurg.has(s.id as string)) continue;
-    const e = blank(`s-${s.id}`, String(s.procedure_start ?? s.scheduled_at ?? s.created_at), "surgery", `Surgery — ${s.procedure_name}`);
+    const e = blank(`s-${s.id}`, String(s.procedure_start ?? s.scheduled_at ?? s.created_at), "surgery", `Surgery — ${s.procedure_name}`, s.pet_id);
     e.surgeries = [toSurgery(s)];
     e.ward = (adm.data ?? []).filter((a) => a.surgery_id === s.id && !usedAdm.has(a.id as string)).map((a) => (usedAdm.add(a.id as string), toWard(a)));
     e.bills = (bills.data ?? []).filter((b) => b.surgery_id === s.id && !usedBill.has(b.id as string)).map((b) => (usedBill.add(b.id as string), toBill(b)));
@@ -189,26 +201,26 @@ export async function loadPetHistory(petId: string): Promise<PetHistory> {
   }
   for (const a of adm.data ?? []) {
     if (usedAdm.has(a.id as string)) continue;
-    const e = blank(`a-${a.id}`, a.admitted_at as string, "ward", "Hospital stay");
+    const e = blank(`a-${a.id}`, a.admitted_at as string, "ward", "Hospital stay", a.pet_id);
     e.ward = [toWard(a)];
     e.bills = (bills.data ?? []).filter((b) => b.admission_id === a.id && !usedBill.has(b.id as string)).map((b) => (usedBill.add(b.id as string), toBill(b)));
     episodes.push(e);
   }
   for (const v of vacc.data ?? []) {
     if (v.visit_id) continue;
-    const e = blank(`x-${v.id}`, v.administered_at as string, "vaccination", `Vaccination — ${v.vaccine_name}`);
+    const e = blank(`x-${v.id}`, v.administered_at as string, "vaccination", `Vaccination — ${v.vaccine_name}`, v.pet_id);
     e.vaccinations = [toVacc(v)];
     episodes.push(e);
   }
   for (const r of rx.data ?? []) {
     if (r.visit_id) continue;
-    const e = blank(`r-${r.id}`, String(r.issued_at ?? r.created_at), "visit", `Prescription ${r.code}`);
+    const e = blank(`r-${r.id}`, String(r.issued_at ?? r.created_at), "visit", `Prescription ${r.code}`, r.pet_id);
     e.prescriptions = [toRx(r)];
     episodes.push(e);
   }
   for (const b of bills.data ?? []) {
     if (usedBill.has(b.id as string)) continue;
-    const e = blank(`b-${b.id}`, String(b.issued_at ?? b.created_at), "bill", "Pet store / counter bill");
+    const e = blank(`b-${b.id}`, String(b.issued_at ?? b.created_at), "bill", b.pet_id ? "Counter bill" : "Pet store / counter bill", b.pet_id);
     e.bills = [toBill(b)];
     episodes.push(e);
   }
