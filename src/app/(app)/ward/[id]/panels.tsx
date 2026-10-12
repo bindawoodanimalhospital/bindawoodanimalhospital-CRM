@@ -145,10 +145,10 @@ export function DischargeDialog({ id, petName }: { id: string; petName: string }
   );
 }
 
-export function OwnerUpdateHint({ phone, wa }: { phone: string; wa: string | null }) {
+export function OwnerUpdateHint({ phone, wa }: { phone: string | null; wa: string | null }) {
   return (
     <div className="flex gap-2">
-      <Button asChild variant="outline" size="sm"><a href={`tel:${phone}`}><MessageSquare /> Call owner</a></Button>
+      {phone && <Button asChild variant="outline" size="sm"><a href={`tel:${phone}`}><MessageSquare /> Call owner</a></Button>}
       {wa && <Button asChild variant="outline" size="sm"><a href={wa} target="_blank" rel="noreferrer">WhatsApp update</a></Button>}
     </div>
   );

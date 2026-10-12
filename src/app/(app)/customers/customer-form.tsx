@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { AlertTriangle, Loader2 } from "lucide-react";
+import { AlertTriangle, Loader2, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -17,13 +17,13 @@ import type { FormState } from "@/lib/validation";
 import { findDuplicates, type DuplicateHit } from "./actions";
 
 export type CustomerDefaults = Partial<{
-  id: string; full_name: string; full_name_ur: string | null; phone: string; whatsapp: string | null;
+  id: string; full_name: string; full_name_ur: string | null; phone: string | null; whatsapp: string | null;
   alt_phone: string | null; email: string | null; house_no: string | null; block: string | null; address: string | null; area: string | null; city: string;
   preferred_channel: string; preferred_language: string; marketing_opt_in: boolean; referral_source: string | null; notes: string | null;
 }>;
 
 export function CustomerForm({
-  action, defaults = {}, species, referralSources, submitLabel,
+  action, defaults = {}, species, referralSources, submitLabel, canContact,
 }: {
   action: (prev: FormState, fd: FormData) => Promise<FormState>;
   defaults?: CustomerDefaults;
@@ -31,6 +31,8 @@ export function CustomerForm({
   species?: SpeciesOption[];
   referralSources: string[];
   submitLabel: string;
+  /** Only staff with customers.contact (Owner by default) see and enter phone numbers and email. */
+  canContact: boolean;
 }) {
   const { pending, onSubmit, errors } = useFormAction(action);
   const [phone, setPhone] = useState(formatPhone(defaults.phone) || "");
@@ -40,9 +42,9 @@ export function CustomerForm({
 
   // Debounced duplicate check as reception types.
   useEffect(() => {
-    const t = setTimeout(async () => setDupes(await findDuplicates(phone, name, defaults.id)), 400);
+    const t = setTimeout(async () => setDupes(await findDuplicates(canContact ? phone : "", name, defaults.id)), 400);
     return () => clearTimeout(t);
-  }, [phone, name, defaults.id]);
+  }, [phone, name, defaults.id, canContact]);
 
   return (
     <form onSubmit={onSubmit} className="grid gap-5" noValidate>
@@ -55,7 +57,7 @@ export function CustomerForm({
             {dupes.map((d) => (
               <li key={d.id} className="flex flex-wrap items-center gap-x-3 text-sm">
                 <Link href={`/customers/${d.id}`} className="font-medium underline underline-offset-2">{d.full_name}</Link>
-                <span className="text-muted-foreground">{formatPhone(d.phone)}{d.area ? ` · ${d.area}` : ""}</span>
+                <span className="text-muted-foreground">{[formatPhone(d.phone), d.area].filter(Boolean).join(" · ")}</span>
                 <span className="font-mono text-xs text-muted-foreground">{d.code}</span>
                 <span className="text-xs text-warning">({d.reason})</span>
               </li>
@@ -71,26 +73,35 @@ export function CustomerForm({
         <FormField label="Name in Urdu" htmlFor="full_name_ur" hint="Optional">
           <Input id="full_name_ur" name="full_name_ur" dir="rtl" lang="ur" defaultValue={defaults.full_name_ur ?? ""} />
         </FormField>
-        <FormField label="Mobile number" htmlFor="phone" error={errors.phone} required hint="e.g. 0300 1234567">
-          <Input id="phone" name="phone" inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
-        </FormField>
-        <FormField label="WhatsApp" htmlFor="whatsapp" error={errors.whatsapp}>
-          <div className="grid gap-2">
-            <Label className="font-normal">
-              <Checkbox name="whatsapp_same" checked={waSame} onCheckedChange={(v) => setWaSame(v === true)} />
-              Same as mobile
-            </Label>
-            {!waSame && (
-              <Input id="whatsapp" name="whatsapp" inputMode="tel" defaultValue={formatPhone(defaults.whatsapp)} />
-            )}
-          </div>
-        </FormField>
-        <FormField label="Alternate phone" htmlFor="alt_phone" error={errors.alt_phone}>
-          <Input id="alt_phone" name="alt_phone" inputMode="tel" defaultValue={formatPhone(defaults.alt_phone)} />
-        </FormField>
-        <FormField label="Email" htmlFor="email" error={errors.email}>
-          <Input id="email" name="email" type="email" defaultValue={defaults.email ?? ""} />
-        </FormField>
+        {canContact ? (
+          <>
+          <FormField label="Mobile number" htmlFor="phone" error={errors.phone} hint="Optional · e.g. 0300 1234567">
+            <Input id="phone" name="phone" inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
+          </FormField>
+          <FormField label="WhatsApp" htmlFor="whatsapp" error={errors.whatsapp}>
+            <div className="grid gap-2">
+              <Label className="font-normal">
+                <Checkbox name="whatsapp_same" checked={waSame} onCheckedChange={(v) => setWaSame(v === true)} />
+                Same as mobile
+              </Label>
+              {!waSame && (
+                <Input id="whatsapp" name="whatsapp" inputMode="tel" defaultValue={formatPhone(defaults.whatsapp)} />
+              )}
+            </div>
+          </FormField>
+          <FormField label="Alternate phone" htmlFor="alt_phone" error={errors.alt_phone}>
+            <Input id="alt_phone" name="alt_phone" inputMode="tel" defaultValue={formatPhone(defaults.alt_phone)} />
+          </FormField>
+          <FormField label="Email" htmlFor="email" error={errors.email}>
+            <Input id="email" name="email" type="email" defaultValue={defaults.email ?? ""} />
+          </FormField>
+          </>
+        ) : (
+          <p className="flex items-start gap-2 rounded-xl bg-muted/70 p-3 text-sm text-muted-foreground sm:col-span-2">
+            <Lock className="mt-0.5 size-4 shrink-0" />
+            Phone numbers and email are private — only the clinic owner can add or see them.
+          </p>
+        )}
         <FormField label="Preferred contact">
           <Select name="preferred_channel" defaultValue={defaults.preferred_channel ?? "whatsapp"}>
             <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>

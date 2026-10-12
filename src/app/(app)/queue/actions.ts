@@ -16,7 +16,7 @@ export type PetOption = {
 export async function searchPets(q: string): Promise<PetOption[]> {
   if (q.trim().length < 2) return [];
   const supabase = await createClient();
-  const { data } = await supabase.rpc("global_search", { q, max_results: 20 });
+  const { data } = await supabase.rpc("smart_search", { q, p_scope: "pet", max_results: 20 });
   const petIds = ((data ?? []) as { kind: string; id: string }[]).filter((h) => h.kind === "pet").map((h) => h.id).slice(0, 8);
   if (!petIds.length) return [];
   const { data: pets } = await supabase

@@ -20,6 +20,7 @@ import { ConsultationPanel, type Consultation, type Template } from "./consultat
 import { VaccinesPanel, type ProtocolOption, type VaccinationRow, type VaccineOption } from "./vaccines-panel";
 import { RxPanel, type Rx } from "./rx-panel";
 import { TestsPanel, type DiagnosticOrder, type DiagnosticType } from "./tests-panel";
+import { withContact } from "@/lib/contacts";
 
 export const metadata: Metadata = { title: "Visit" };
 
@@ -36,7 +37,7 @@ export default async function VisitPage({ params, searchParams }: PageProps<"/vi
   const { data: visit } = await supabase.from("visits")
     .select(`*, pets(id, code, name, sex, date_of_birth, dob_is_estimate, special_handling, species_id, species(name), breeds(name), breed_text,
       pet_alerts(label, kind, severity, is_active)),
-      customers(id, full_name, phone, whatsapp, house_no, block, address, area, city), doctor:doctor_id(full_name), appointment_types(name)`)
+      customers(id, full_name, customer_contacts(phone, whatsapp), house_no, block, address, area, city), doctor:doctor_id(full_name), appointment_types(name)`)
     .eq("id", id).maybeSingle();
   if (!visit) notFound();
 
@@ -44,7 +45,7 @@ export default async function VisitPage({ params, searchParams }: PageProps<"/vi
     special_handling: string | null; species_id: string; species: { name: string } | null; breeds: { name: string } | null;
     breed_text: string | null; pet_alerts: { label: string; kind: string; severity: string; is_active: boolean }[] };
   const pet = visit.pets as unknown as PetT;
-  const owner = visit.customers as unknown as { id: string; full_name: string; phone: string; whatsapp: string | null } & AddressParts;
+  const owner = withContact(visit.customers as unknown as { id: string; full_name: string } & AddressParts);
 
   const canSurgery = me.can("surgery.manage");
   const canAdmit = me.can("inpatient.manage");
@@ -142,7 +143,7 @@ export default async function VisitPage({ params, searchParams }: PageProps<"/vi
         actions={
           <>
             {me.can("billing.create") && <BillVisitButton visitId={id} />}
-            <Button asChild variant="outline"><a href={`tel:${owner.phone}`}><Phone /> {owner.full_name}</a></Button>
+            {owner.phone && <Button asChild variant="outline"><a href={`tel:${owner.phone}`}><Phone /> {owner.full_name}</a></Button>}
             {wa && <Button asChild variant="outline" size="icon" aria-label="WhatsApp owner"><a href={wa} target="_blank" rel="noreferrer"><MessageCircle /></a></Button>}
             {canSurgery && (
               <PlanSurgeryDialog procedures={proceduresQ.data ?? []} doctors={doctors}

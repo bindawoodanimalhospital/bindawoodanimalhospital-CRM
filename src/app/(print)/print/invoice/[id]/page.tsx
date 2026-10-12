@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getSetting } from "@/lib/queries";
 import { formatDate, formatDateTime, formatPKR } from "@/lib/format";
 import { formatPhone } from "@/lib/phone";
+import { withContact } from "@/lib/contacts";
 
 export const metadata: Metadata = { title: "Bill" };
 
@@ -21,7 +22,7 @@ export default async function InvoicePrint({ params, searchParams }: PageProps<"
   const supabase = await createClient();
   const [{ data: inv }, clinic, cfg, { data: allocs }, { data: methodRows }] = await Promise.all([
     supabase.from("invoices").select(`number, kind, status, subtotal, line_discounts, invoice_discount, discount_reason, tax_total, total, amount_paid,
-      returned_amount, balance, issued_at, void_reason, notes, customers(full_name, phone, area), pets(name, code),
+      returned_amount, balance, issued_at, void_reason, notes, customers(full_name, customer_contacts(phone, whatsapp), area), pets(name, code),
       fulfilment, delivery_status, delivery_address, delivery_notes, service_location, service_address,
       invoice_items(description, quantity, unit_price, discount_amount, line_total, returned_qty, sort_order, line_role), dues(promised_date, status)`).eq("id", id).maybeSingle(),
     getSetting<ClinicProfile>("clinic.profile"),
@@ -37,7 +38,7 @@ export default async function InvoicePrint({ params, searchParams }: PageProps<"
   const deliveryLine = all.find((i) => i.line_role === "delivery_charge") ?? null;
   const isDelivery = inv.fulfilment === "home_delivery";
   const isHomeVisit = inv.service_location === "home_visit";
-  const customer = inv.customers as unknown as { full_name: string; phone: string; area: string | null } | null;
+  const customer = withContact(inv.customers as unknown as { full_name: string; area: string | null } | null);
   const pet = inv.pets as unknown as { name: string; code: string } | null;
   const due = (Array.isArray(inv.dues) ? inv.dues[0] : inv.dues) as { promised_date: string; status: string } | null;
   const pays = (allocs ?? []).map((a) => ({ amount: Number(a.amount), ...(a.payments as unknown as { kind: string; method: string; received_at: string; reference: string | null }) }));
@@ -99,7 +100,7 @@ export default async function InvoicePrint({ params, searchParams }: PageProps<"
       <div className="flex justify-between text-xs text-muted-foreground"><span>No. {inv.number}</span><span>{formatDateTime(inv.issued_at)}</span></div>
       <div className="mt-2">
         <InfoGrid rows={[
-          ["Customer", customer ? `${customer.full_name} · ${formatPhone(customer.phone)}` : "Walk-in"],
+          ["Customer", customer ? [customer.full_name, formatPhone(customer.phone)].filter(Boolean).join(" · ") : "Walk-in"],
           ["Pet", pet ? `${pet.name} (${pet.code})` : null],
           ["Service at", inv.kind === "clinic" ? (isHomeVisit ? `Home visit — ${inv.service_address}` : "Bin Dawood Animal Hospital") : null],
           ["Fulfilment", inv.kind === "store" ? (isDelivery ? "Home delivery" : "In store") : null],

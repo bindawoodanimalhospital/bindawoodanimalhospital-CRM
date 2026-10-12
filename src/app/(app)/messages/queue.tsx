@@ -53,8 +53,11 @@ function QueueItem({ m, canSend }: { m: QueueMessage; canSend: boolean }) {
             <Button asChild size="lg" className="bg-[#1faa53] bg-none shadow-none hover:bg-[#178a43]" onClick={() => setOpened(true)}>
               <a href={wa} target="_blank" rel="noreferrer"><MessageCircle /> Open WhatsApp</a>
             </Button>
-          ) : m.to_phone && (
+          ) : m.to_phone ? (
             <Button asChild size="lg" variant="outline" onClick={() => setOpened(true)}><a href={`tel:${m.to_phone}`}><Phone /> Call</a></Button>
+          ) : (
+            // Numbers are private to the owner (customers.contact): others can read the message but not send it.
+            <p className="rounded-xl bg-muted/70 p-2.5 text-xs text-muted-foreground">The number is private — the clinic owner sends this one.</p>
           )}
           <Button variant={opened ? "default" : "outline"} disabled={pending} onClick={() => run("sent")}>
             {pending ? <Loader2 className="animate-spin" /> : <Check />} {m.channel === "call" ? "Called — done" : "Sent"}

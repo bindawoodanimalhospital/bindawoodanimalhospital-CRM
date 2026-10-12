@@ -24,8 +24,8 @@ $$;
 set local role authenticated;
 select pg_temp.act((select uid from r_users where role_key = 'owner'));
 insert into fx select 'owner', uid from r_users where role_key = 'owner';
-with c as (insert into public.customers (full_name, phone, house_no, address) values ('MX Owner', '+923001110001', '1', 'Street 1') returning id) insert into fx select 'cust', id from c;
-with c as (insert into public.customers (full_name, phone) values ('MX Spare', '+923001110002') returning id) insert into fx select 'cust2', id from c;
+with c as (insert into public.customers (full_name, house_no, address) values ('MX Owner', '1', 'Street 1') returning id) insert into fx select 'cust', id from c;
+with c as (insert into public.customers (full_name) values ('MX Spare') returning id) insert into fx select 'cust2', id from c;
 with p as (insert into public.pets (name, species_id) select 'MX Pet', id from public.species order by sort_order limit 1 returning id) insert into fx select 'pet', id from p;
 insert into public.pet_owners (pet_id, customer_id, is_primary) values (pg_temp.g('pet'), pg_temp.g('cust'), true);
 with v as (insert into public.visits (pet_id, customer_id) values (pg_temp.g('pet'), pg_temp.g('cust')) returning id) insert into fx select 'visit', id from v;
@@ -72,7 +72,7 @@ create temp table probes (name text, perms text[], body text) on commit drop;
 grant all on probes to authenticated;
 insert into probes values
  ('customers: view',            '{customers.view}',        $q$ perform 1 from public.customers where id = pg_temp.g('cust'); if not found then raise exception 'NOT_VISIBLE'; end if; $q$),
- ('customers: create',          '{customers.create}',      $q$ insert into public.customers (full_name, phone) values ('MX New', '+923001110099'); $q$),
+ ('customers: create',          '{customers.create}',      $q$ insert into public.customers (full_name) values ('MX New'); $q$),
  ('customers: edit',            '{customers.edit}',        $q$ update public.customers set notes = 'x' where id = pg_temp.g('cust'); if not found then raise exception 'NOT_VISIBLE'; end if; $q$),
  ('customers: delete',          '{customers.delete}',      $q$ delete from public.customers where id = pg_temp.g('cust2'); if not found then raise exception 'NOT_VISIBLE'; end if; $q$),
  ('customers: merge',           '{customers.merge}',       $q$ perform public.merge_customers(pg_temp.g('cust2'), pg_temp.g('cust'), 'matrix'); $q$),

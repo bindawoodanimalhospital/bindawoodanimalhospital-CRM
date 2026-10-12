@@ -7,6 +7,7 @@ import { getSetting } from "@/lib/queries";
 import { formatAge, formatDate, formatDateTime } from "@/lib/format";
 import { formatPhone } from "@/lib/phone";
 import { ADMISSION_OUTCOMES } from "@/lib/clinic";
+import { withContact } from "@/lib/contacts";
 
 export const metadata: Metadata = { title: "Discharge sheet" };
 
@@ -23,11 +24,11 @@ export default async function DischargePrint({ params }: PageProps<"/print/disch
 
   if (kind === "surgery") {
     const { data: s } = await supabase.from("surgeries").select(`code, procedure_name, procedure_start, procedure_end, discharged_at,
-      recovery_notes, discharge_instructions, follow_up_date, complications, ${petSel}, customers(full_name, phone), surgeon:surgeon_id(full_name, pvmc_number)`)
+      recovery_notes, discharge_instructions, follow_up_date, complications, ${petSel}, customers(full_name, customer_contacts(phone, whatsapp)), surgeon:surgeon_id(full_name, pvmc_number)`)
       .eq("id", id).maybeSingle();
     if (!s || !s.discharged_at) notFound();
     const pet = s.pets as unknown as PetT;
-    const owner = s.customers as unknown as { full_name: string; phone: string };
+    const owner = withContact(s.customers as unknown as { full_name: string });
     const surgeon = s.surgeon as unknown as { full_name: string; pvmc_number: string | null } | null;
     return (
       <PrintShell clinic={clinic ?? {}} title="After-surgery care">
@@ -42,11 +43,11 @@ export default async function DischargePrint({ params }: PageProps<"/print/disch
 
   if (kind === "ward") {
     const { data: a } = await supabase.from("admissions").select(`code, reason, admitted_at, discharged_at, outcome, discharge_summary,
-      discharge_instructions, follow_up_date, ${petSel}, customers(full_name, phone), doctor:attending_doctor_id(full_name, pvmc_number)`)
+      discharge_instructions, follow_up_date, ${petSel}, customers(full_name, customer_contacts(phone, whatsapp)), doctor:attending_doctor_id(full_name, pvmc_number)`)
       .eq("id", id).maybeSingle();
     if (!a || !a.discharged_at) notFound();
     const pet = a.pets as unknown as PetT;
-    const owner = a.customers as unknown as { full_name: string; phone: string };
+    const owner = withContact(a.customers as unknown as { full_name: string });
     const doctor = a.doctor as unknown as { full_name: string; pvmc_number: string | null } | null;
     return (
       <PrintShell clinic={clinic ?? {}} title="Hospital stay summary">
@@ -63,11 +64,11 @@ export default async function DischargePrint({ params }: PageProps<"/print/disch
   notFound();
 }
 
-function Header({ pet, owner, extra }: { pet: PetT; owner: { full_name: string; phone: string }; extra: [string, string | null][] }) {
+function Header({ pet, owner, extra }: { pet: PetT; owner: { full_name: string; phone: string | null }; extra: [string, string | null][] }) {
   return (
     <InfoGrid rows={[
       ["Pet", `${pet.name} (${pet.code})`],
-      ["Owner", `${owner.full_name} · ${formatPhone(owner.phone)}`],
+      ["Owner", [owner.full_name, formatPhone(owner.phone)].filter(Boolean).join(" · ")],
       ["Species", [pet.species?.name, pet.breeds?.name ?? pet.breed_text].filter(Boolean).join(" · ")],
       ["Age / sex", [formatAge(pet.date_of_birth, pet.dob_is_estimate), pet.sex !== "unknown" ? pet.sex : null].filter(Boolean).join(" · ")],
       ...extra,

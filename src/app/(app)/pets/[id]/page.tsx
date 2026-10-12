@@ -13,6 +13,7 @@ import { formatAge, formatDate, formatDateTime, sentence } from "@/lib/format";
 import { formatPhone, whatsappLink } from "@/lib/phone";
 import { AddOwnerDialog, AlertForm, MakePrimaryButton, ResolveAlertButton, WeightForm } from "./widgets";
 import { PetDueCard, PetTimeline } from "./timeline";
+import { withContact } from "@/lib/contacts";
 
 export async function generateMetadata({ params }: PageProps<"/pets/[id]">): Promise<Metadata> {
   const { id } = await params;
@@ -31,7 +32,7 @@ export default async function PetPage({ params }: PageProps<"/pets/[id]">) {
   const [{ data: p }, { data: weights }, { data: alerts }] = await Promise.all([
     supabase.from("pets")
       .select(`*, species(name), breeds(name),
-        pet_owners(is_primary, relationship, customers(id, code, full_name, phone, whatsapp))`)
+        pet_owners(is_primary, relationship, customers(id, code, full_name, customer_contacts(phone, whatsapp)))`)
       .eq("id", id).maybeSingle(),
     supabase.from("pet_weights").select("id, weight_kg, measured_at, note").eq("pet_id", id)
       .order("measured_at", { ascending: false }).limit(12),
@@ -43,8 +44,8 @@ export default async function PetPage({ params }: PageProps<"/pets/[id]">) {
   const species = p.species as { name: string } | null;
   const breed = p.breeds as { name: string } | null;
   type Owner = { is_primary: boolean; relationship: string | null;
-    customers: { id: string; code: string; full_name: string; phone: string; whatsapp: string | null } };
-  const owners = ((p.pet_owners ?? []) as Owner[]).sort((a, b) => Number(b.is_primary) - Number(a.is_primary));
+    customers: { id: string; code: string; full_name: string; phone: string | null; whatsapp: string | null } };
+  const owners = ((p.pet_owners ?? []) as Owner[]).map((o) => ({ ...o, customers: withContact(o.customers) })).sort((a, b) => Number(b.is_primary) - Number(a.is_primary));
   const latest = weights?.[0];
   const canEdit = me.can("pets.edit");
   const critical = [...(alerts ?? []).filter((a) => a.severity !== "info")];

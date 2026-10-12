@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getSetting } from "@/lib/queries";
 import { formatAge, formatDate } from "@/lib/format";
 import { formatPhone } from "@/lib/phone";
+import { withContact } from "@/lib/contacts";
 
 export const metadata: Metadata = { title: "Vaccination card" };
 
@@ -16,7 +17,7 @@ export default async function VaccinationCardPrint({ params }: PageProps<"/print
   const supabase = await createClient();
   const [{ data: pet }, { data: vaccinations }, { data: due }, { data: staff }, clinic] = await Promise.all([
     supabase.from("pets").select(`code, name, sex, date_of_birth, dob_is_estimate, color, microchip_no, species(name), breeds(name), breed_text,
-      pet_owners(is_primary, customers(full_name, phone))`).eq("id", petId).maybeSingle(),
+      pet_owners(is_primary, customers(full_name, customer_contacts(phone, whatsapp)))`).eq("id", petId).maybeSingle(),
     supabase.from("vaccinations").select("vaccine_name, manufacturer, batch_no, administered_at, next_due_date, administered_by")
       .eq("pet_id", petId).is("voided_at", null).order("administered_at"),
     supabase.from("due_items").select("title, due_on").eq("pet_id", petId).eq("kind", "vaccination").eq("status", "pending").order("due_on"),
@@ -25,7 +26,7 @@ export default async function VaccinationCardPrint({ params }: PageProps<"/print
   ]);
   if (!pet) notFound();
 
-  const owners = pet.pet_owners as unknown as { is_primary: boolean; customers: { full_name: string; phone: string } }[];
+  const owners = pet.pet_owners as unknown as { is_primary: boolean; customers: { full_name: string } }[];
   const owner = owners.find((o) => o.is_primary)?.customers ?? owners[0]?.customers;
   const sp = pet.species as unknown as { name: string } | null;
   const br = pet.breeds as unknown as { name: string } | null;
@@ -35,7 +36,7 @@ export default async function VaccinationCardPrint({ params }: PageProps<"/print
     <PrintShell clinic={clinic ?? {}} title="Vaccination record">
       <InfoGrid rows={[
         ["Pet", `${pet.name} (${pet.code})`],
-        ["Owner", owner ? `${owner.full_name} · ${formatPhone(owner.phone)}` : null],
+        ["Owner", owner ? [owner.full_name, formatPhone(withContact(owner).phone)].filter(Boolean).join(" · ") : null],
         ["Species", [sp?.name, br?.name ?? pet.breed_text].filter(Boolean).join(" · ")],
         ["Age / sex", [formatAge(pet.date_of_birth, pet.dob_is_estimate), pet.sex !== "unknown" ? pet.sex : null].filter(Boolean).join(" · ")],
         ["Colour", pet.color],

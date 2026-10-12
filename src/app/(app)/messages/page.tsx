@@ -8,6 +8,7 @@ import { requireStaff } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { formatDateTime, todayPK } from "@/lib/format";
 import { formatPhone } from "@/lib/phone";
+import { messagingNumber } from "@/lib/contacts";
 import { cn } from "@/lib/utils";
 import { MessageQueue, type QueueMessage } from "./queue";
 import { RunNowButton } from "./run-now";
@@ -50,7 +51,7 @@ export default async function MessagesPage({ searchParams }: PageProps<"/message
   );
 
   if (view === "history") {
-    const { data } = await supabase.from("messages").select("id, direction, channel, status, body, to_phone, template_key, sent_at, created_at, outcome_note, customers(id, full_name), sent_by")
+    const { data } = await supabase.from("messages").select("id, direction, channel, status, body, template_key, sent_at, created_at, outcome_note, customers(id, full_name, customer_contacts(phone, whatsapp)), sent_by")
       .not("status", "in", "(to_send,queued)").order("created_at", { ascending: false }).limit(100);
     const { data: staff } = await supabase.from("staff").select("id, full_name");
     const names = new Map((staff ?? []).map((s) => [s.id, s.full_name]));
@@ -64,7 +65,7 @@ export default async function MessagesPage({ searchParams }: PageProps<"/message
               <li key={m.id} className="rounded-2xl bg-card px-4 py-3 shadow-card ring-1 ring-border">
                 <div className="flex flex-wrap items-center gap-2 text-sm">
                   {c && <Link href={`/customers/${c.id}`} className="font-semibold hover:underline">{c.full_name}</Link>}
-                  <span className="text-muted-foreground">{formatPhone(m.to_phone)}</span>
+                  <span className="text-muted-foreground">{formatPhone(messagingNumber(m.customers))}</span>
                   <StatusPill tone={s.tone}>{m.direction === "in" ? "Reply received" : s.label}</StatusPill>
                   <span className="text-muted-foreground">{m.channel}{m.template_key ? ` · ${label(m.template_key)}` : ""}</span>
                   <span className="ml-auto text-xs text-muted-foreground">{formatDateTime(m.sent_at ?? m.created_at)}{m.sent_by ? ` · ${names.get(m.sent_by) ?? ""}` : ""}</span>
@@ -81,10 +82,10 @@ export default async function MessagesPage({ searchParams }: PageProps<"/message
   }
 
   const { data } = await supabase.from("messages")
-    .select("id, channel, body, to_phone, template_key, language, is_promotional, scheduled_for, track_id, customers(id, full_name), reminder_tracks:track_id(customer_msgs)")
+    .select("id, channel, body, template_key, language, is_promotional, scheduled_for, track_id, customers(id, full_name, customer_contacts(phone, whatsapp)), reminder_tracks:track_id(customer_msgs)")
     .in("status", ["to_send", "queued"]).lte("scheduled_for", today).order("is_promotional").order("created_at").limit(200);
   const items: QueueMessage[] = (data ?? []).map((m) => ({
-    id: m.id, channel: m.channel, body: m.body ?? "", to_phone: m.to_phone, language: m.language, is_promotional: m.is_promotional,
+    id: m.id, channel: m.channel, body: m.body ?? "", to_phone: messagingNumber(m.customers), language: m.language, is_promotional: m.is_promotional,
     template_label: label(m.template_key), customer: m.customers as unknown as { id: string; full_name: string } | null,
     attempts: (m.reminder_tracks as unknown as { customer_msgs: number } | null)?.customer_msgs ?? 1,
   }));

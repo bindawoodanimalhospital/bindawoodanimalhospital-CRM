@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { CalendarPlus, History, MessageCircle, PawPrint, Pencil, Phone, Plus, Receipt, ShoppingBag, TriangleAlert } from "lucide-react";
+import { CalendarPlus, History, Lock, MessageCircle, PawPrint, Pencil, Phone, Plus, Receipt, ShoppingBag, TriangleAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field, PageHeader, StatusPill } from "@/components/app/page-header";
@@ -11,6 +11,7 @@ import { requireStaff } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { formatAge, formatDate, formatDateTime, sentence } from "@/lib/format";
 import { formatPhone, whatsappLink } from "@/lib/phone";
+import { CONTACT, contactOf } from "@/lib/contacts";
 import { MergeCustomerDialog } from "./merge-dialog";
 import { NewBillButton } from "../../billing/new-bill";
 import { CustomerSummaryCards } from "./summary-cards";
@@ -33,7 +34,7 @@ export default async function CustomerPage({ params }: PageProps<"/customers/[id
 
   const { data: c } = await supabase
     .from("customers")
-    .select(`*, merged_into:merged_into_id(id, full_name),
+    .select(`*, ${CONTACT}, merged_into:merged_into_id(id, full_name),
       pet_owners(is_primary, relationship,
         pets(id, code, name, sex, date_of_birth, dob_is_estimate, status, special_handling, breed_text,
              species(name), breeds(name), pet_alerts(label, severity, is_active)))`)
@@ -51,7 +52,10 @@ export default async function CustomerPage({ params }: PageProps<"/customers/[id
     .flatMap((po) => (po.pets ? [{ ...po.pets, is_primary: po.is_primary }] : []))
     .sort((a, b) => (a.status === "active" ? 0 : 1) - (b.status === "active" ? 0 : 1));
 
-  const wa = whatsappLink(c.whatsapp);
+  // Numbers and email are only returned for staff allowed to see them (Owner by default).
+  const canContact = me.can("customers.contact");
+  const contact = contactOf(c);
+  const wa = whatsappLink(contact.whatsapp ?? contact.phone);
   const mergedInto = c.merged_into as { id: string; full_name: string } | null;
 
   return (
@@ -70,7 +74,7 @@ export default async function CustomerPage({ params }: PageProps<"/customers/[id
         description={`Customer since ${formatDate(c.created_at)}`}
         actions={
           <>
-            <Button asChild variant="outline"><a href={`tel:${c.phone}`}><Phone /> Call</a></Button>
+            {contact.phone && <Button asChild variant="outline"><a href={`tel:${contact.phone}`}><Phone /> Call</a></Button>}
             {wa && <Button asChild variant="outline"><a href={wa} target="_blank" rel="noreferrer"><MessageCircle /> WhatsApp</a></Button>}
             {me.can("customers.edit") && c.status !== "merged" && (
               <Button asChild variant="outline"><Link href={`/customers/${c.id}/edit`}><Pencil /> Edit</Link></Button>
@@ -104,11 +108,22 @@ export default async function CustomerPage({ params }: PageProps<"/customers/[id
           <CardHeader><CardTitle>Contact</CardTitle></CardHeader>
           <CardContent>
             <dl className="grid grid-cols-2 gap-4">
-              <Field label="Mobile">{formatPhone(c.phone)}</Field>
-              <Field label="WhatsApp">{formatPhone(c.whatsapp)}</Field>
-              <Field label="Alternate">{formatPhone(c.alt_phone)}</Field>
-              <Field label="Prefers">{CHANNEL[c.preferred_channel]}</Field>
-              <Field label="Email" className="col-span-2">{c.email}</Field>
+              {canContact ? (
+                <>
+                  <Field label="Mobile">{formatPhone(contact.phone)}</Field>
+                  <Field label="WhatsApp">{formatPhone(contact.whatsapp)}</Field>
+                  <Field label="Alternate">{formatPhone(contact.alt_phone)}</Field>
+                  <Field label="Prefers">{CHANNEL[c.preferred_channel]}</Field>
+                  <Field label="Email" className="col-span-2">{contact.email}</Field>
+                </>
+              ) : (
+                <>
+                  <p className="col-span-2 flex items-center gap-2 rounded-lg bg-muted/70 p-2.5 text-xs text-muted-foreground">
+                    <Lock className="size-3.5 shrink-0" /> Phone numbers and email are private to the clinic owner.
+                  </p>
+                  <Field label="Prefers">{CHANNEL[c.preferred_channel]}</Field>
+                </>
+              )}
               <Field label="House number">{c.house_no}</Field>
               <Field label="Block">{c.block}</Field>
               <Field label="Full address" className="col-span-2">{c.address}</Field>

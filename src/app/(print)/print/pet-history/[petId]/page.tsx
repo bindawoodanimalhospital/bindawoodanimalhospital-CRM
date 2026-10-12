@@ -8,6 +8,7 @@ import { getSetting } from "@/lib/queries";
 import { loadPetHistory } from "@/lib/pet-history";
 import { formatAge, formatDateTime } from "@/lib/format";
 import { formatPhone } from "@/lib/phone";
+import { withContact } from "@/lib/contacts";
 
 export const metadata: Metadata = { title: "Medical history" };
 
@@ -19,12 +20,12 @@ export default async function PetHistoryPrint({ params }: PageProps<"/print/pet-
   const supabase = await createClient();
   const [{ data: pet }, clinic, h] = await Promise.all([
     supabase.from("pets").select(`code, name, sex, is_neutered, date_of_birth, dob_is_estimate, color, microchip_no, species(name), breeds(name), breed_text,
-      pet_owners(is_primary, customers(full_name, phone))`).eq("id", petId).maybeSingle(),
+      pet_owners(is_primary, customers(full_name, customer_contacts(phone, whatsapp)))`).eq("id", petId).maybeSingle(),
     getSetting<ClinicProfile>("clinic.profile"),
     loadPetHistory(petId),
   ]);
   if (!pet) notFound();
-  const owners = pet.pet_owners as unknown as { is_primary: boolean; customers: { full_name: string; phone: string } }[];
+  const owners = pet.pet_owners as unknown as { is_primary: boolean; customers: { full_name: string } }[];
   const owner = owners.find((o) => o.is_primary)?.customers ?? owners[0]?.customers;
   const sp = pet.species as unknown as { name: string } | null;
   const br = pet.breeds as unknown as { name: string } | null;
@@ -35,7 +36,7 @@ export default async function PetHistoryPrint({ params }: PageProps<"/print/pet-
       footer={`Printed ${formatDateTime(new Date())} by ${me.fullName} · ${h.episodes.length} entries`}>
       <InfoGrid rows={[
         ["Pet", `${pet.name} (${pet.code})`],
-        ["Owner", owner ? `${owner.full_name} · ${formatPhone(owner.phone)}` : null],
+        ["Owner", owner ? [owner.full_name, formatPhone(withContact(owner).phone)].filter(Boolean).join(" · ") : null],
         ["Species / breed", [sp?.name, br?.name ?? pet.breed_text].filter(Boolean).join(" · ")],
         ["Age / sex", [formatAge(pet.date_of_birth, pet.dob_is_estimate), pet.sex !== "unknown" ? `${pet.sex}${pet.is_neutered ? " (neutered)" : ""}` : null].filter(Boolean).join(" · ")],
         ["Colour", pet.color], ["Microchip", pet.microchip_no],

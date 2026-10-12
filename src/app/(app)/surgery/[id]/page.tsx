@@ -14,6 +14,7 @@ import { SURGERY_LABEL, SURGERY_TONE, URGENCY } from "@/lib/clinic";
 import { AdmitDialog } from "../../ward/admit-dialog";
 import { ConsentDialog } from "./consent-dialog";
 import { SurgeryWorkspace, type SurgeryData } from "./workspace";
+import { withContact } from "@/lib/contacts";
 
 export const metadata: Metadata = { title: "Surgery" };
 
@@ -30,7 +31,7 @@ export default async function SurgeryDetailPage({ params }: PageProps<"/surgery/
 
   const { data: s } = await supabase.from("surgeries")
     .select(`*, pets(id, name, sex, date_of_birth, dob_is_estimate, special_handling, species(name), breeds(name), breed_text,
-      pet_alerts(label, kind, severity, is_active)), customers(id, full_name, phone),
+      pet_alerts(label, kind, severity, is_active)), customers(id, full_name, customer_contacts(phone, whatsapp)),
       surgery_consents(id, signed_by_name, relationship, method, signed_at, revoked_at, revoked_reason, witnessed_by),
       surgery_team(staff_id, role), surgery_events(id, kind, at, data, note, recorded_by),
       surgery_consumables(id, item_name, quantity, unit, batch_no, created_at)`)
@@ -50,7 +51,7 @@ export default async function SurgeryDetailPage({ params }: PageProps<"/surgery/
     species: { name: string } | null; breeds: { name: string } | null; breed_text: string | null;
     pet_alerts: { label: string; kind: string; severity: string; is_active: boolean }[] };
   const pet = s.pets as unknown as Pet;
-  const owner = s.customers as unknown as { id: string; full_name: string; phone: string };
+  const owner = withContact(s.customers as unknown as { id: string; full_name: string });
 
   const data: SurgeryData = {
     id: s.id, code: s.code, status: s.status, urgency: s.urgency, procedure_name: s.procedure_name,
@@ -59,7 +60,7 @@ export default async function SurgeryDetailPage({ params }: PageProps<"/surgery/
     preop_checked_at: s.preop_checked_at, preop_checked_by_name: s.preop_checked_by ? nameOf.get(s.preop_checked_by) ?? null : null,
     procedure_start: s.procedure_start, procedure_end: s.procedure_end, discharged_at: s.discharged_at,
     emergency_override_reason: s.emergency_override_reason, cancel_reason: s.cancel_reason, reopened_reason: s.reopened_reason,
-    owner: { name: owner.full_name, phone: owner.phone }, pet: { id: pet.id, name: pet.name, customer_id: owner.id },
+    owner: { name: owner.full_name, phone: owner.phone ?? "" }, pet: { id: pet.id, name: pet.name, customer_id: owner.id },
     consents: ((s.surgery_consents ?? []) as (SurgeryData["consents"][number] & { witnessed_by: string | null })[])
       .map((c) => ({ ...c, witness: c.witnessed_by ? nameOf.get(c.witnessed_by) ?? null : null })),
     team: (s.surgery_team ?? []) as SurgeryData["team"],
@@ -89,7 +90,7 @@ export default async function SurgeryDetailPage({ params }: PageProps<"/surgery/
         }
         description={[s.code, pet.species?.name, pet.breeds?.name ?? pet.breed_text, pet.sex !== "unknown" ? pet.sex : null,
           formatAge(pet.date_of_birth, pet.dob_is_estimate)].filter(Boolean).join(" · ")}
-        actions={<Button asChild variant="outline"><a href={`tel:${owner.phone}`}><Phone /> {owner.full_name}</a></Button>}
+        actions={owner.phone && <Button asChild variant="outline"><a href={`tel:${owner.phone}`}><Phone /> {owner.full_name}</a></Button>}
       />
 
       {(pet.special_handling || alerts.length > 0) && (
@@ -135,7 +136,7 @@ function ReceptionView({ data, consentText }: { data: SurgeryData; consentText: 
         ? <StatusPill tone="success" className="w-fit">Consent recorded by {consent.signed_by_name}</StatusPill>
         : ["planned", "scheduled", "admitted", "pre_op"].includes(data.status) && (
           <ConsentDialog surgeryId={data.id} procedure={data.procedure_name} estimate={(data.fields.estimate_amount as number) ?? null}
-            ownerName={data.owner.name} ownerPhone={data.owner.phone} text={consentText} draft={consentText.status === "draft"} />
+            ownerName={data.owner.name} ownerPhone={data.owner.phone ?? ""} text={consentText} draft={consentText.status === "draft"} />
         )}
     </div>
   );

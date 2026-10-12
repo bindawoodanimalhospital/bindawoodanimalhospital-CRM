@@ -54,7 +54,7 @@ insert into ctx select 'batchB', id from public.product_batches where batch_no =
 
 -- ============================================================ reception: clinic bill
 select pg_temp.act('00000000-0000-0000-0000-0000000000c4');
-with c as (insert into public.customers (full_name, phone) values ('Billing Owner', '+923334445566') returning id) insert into ctx select 'cust', id from c;
+with c as (insert into public.customers (full_name) values ('Billing Owner') returning id) insert into ctx select 'cust', id from c;
 select 'reception sees costs' as t, (select count(*) from public.batch_costs) as batch_costs, (select count(*) from public.catalog_costs) as item_costs;
 
 with i as (insert into public.invoices (customer_id) values (pg_temp.g('cust')) returning id) insert into ctx select 'inv', id from i;

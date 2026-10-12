@@ -14,15 +14,15 @@ select '00000000-0000-0000-0000-00000000000d'::uuid, id from public.roles where 
 set local role authenticated;
 -- reception creates a customer + pet
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000b","role":"authenticated"}', true);
-insert into public.customers (full_name, phone, area) values ('Ahmed Raza', '+923001234567', 'Johar Town');
+insert into public.customers (full_name, area) values ('Ahmed Raza', 'Johar Town');
 insert into public.pets (name, species_id) select 'Tiger', id from public.species where name = 'Dog';
 insert into public.pet_owners (pet_id, customer_id, is_primary)
   select p.id, c.id, true from public.pets p, public.customers c
-   where p.name = 'Tiger' and c.full_name = 'Ahmed Raza' and c.phone = '+923001234567';
+   where p.name = 'Tiger' and c.full_name = 'Ahmed Raza';
 select 'reception sees customers' as t, count(*) from public.customers;
-select 'search by 0300 phone' as t, kind, title, subtitle from public.global_search('0300 1234567');
-select 'search fuzzy name' as t, kind, title from public.global_search('ahmad');
-select 'dupe check' as t, full_name, reason, score from public.find_customer_duplicates('+923001234567', 'Ahmad Raza');
+select 'search by name' as t, kind, title, subtitle from public.smart_search('ahmed raza');
+select 'search fuzzy name' as t, kind, title from public.smart_search('ahmad');
+select 'dupe check' as t, full_name, reason, score from public.find_customer_duplicates(null, 'Ahmad Raza');
 select 'reception audit rows visible' as t, count(*) from public.audit_logs;
 do $$ begin
   perform public.merge_customers(gen_random_uuid(), gen_random_uuid(), 'x');
@@ -55,10 +55,10 @@ do $$ begin
 exception when insufficient_privilege then raise notice 'OK audit log is append-only';
 end $$;
 -- owner merges a duplicate: pets move over, source is marked merged
-insert into public.customers (full_name, phone) values ('Ahmad Raza', '+923331234567');
+insert into public.customers (full_name) values ('Ahmad Raza');
 select public.merge_customers(
-  (select id from public.customers where phone = '+923331234567'),
-  (select id from public.customers where phone = '+923001234567'),
+  (select id from public.customers where full_name = 'Ahmad Raza'),
+  (select id from public.customers where full_name = 'Ahmed Raza'),
   'same person, registered twice');
 select 'after merge' as t, full_name, status, (select count(*) from public.pet_owners po where po.customer_id = c.id) as pets
 from public.customers c order by created_at;

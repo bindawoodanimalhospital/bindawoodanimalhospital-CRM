@@ -9,6 +9,7 @@ import { getSetting } from "@/lib/queries";
 import { loadOwnerHistory } from "@/lib/owner-history";
 import { formatDate, formatDateTime } from "@/lib/format";
 import { formatPhone } from "@/lib/phone";
+import { withContact } from "@/lib/contacts";
 
 export const metadata: Metadata = { title: "Owner history" };
 
@@ -19,7 +20,7 @@ export default async function OwnerHistoryPrint({ params }: PageProps<"/print/ow
   const { customerId } = await params;
   const supabase = await createClient();
   const [{ data: c }, clinic, h] = await Promise.all([
-    supabase.from("customers").select("code, full_name, phone, area, address, created_at").eq("id", customerId).maybeSingle(),
+    supabase.from("customers").select("code, full_name, customer_contacts(phone, whatsapp), area, address, created_at").eq("id", customerId).maybeSingle(),
     getSetting<ClinicProfile>("clinic.profile"),
     loadOwnerHistory(customerId, me),
   ]);
@@ -34,7 +35,7 @@ export default async function OwnerHistoryPrint({ params }: PageProps<"/print/ow
     <PrintShell clinic={clinic ?? {}} title="Owner history — all pets"
       footer={`Printed ${formatDateTime(new Date())} by ${me.fullName} · ${items.length} entries`}>
       <InfoGrid rows={[
-        ["Owner", `${c.full_name} (${c.code})`], ["Phone", formatPhone(c.phone)],
+        ["Owner", `${c.full_name} (${c.code})`], ["Phone", formatPhone(withContact(c).phone) || null],
         ["Area", c.area], ["Address", c.address], ["Registered", formatDate(c.created_at)],
       ]} />
       <div className="mt-4"><OwnerSummary h={h} showMoney={showMoney} /></div>

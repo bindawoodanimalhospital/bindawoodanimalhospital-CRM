@@ -17,8 +17,8 @@ end $$;
 set local role authenticated;
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000bb001","role":"authenticated"}', true);
 
-with c as (insert into public.customers (full_name, phone) values ('BL A', '+923006660001') returning id) insert into fx select 'a', id from c;
-with c as (insert into public.customers (full_name, phone) values ('BL B', '+923006660002') returning id) insert into fx select 'b', id from c;
+with c as (insert into public.customers (full_name) values ('BL A') returning id) insert into fx select 'a', id from c;
+with c as (insert into public.customers (full_name) values ('BL B') returning id) insert into fx select 'b', id from c;
 insert into fx select 'svc', id from public.catalog_items where name = 'Other charge';
 
 -- 1) bill-wide discount: full return works and refunds what was paid

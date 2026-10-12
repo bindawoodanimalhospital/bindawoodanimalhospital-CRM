@@ -9,6 +9,7 @@ import { getSpeciesOptions } from "@/lib/queries";
 import { formatPhone } from "@/lib/phone";
 import { createPet } from "../actions";
 import { PetForm } from "../pet-form";
+import { withContact } from "@/lib/contacts";
 
 export const metadata: Metadata = { title: "Register pet" };
 
@@ -30,7 +31,7 @@ export default async function NewPetPage({ searchParams }: PageProps<"/pets/new"
 
   const supabase = await createClient();
   const [{ data: owner }, species] = await Promise.all([
-    supabase.from("customers").select("id, full_name, phone").eq("id", customerId).maybeSingle(),
+    supabase.from("customers").select("id, full_name, customer_contacts(phone, whatsapp)").eq("id", customerId).maybeSingle(),
     getSpeciesOptions(),
   ]);
   if (!owner) return <EmptyState icon={Users} title="Owner not found" />;
@@ -38,7 +39,7 @@ export default async function NewPetPage({ searchParams }: PageProps<"/pets/new"
   return (
     <div className="mx-auto max-w-3xl">
       <PageHeader title="Register pet" back={{ href: `/customers/${owner.id}`, label: owner.full_name }}
-        description={<>Owner: <b>{owner.full_name}</b> · {formatPhone(owner.phone)}</>} />
+        description={<>Owner: <b>{owner.full_name}</b>{withContact(owner).phone ? ` · ${formatPhone(withContact(owner).phone)}` : ""}</>} />
       <PetForm action={createPet.bind(null, owner.id)} species={species} submitLabel="Register pet" showWeight />
     </div>
   );

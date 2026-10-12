@@ -26,8 +26,8 @@ set local role authenticated;
 
 -- Setup: owner + two pets (reception)
 select pg_temp.act('00000000-0000-0000-0000-0000000000b4');
-insert into public.customers (full_name, phone) values ('Surgery Owner', '+923211112233');
-insert into ctx select 'cust', id from public.customers where phone = '+923211112233';
+insert into public.customers (full_name) values ('Surgery Owner');
+insert into ctx select 'cust', id from public.customers where full_name = 'Surgery Owner';
 insert into public.pets (name, species_id) select 'Bella', id from public.species where name = 'Dog';
 insert into ctx select 'pet', id from public.pets where name = 'Bella' order by created_at desc limit 1;
 insert into public.pets (name, species_id) select 'Kitty', id from public.species where name = 'Cat';

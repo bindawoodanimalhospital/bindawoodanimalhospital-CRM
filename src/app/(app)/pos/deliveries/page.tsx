@@ -13,6 +13,7 @@ import { formatDateTime, formatPKR, formatTime } from "@/lib/format";
 import { formatPhone } from "@/lib/phone";
 import { cn } from "@/lib/utils";
 import { DeliveryActions } from "./delivery-actions";
+import { withContact } from "@/lib/contacts";
 
 export const metadata: Metadata = { title: "Home deliveries" };
 const PAGE = 30;
@@ -32,7 +33,7 @@ export default async function DeliveriesPage({ searchParams }: PageProps<"/pos/d
 
   let q = supabase.from("invoices")
     .select(`id, number, total, balance, amount_paid, returned_amount, issued_at, delivery_status, delivery_address, delivery_rider, delivery_notes,
-      dispatched_at, delivered_at, customers(id, full_name, phone), invoice_items(description, quantity, line_role, unit_price)`, { count: "exact" })
+      dispatched_at, delivered_at, customers(id, full_name, customer_contacts(phone, whatsapp)), invoice_items(description, quantity, line_role, unit_price)`, { count: "exact" })
     .eq("fulfilment", "home_delivery").eq("status", "issued")
     .order("issued_at", { ascending: view === "open" || view === "pending" })
     .range((page - 1) * PAGE, page * PAGE - 1);
@@ -74,7 +75,7 @@ export default async function DeliveriesPage({ searchParams }: PageProps<"/pos/d
       ) : (
         <ul className="grid gap-3">
           {data.map((o) => {
-            const c = o.customers as unknown as { id: string; full_name: string; phone: string } | null;
+            const c = withContact(o.customers as unknown as { id: string; full_name: string } | null);
             const items = (o.invoice_items ?? []) as { description: string; quantity: number; line_role: string | null; unit_price: number }[];
             const fee = items.find((i) => i.line_role === "delivery_charge");
             const products = items.filter((i) => i.line_role !== "delivery_charge");
@@ -95,7 +96,7 @@ export default async function DeliveriesPage({ searchParams }: PageProps<"/pos/d
                     {c && (
                       <p className="mt-1 text-sm">
                         <Link href={`/customers/${c.id}`} className="font-medium hover:underline">{c.full_name}</Link>
-                        <a href={`tel:${c.phone}`} className="ml-2 inline-flex items-center gap-1 text-muted-foreground hover:text-brand"><Phone className="size-3.5" />{formatPhone(c.phone)}</a>
+                        {c.phone && <a href={`tel:${c.phone}`} className="ml-2 inline-flex items-center gap-1 text-muted-foreground hover:text-brand"><Phone className="size-3.5" />{formatPhone(c.phone)}</a>}
                       </p>
                     )}
                     <p className="mt-1 flex items-start gap-1.5 text-sm"><MapPin className="mt-0.5 size-4 shrink-0 text-brand" />{o.delivery_address}</p>

@@ -28,11 +28,6 @@ const checkbox = z.preprocess((v) => v === "on" || v === "true" || v === true, z
 export const customerSchema = z.object({
   full_name: z.string().trim().min(2, "Name is required"),
   full_name_ur: optionalText,
-  phone: phone("Phone", true),
-  whatsapp_same: checkbox,
-  whatsapp: phone("WhatsApp", false),
-  alt_phone: phone("Alternate phone", false),
-  email: z.union([z.literal(""), z.email("Invalid email")]).optional().transform((v) => v || null),
   house_no: optionalText,
   block: optionalText,
   address: optionalText,
@@ -47,9 +42,20 @@ export const customerSchema = z.object({
 
 export type CustomerInput = z.infer<typeof customerSchema>;
 
-export function customerRow(c: CustomerInput) {
-  const { whatsapp_same, ...rest } = c;
-  return { ...rest, whatsapp: whatsapp_same ? c.phone : c.whatsapp };
+/**
+ * Phone numbers and email: all optional, and only accepted from staff allowed to see them
+ * (customers.contact). Saved separately in customer_contacts.
+ */
+export const contactSchema = z.object({
+  phone: phone("Mobile number", false),
+  whatsapp_same: checkbox,
+  whatsapp: phone("WhatsApp", false),
+  alt_phone: phone("Alternate phone", false),
+  email: z.union([z.literal(""), z.email("Invalid email")]).optional().transform((v) => v || null),
+});
+
+export function contactRow(c: z.infer<typeof contactSchema>) {
+  return { phone: c.phone, whatsapp: c.whatsapp_same ? c.phone : c.whatsapp, alt_phone: c.alt_phone, email: c.email };
 }
 
 const optionalUuid = z

@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getSetting } from "@/lib/queries";
 import { formatAge, formatDate } from "@/lib/format";
 import { formatPhone } from "@/lib/phone";
+import { withContact } from "@/lib/contacts";
 
 export const metadata: Metadata = { title: "Prescription" };
 
@@ -18,8 +19,8 @@ export default async function PrescriptionPrint({ params }: PageProps<"/print/pr
       .select(`code, status, notes, issued_at, created_at,
         doctor:doctor_id(full_name, title, pvmc_number),
         pets(code, name, sex, date_of_birth, dob_is_estimate, species(name), breeds(name), breed_text,
-             pet_owners(is_primary, customers(full_name, phone))),
-        visits(customers(full_name, phone)),
+             pet_owners(is_primary, customers(full_name, customer_contacts(phone, whatsapp)))),
+        visits(customers(full_name, customer_contacts(phone, whatsapp))),
         consultations(weight_kg, consultation_diagnoses(label, is_primary)),
         prescription_items(medicine_name, strength, form, dose, frequency, duration, route, quantity, instructions, sort_order)`)
       .eq("id", id).maybeSingle(),
@@ -29,9 +30,9 @@ export default async function PrescriptionPrint({ params }: PageProps<"/print/pr
 
   type Pet = { code: string; name: string; sex: string; date_of_birth: string | null; dob_is_estimate: boolean;
     species: { name: string } | null; breeds: { name: string } | null; breed_text: string | null;
-    pet_owners: { is_primary: boolean; customers: { full_name: string; phone: string } }[] };
+    pet_owners: { is_primary: boolean; customers: { full_name: string } }[] };
   const pet = rx.pets as unknown as Pet;
-  const visitOwner = (rx.visits as unknown as { customers: { full_name: string; phone: string } } | null)?.customers;
+  const visitOwner = (rx.visits as unknown as { customers: { full_name: string } } | null)?.customers;
   const owner = visitOwner ?? pet.pet_owners.find((o) => o.is_primary)?.customers ?? pet.pet_owners[0]?.customers;
   const doctor = rx.doctor as unknown as { full_name: string; title: string | null; pvmc_number: string | null } | null;
   const consult = rx.consultations as unknown as { weight_kg: number | null; consultation_diagnoses: { label: string; is_primary: boolean }[] } | null;
@@ -52,7 +53,7 @@ export default async function PrescriptionPrint({ params }: PageProps<"/print/pr
       <div className="mt-2">
         <InfoGrid rows={[
           ["Patient", `${pet.name} (${pet.code})`],
-          ["Owner", owner ? `${owner.full_name} · ${formatPhone(owner.phone)}` : null],
+          ["Owner", owner ? [owner.full_name, formatPhone(withContact(owner).phone)].filter(Boolean).join(" · ") : null],
           ["Species", [pet.species?.name, pet.breeds?.name ?? pet.breed_text].filter(Boolean).join(" · ")],
           ["Age / sex", [formatAge(pet.date_of_birth, pet.dob_is_estimate), pet.sex !== "unknown" ? pet.sex : null].filter(Boolean).join(" · ")],
           ["Weight", consult?.weight_kg ? `${Number(consult.weight_kg)} kg` : null],

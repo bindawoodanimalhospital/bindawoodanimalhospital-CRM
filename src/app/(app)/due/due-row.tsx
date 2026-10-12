@@ -16,7 +16,7 @@ import { closeDue, markContacted, rescheduleDue } from "./actions";
 
 export type DueEntry = {
   id: string; kind: string; title: string; due_on: string; outcome: string | null; previous_due_on: string | null;
-  pet: { id: string; name: string }; owner: { full_name: string; phone: string; whatsapp: string | null } | null;
+  pet: { id: string; name: string }; owner: { full_name: string; phone: string | null; whatsapp: string | null } | null;
 };
 
 type Mode = null | "contacted" | "reschedule" | "skip";
@@ -49,7 +49,7 @@ export function DueRow({ d, canWork, clinicName }: { d: DueEntry; canWork: boole
           <span className="font-normal text-muted-foreground"> · {d.title}</span>
         </p>
         <p className="text-sm text-muted-foreground">
-          {d.owner ? `${d.owner.full_name} · ${formatPhone(d.owner.phone)}` : "No owner on file"}
+          {d.owner ? [d.owner.full_name, formatPhone(d.owner.phone)].filter(Boolean).join(" · ") : "No owner on file"}
           {d.previous_due_on && ` · moved from ${formatDate(d.previous_due_on)}`}
         </p>
         {d.outcome && <p className="mt-1 text-xs text-info">{d.outcome}</p>}
@@ -59,7 +59,7 @@ export function DueRow({ d, canWork, clinicName }: { d: DueEntry; canWork: boole
       </StatusPill>
       {canWork && (
         <div className="flex flex-wrap gap-2">
-          {d.owner && <Button asChild variant="outline" size="icon" aria-label="Call"><a href={`tel:${d.owner.phone}`}><Phone /></a></Button>}
+          {d.owner?.phone && <Button asChild variant="outline" size="icon" aria-label="Call"><a href={`tel:${d.owner.phone}`}><Phone /></a></Button>}
           {wa && <Button asChild variant="outline" size="icon" aria-label="WhatsApp"><a href={wa} target="_blank" rel="noreferrer"><MessageCircle /></a></Button>}
           <Button variant="outline" onClick={() => setMode("contacted")}><PhoneCall /> Contacted</Button>
           <Button variant="ghost" onClick={() => setMode("reschedule")}><CalendarClock /> New date</Button>

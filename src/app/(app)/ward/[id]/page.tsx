@@ -16,6 +16,7 @@ import { ADMISSION_OUTCOMES } from "@/lib/clinic";
 import { LiveRefresh } from "../live-refresh";
 import { StatusBadge, TreatmentChart, type Dose, type Order } from "./chart";
 import { DischargeDialog, KennelPicker, NotesPanel, OwnerUpdateHint, PlanPanel, type Note } from "./panels";
+import { withContact } from "@/lib/contacts";
 
 export const metadata: Metadata = { title: "Ward patient" };
 
@@ -27,7 +28,7 @@ export default async function AdmissionPage({ params }: PageProps<"/ward/[id]">)
   const [{ data: a }, kennels, { data: staff }] = await Promise.all([
     supabase.from("admissions")
       .select(`*, pets(id, name, sex, date_of_birth, dob_is_estimate, special_handling, species(name), breeds(name), breed_text, pet_alerts(label, kind, severity, is_active)),
-        customers(full_name, phone, whatsapp), surgeries(id, procedure_name, code), doctor:attending_doctor_id(full_name),
+        customers(full_name, customer_contacts(phone, whatsapp)), surgeries(id, procedure_name, code), doctor:attending_doctor_id(full_name),
         admission_orders(*), admission_administrations(order_id, due_at, result, given_at, given_by, note), admission_notes(*)`)
       .eq("id", id).maybeSingle(),
     getKennels(),
@@ -40,7 +41,7 @@ export default async function AdmissionPage({ params }: PageProps<"/ward/[id]">)
     species: { name: string } | null; breeds: { name: string } | null; breed_text: string | null;
     pet_alerts: { label: string; kind: string; severity: string; is_active: boolean }[] };
   const pet = a.pets as unknown as Pet;
-  const owner = a.customers as unknown as { full_name: string; phone: string; whatsapp: string | null };
+  const owner = withContact(a.customers as unknown as { full_name: string });
   const surgery = a.surgeries as unknown as { id: string; procedure_name: string; code: string } | null;
   const open = a.status === "admitted";
 

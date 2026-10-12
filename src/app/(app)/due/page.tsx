@@ -9,6 +9,7 @@ import { getSetting } from "@/lib/queries";
 import { addDaysPK, todayPK } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { DueRow, type DueEntry } from "./due-row";
+import { withContact } from "@/lib/contacts";
 
 export const metadata: Metadata = { title: "Due & follow-ups" };
 
@@ -27,7 +28,7 @@ export default async function DuePage({ searchParams }: PageProps<"/due">) {
 
   const supabase = await createClient();
   let q = supabase.from("due_items")
-    .select("id, kind, title, due_on, outcome, previous_due_on, pets(id, name, status, pet_owners(is_primary, customers(full_name, phone, whatsapp)))")
+    .select("id, kind, title, due_on, outcome, previous_due_on, pets(id, name, status, pet_owners(is_primary, customers(full_name, customer_contacts(phone, whatsapp))))")
     .eq("status", "pending").order("due_on").limit(200);
   q = view === "overdue" ? q.lt("due_on", today) : view === "today" ? q.eq("due_on", today) : q.gt("due_on", today).lte("due_on", addDaysPK(7));
   const [{ data }, counts, clinic] = await Promise.all([
@@ -43,9 +44,9 @@ export default async function DuePage({ searchParams }: PageProps<"/due">) {
 
   const entries: DueEntry[] = (data ?? []).flatMap((d) => {
     const pet = d.pets as unknown as { id: string; name: string; status: string;
-      pet_owners: { is_primary: boolean; customers: { full_name: string; phone: string; whatsapp: string | null } }[] };
+      pet_owners: { is_primary: boolean; customers: { full_name: string } }[] };
     if (!pet || pet.status !== "active") return [];
-    const owner = pet.pet_owners.find((o) => o.is_primary)?.customers ?? pet.pet_owners[0]?.customers ?? null;
+    const owner = withContact(pet.pet_owners.find((o) => o.is_primary)?.customers ?? pet.pet_owners[0]?.customers ?? null);
     return [{ id: d.id, kind: d.kind, title: d.title, due_on: d.due_on, outcome: d.outcome, previous_due_on: d.previous_due_on,
       pet: { id: pet.id, name: pet.name }, owner }];
   });

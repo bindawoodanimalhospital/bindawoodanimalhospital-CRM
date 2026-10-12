@@ -47,7 +47,7 @@ insert into public.purchase_lines (purchase_id, item_id, location_id, batch_no, 
 select pg_temp.g('po'), pg_temp.g('tabs'), id, 'R1', private.clinic_today() + 300, 10, 40 from public.inventory_locations where is_default;
 select public.receive_purchase(pg_temp.g('po'));
 
-with c as (insert into public.customers (full_name, phone) values ('Report Owner', '+923009998877') returning id) insert into ctx select 'cust', id from c;
+with c as (insert into public.customers (full_name) values ('Report Owner') returning id) insert into ctx select 'cust', id from c;
 with p as (insert into public.pets (name, species_id) select 'Rex', id from public.species where name = 'Dog' returning id) insert into ctx select 'pet', id from p;
 insert into public.pet_owners (pet_id, customer_id, is_primary) values (pg_temp.g('pet'), pg_temp.g('cust'), true);
 with v as (insert into public.visits (pet_id, customer_id, doctor_id) values (pg_temp.g('pet'), pg_temp.g('cust'), '00000000-0000-0000-0000-0000000000d2') returning id)

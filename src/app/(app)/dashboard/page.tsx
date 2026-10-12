@@ -18,6 +18,7 @@ import { formatDateTime, formatTime, initials, isPast, TIMEZONE, todayPK } from 
 import { formatPhone } from "@/lib/phone";
 import { cn } from "@/lib/utils";
 import { presetRange, type FinancialReport } from "@/lib/reports";
+import { withContact } from "@/lib/contacts";
 
 export const metadata: Metadata = { title: "Home" };
 
@@ -64,7 +65,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
     canCustomers ? supabase.from("customers").select("id", { count: "exact", head: true }).gte("created_at", today) : null,
     canPets ? supabase.from("pets").select("id", { count: "exact", head: true }).gte("created_at", today) : null,
     canCustomers
-      ? supabase.from("customers").select("id, code, full_name, phone, area, created_at, pet_owners(pets(name))")
+      ? supabase.from("customers").select("id, code, full_name, customer_contacts(phone, whatsapp), area, created_at, pet_owners(pets(name))")
           .neq("status", "merged").order("created_at", { ascending: false }).limit(6)
       : null,
     canQueue ? supabase.from("visits").select("id, token_no, status, priority, reason, checked_in_at, pets(name, species(name)), customers(full_name)")
@@ -353,7 +354,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
   );
 }
 
-type RecentRow = { id: string; full_name: string; phone: string; created_at: string; pet_owners: { pets: unknown }[] | null };
+type RecentRow = { id: string; full_name: string; created_at: string; pet_owners: { pets: unknown }[] | null };
 
 function RecentOwners({ rows, className }: { rows: RecentRow[]; className?: string }) {
   return (
@@ -383,7 +384,7 @@ function RecentOwners({ rows, className }: { rows: RecentRow[]; className?: stri
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-semibold">{c.full_name}</p>
                       <p className="truncate text-sm text-muted-foreground">
-                        {formatPhone(c.phone)}{petNames.length ? ` · ${petNames.join(", ")}` : ""}
+                        {[formatPhone(withContact(c).phone), petNames.join(", ")].filter(Boolean).join(" · ") || "—"}
                       </p>
                     </div>
                     <span className="hidden shrink-0 text-xs text-muted-foreground sm:block">{formatDateTime(c.created_at)}</span>

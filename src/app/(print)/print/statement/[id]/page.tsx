@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getSetting } from "@/lib/queries";
 import { formatDate, formatPKR, todayPK } from "@/lib/format";
 import { formatPhone } from "@/lib/phone";
+import { withContact } from "@/lib/contacts";
 
 export const metadata: Metadata = { title: "Statement" };
 const ENTRY: Record<string, string> = { invoice: "Bill", payment: "Payment", refund: "Refund", write_off: "Written off", return: "Return" };
@@ -19,7 +20,7 @@ export default async function StatementPrint({ params, searchParams }: PageProps
   const to = typeof sp.to === "string" ? sp.to : todayPK();
   const supabase = await createClient();
   const [{ data: c }, { data: ledger }, clinic] = await Promise.all([
-    supabase.from("customers").select("code, full_name, phone, address, area").eq("id", id).maybeSingle(),
+    supabase.from("customers").select("code, full_name, customer_contacts(phone, whatsapp), address, area").eq("id", id).maybeSingle(),
     supabase.from("customer_ledger").select("*").eq("customer_id", id).order("at"),
     getSetting<ClinicProfile>("clinic.profile"),
   ]);
@@ -39,7 +40,7 @@ export default async function StatementPrint({ params, searchParams }: PageProps
 
   return (
     <PrintShell clinic={clinic ?? {}} title="Account statement">
-      <InfoGrid rows={[["Customer", `${c.full_name} (${c.code})`], ["Phone", formatPhone(c.phone)], ["Address", [c.address, c.area].filter(Boolean).join(", ") || null],
+      <InfoGrid rows={[["Customer", `${c.full_name} (${c.code})`], ["Phone", formatPhone(withContact(c).phone) || null], ["Address", [c.address, c.area].filter(Boolean).join(", ") || null],
         ["Period", `${from ? formatDate(from) : "Start"} – ${formatDate(to)}`]]} />
       <table className="mt-5 w-full border-collapse text-[12px]">
         <thead><tr className="border-b-2 border-ink text-left uppercase"><th className="py-1.5">Date</th><th>Details</th><th className="text-right">Charged</th><th className="text-right">Paid</th><th className="text-right">Balance</th></tr></thead>

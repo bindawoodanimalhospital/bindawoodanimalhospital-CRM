@@ -32,7 +32,7 @@ export default async function AccountPage({ params }: PageProps<"/customers/[id]
   const { id } = await params;
   const supabase = await createClient();
   const [{ data: c }, { data: ledger }, { data: open }, credit, methods] = await Promise.all([
-    supabase.from("customers").select("id, full_name, phone").eq("id", id).maybeSingle(),
+    supabase.from("customers").select("id, full_name").eq("id", id).maybeSingle(),
     supabase.from("customer_ledger").select("*").eq("customer_id", id).order("at"),
     supabase.from("invoices").select("id, number, total, balance, issued_at, pets(name), dues(promised_date, status)").eq("customer_id", id).eq("status", "issued").gt("balance", 0).order("issued_at"),
     customerCredit(id),

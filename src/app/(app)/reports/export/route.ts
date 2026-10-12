@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { formatPhone } from "@/lib/phone";
 import { parseRange, type FinancialReport } from "@/lib/reports";
 import type { Permission } from "@/lib/permissions";
+import { contactOf } from "@/lib/contacts";
 
 type Col = { header: string; key: string; width?: number; money?: boolean };
 type Row = Record<string, string | number | null>;
@@ -52,10 +53,10 @@ const DATASETS: Record<string, Dataset> = {
     load: async (s, from, to) => {
       const { start, end } = range(from, to);
       const rows = await all<any>((lo, hi) => s.from("invoices")
-        .select("number, issued_at, kind, status, total, line_discounts, invoice_discount, returned_amount, amount_paid, balance, customers(full_name, phone), pets(name)")
+        .select("number, issued_at, kind, status, total, line_discounts, invoice_discount, returned_amount, amount_paid, balance, customers(full_name, customer_contacts(phone, whatsapp)), pets(name)")
         .in("status", ["issued", "void"]).gte("issued_at", start).lte("issued_at", end).order("issued_at").range(lo, hi));
       return rows.map((r) => ({ number: r.number, issued: pk(r.issued_at), kind: r.kind === "store" ? "Pet store" : "Clinic",
-        owner: one(r.customers)?.full_name ?? "Walk-in", phone: formatPhone(one(r.customers)?.phone) || null, pet: one(r.pets)?.name ?? null,
+        owner: one(r.customers)?.full_name ?? "Walk-in", phone: formatPhone(contactOf(one(r.customers)).phone) || null, pet: one(r.pets)?.name ?? null,
         status: r.status === "void" ? "Cancelled" : "Issued", total: Number(r.total), discounts: Number(r.line_discounts) + Number(r.invoice_discount),
         returned: Number(r.returned_amount), paid: Number(r.amount_paid), balance: Number(r.balance) }));
     },
@@ -80,9 +81,9 @@ const DATASETS: Record<string, Dataset> = {
       { header: "Promised date", key: "promised", width: 13 }, { header: "Reason", key: "reason", width: 30 }, { header: "Missed promises", key: "missed" },
       { header: "Original (Rs.)", key: "original", money: true }, { header: "Still owed (Rs.)", key: "balance", money: true }],
     load: async (s) => {
-      const rows = await all<any>((lo, hi) => s.from("dues").select("promised_date, reason, missed_promises, original_amount, invoices(number, balance), customers(full_name, phone)")
+      const rows = await all<any>((lo, hi) => s.from("dues").select("promised_date, reason, missed_promises, original_amount, invoices(number, balance), customers(full_name, customer_contacts(phone, whatsapp))")
         .eq("status", "open").order("promised_date").range(lo, hi));
-      return rows.map((r) => ({ owner: one(r.customers)?.full_name, phone: formatPhone(one(r.customers)?.phone) || null, number: one(r.invoices)?.number,
+      return rows.map((r) => ({ owner: one(r.customers)?.full_name, phone: formatPhone(contactOf(one(r.customers)).phone) || null, number: one(r.invoices)?.number,
         promised: r.promised_date, reason: r.reason, missed: r.missed_promises, original: Number(r.original_amount), balance: Number(one(r.invoices)?.balance ?? 0) }));
     },
   },
@@ -121,9 +122,9 @@ const DATASETS: Record<string, Dataset> = {
       { header: "Registered", key: "registered", width: 12 }],
     load: async (s) => {
       const rows = await all<any>((lo, hi) => s.from("customers")
-        .select("code, full_name, phone, whatsapp, area, city, preferred_language, marketing_opt_in, referral_source, created_at")
+        .select("code, full_name, customer_contacts(phone, whatsapp), area, city, preferred_language, marketing_opt_in, referral_source, created_at")
         .neq("status", "merged").order("created_at").range(lo, hi));
-      return rows.map((r) => ({ code: r.code, name: r.full_name, phone: formatPhone(r.phone) || null, whatsapp: formatPhone(r.whatsapp) || null,
+      return rows.map((r) => ({ code: r.code, name: r.full_name, phone: formatPhone(contactOf(r).phone) || null, whatsapp: formatPhone(contactOf(r).whatsapp) || null,
         area: r.area, city: r.city, lang: r.preferred_language === "en" ? "English" : "Urdu", optin: r.marketing_opt_in ? "Yes" : "No",
         referral: r.referral_source, registered: pk(r.created_at)?.slice(0, 10) ?? null }));
     },

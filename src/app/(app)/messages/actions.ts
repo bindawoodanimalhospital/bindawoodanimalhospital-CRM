@@ -3,7 +3,6 @@
 import { revalidatePath } from "next/cache";
 import { assertCan } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { toE164 } from "@/lib/phone";
 import { dbErrorMessage, type FormState } from "@/lib/validation";
 
 const refresh = () => { revalidatePath("/messages"); revalidatePath("/alerts"); };
@@ -22,10 +21,9 @@ export async function logContact(input: { customer_id: string; channel: "whatsap
   const me = await assertCan("crm.manage");
   if (input.body.trim().length < 2) return { message: "Write what was said." };
   const supabase = await createClient();
-  const { data: c } = await supabase.from("customers").select("phone, whatsapp").eq("id", input.customer_id).single();
   const { error } = await supabase.from("messages").insert({
     customer_id: input.customer_id, channel: input.channel, direction: input.direction, status: "logged",
-    body: input.body.trim(), to_phone: c ? toE164(c.whatsapp ?? c.phone) : null, sent_at: new Date().toISOString(), sent_by: me.id, created_by: me.id,
+    body: input.body.trim(), sent_at: new Date().toISOString(), sent_by: me.id, created_by: me.id,
   });
   if (error) return { message: dbErrorMessage(error) };
   revalidatePath(`/customers/${input.customer_id}`);

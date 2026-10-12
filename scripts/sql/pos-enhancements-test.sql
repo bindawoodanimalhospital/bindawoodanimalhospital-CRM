@@ -40,8 +40,8 @@ select pg_temp.g('po'), pg_temp.g('litter'), id, 'OWN', private.clinic_today() +
 select public.receive_purchase(pg_temp.g('po'));
 
 -- §1 address
-with c as (insert into public.customers (full_name, phone, house_no, block, address, area)
-  values ('Delivery Owner', '+923331112299', '12', 'Block C', 'Street 4', 'DHA Phase 5') returning id) insert into ctx select 'cust', id from c;
+with c as (insert into public.customers (full_name, house_no, block, address, area)
+  values ('Delivery Owner', '12', 'Block C', 'Street 4', 'DHA Phase 5') returning id) insert into ctx select 'cust', id from c;
 select pg_temp.check(public.customer_address_line(pg_temp.g('cust')) = 'House 12, Block C, Street 4, DHA Phase 5, Lahore',
   'customer address line = house, block, full address, area, city');
 

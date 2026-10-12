@@ -18,6 +18,7 @@ import { formatPhone } from "@/lib/phone";
 import { visitSuggestions } from "../suggestions";
 import { InvoiceEditor, type Line } from "./editor";
 import { IssuedPanel, type IssuedLine, type PaymentRow } from "./issued";
+import { withContact } from "@/lib/contacts";
 
 export const metadata: Metadata = { title: "Bill" };
 
@@ -27,13 +28,13 @@ export default async function InvoicePage({ params }: PageProps<"/billing/[id]">
   const { id } = await params;
   const supabase = await createClient();
   const { data: inv } = await supabase.from("invoices")
-    .select(`*, customers(id, full_name, phone, house_no, block, address, area, city), pets(id, name), visits(id, token_no, visit_date),
+    .select(`*, customers(id, full_name, customer_contacts(phone, whatsapp), house_no, block, address, area, city), pets(id, name), visits(id, token_no, visit_date),
       invoice_items(id, item_id, description, kind, quantity, unit_price, discount_amount, line_total, returned_qty, sort_order, line_role, catalog_items(price_is_editable, track_stock)),
       dues(status, promised_date, approval_status)`)
     .eq("id", id).maybeSingle();
   if (!inv) notFound();
 
-  const customer = inv.customers as unknown as ({ id: string; full_name: string; phone: string } & AddressParts) | null;
+  const customer = withContact(inv.customers as unknown as ({ id: string; full_name: string } & AddressParts) | null);
   const pet = inv.pets as unknown as { id: string; name: string } | null;
   const visit = inv.visits as unknown as { id: string; token_no: number } | null;
   const items = ((inv.invoice_items ?? []) as (Line & { sort_order: number; returned_qty: number; catalog_items: { price_is_editable: boolean; track_stock: boolean } })[])
@@ -51,7 +52,7 @@ export default async function InvoicePage({ params }: PageProps<"/billing/[id]">
         </StatusPill>
         {inv.kind === "store" && <StatusPill tone="info">Pet store</StatusPill>}
         {inv.fulfilment === "home_delivery" && <StatusPill tone="brand"><Truck className="mr-1 size-3" />Home delivery</StatusPill>}</span>}
-      description={[customer ? `${customer.full_name} · ${formatPhone(customer.phone)}` : "Walk-in customer", pet?.name,
+      description={[customer ? [customer.full_name, formatPhone(customer.phone)].filter(Boolean).join(" · ") : "Walk-in customer", pet?.name,
         inv.issued_at ? `issued ${formatDateTime(inv.issued_at)}` : null].filter(Boolean).join(" · ")}
       actions={
         <>

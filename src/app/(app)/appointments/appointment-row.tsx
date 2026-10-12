@@ -22,7 +22,7 @@ import { cancelAppointment, checkInAppointment, setAppointmentStatus } from "./a
 
 export type AgendaItem = EditableAppointment & {
   starts_at: string; ends_at: string; status: string; visit_id: string | null;
-  pet_name: string | null; owner_phone: string; owner_whatsapp: string | null; type_name: string; type_tone: string; doctor_name: string | null;
+  pet_name: string | null; owner_phone: string | null; owner_whatsapp: string | null; type_name: string; type_tone: string; doctor_name: string | null;
 };
 
 export function AppointmentRow({ a, doctors, types, canManage, canCheckIn }: {
@@ -77,7 +77,7 @@ export function AppointmentRow({ a, doctors, types, canManage, canCheckIn }: {
           <DropdownMenu>
             <DropdownMenuTrigger asChild><Button variant="ghost" size="icon" aria-label="More"><EllipsisVertical /></Button></DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-56 rounded-xl">
-              <DropdownMenuItem asChild><a href={`tel:${a.owner_phone}`}><Phone /> Call {formatPhone(a.owner_phone)}</a></DropdownMenuItem>
+              {a.owner_phone && <DropdownMenuItem asChild><a href={`tel:${a.owner_phone}`}><Phone /> Call {formatPhone(a.owner_phone)}</a></DropdownMenuItem>}
               {wa && <DropdownMenuItem asChild><a href={wa} target="_blank" rel="noreferrer"><MessageCircle /> WhatsApp reminder</a></DropdownMenuItem>}
               {open && (
                 <>

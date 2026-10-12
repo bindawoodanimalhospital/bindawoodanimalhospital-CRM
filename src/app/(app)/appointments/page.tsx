@@ -11,6 +11,7 @@ import { TIMEZONE, todayPK } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { BookingDialog } from "./booking-dialog";
 import { AppointmentRow, type AgendaItem } from "./appointment-row";
+import { withContact } from "@/lib/contacts";
 
 export const metadata: Metadata = { title: "Appointments" };
 
@@ -36,7 +37,7 @@ export default async function AppointmentsPage({ searchParams }: PageProps<"/app
   const supabase = await createClient();
   let dayQuery = supabase.from("appointments")
     .select(`id, starts_at, ends_at, status, source, is_urgent, reason, pre_visit_instructions, visit_id, pet_id, doctor_id, service_location, service_address,
-      appointment_type_id, customers(id, full_name, phone, whatsapp, area), pets(name), doctor:doctor_id(full_name), appointment_types(name, tone)`)
+      appointment_type_id, customers(id, full_name, customer_contacts(phone, whatsapp), area), pets(name), doctor:doctor_id(full_name), appointment_types(name, tone)`)
     .gte("starts_at", `${day}T00:00:00+05:00`).lt("starts_at", `${shift(day, 1)}T00:00:00+05:00`)
     .order("starts_at");
   if (doctorFilter) dayQuery = dayQuery.eq("doctor_id", doctorFilter);
@@ -53,7 +54,7 @@ export default async function AppointmentsPage({ searchParams }: PageProps<"/app
   for (const r of weekRows ?? []) counts.set(pkDate(r.starts_at), (counts.get(pkDate(r.starts_at)) ?? 0) + 1);
 
   const items: AgendaItem[] = (data ?? []).map((a) => {
-    const c = a.customers as unknown as { id: string; full_name: string; phone: string; whatsapp: string | null; area: string | null };
+    const c = withContact(a.customers as unknown as { id: string; full_name: string; area: string | null });
     const t = a.appointment_types as unknown as { name: string; tone: string };
     return {
       id: a.id, starts_at: a.starts_at, ends_at: a.ends_at, status: a.status, visit_id: a.visit_id,

@@ -20,8 +20,9 @@ $$;
 create or replace function pg_temp.g(key text) returns uuid language sql as $$ select v from ctx where k = key $$;
 
 -- ------------------------------------------------ setup as superuser (dates in the past need it)
-with c as (insert into public.customers (full_name, phone, whatsapp, preferred_language) values ('Reminder Owner', '+923451112233', '+923451112233', 'en') returning id)
+with c as (insert into public.customers (full_name, preferred_language) values ('Reminder Owner', 'en') returning id)
 insert into ctx select 'cust', id from c;
+insert into public.customer_contacts (customer_id, phone, whatsapp) values (pg_temp.g('cust'), '+923451112233', '+923451112233');
 with p as (insert into public.pets (name, species_id, date_of_birth) select 'Bravo', id, (private.clinic_today() - interval '3 years')::date from public.species where name = 'Dog' returning id)
 insert into ctx select 'pet', id from p;
 insert into public.pet_owners (pet_id, customer_id, is_primary) values (pg_temp.g('pet'), pg_temp.g('cust'), true);
@@ -64,13 +65,13 @@ select 'reception alert centre' as t, string_agg(kind || ':' || severity, ', ' o
 
 -- ------------------------------------------------ outbox handling
 do $$ begin
-  perform public.mark_message((select id from public.messages where template_key = 'payment_due' limit 1), 'not_reached', null);
+  perform public.mark_message((select id from public.messages where template_key = 'payment_due' and status in ('to_send', 'queued') order by created_at desc limit 1), 'not_reached', null);
   raise exception 'FAIL: not reached without note';
 exception when others then raise notice 'OK "not reached" needs a note';
 end $$;
-select public.mark_message((select id from public.messages where template_key = 'payment_due' limit 1), 'sent');
+select public.mark_message((select id from public.messages where template_key = 'payment_due' and status in ('to_send', 'queued') order by created_at desc limit 1), 'sent');
 do $$ begin
-  perform public.mark_message((select id from public.messages where template_key = 'payment_due' limit 1), 'sent');
+  perform public.mark_message((select id from public.messages where template_key = 'payment_due' and status in ('to_send', 'queued') order by created_at desc limit 1), 'sent');
   raise exception 'FAIL: marked twice';
 exception when others then raise notice 'OK a message can only be marked once';
 end $$;

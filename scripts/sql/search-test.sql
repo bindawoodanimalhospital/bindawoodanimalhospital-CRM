@@ -25,8 +25,10 @@ end $$;
 set local role authenticated;
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000cc001","role":"authenticated"}', true);
 
-with c as (insert into public.customers (full_name, full_name_ur, phone, area, email) values ('Ahmed Raza', 'احمد رضا', '+923001234567', 'Johar Town', 'ahmed@example.com') returning id) insert into fx select 'ahmed', id from c;
-with c as (insert into public.customers (full_name, phone, area) values ('Fatima Malik', '+923217654321', 'DHA Phase 5') returning id) insert into fx select 'fatima', id from c;
+with c as (insert into public.customers (full_name, full_name_ur, area) values ('Ahmed Raza', 'احمد رضا', 'Johar Town') returning id) insert into fx select 'ahmed', id from c;
+insert into public.customer_contacts (customer_id, phone, email) values (pg_temp.g('ahmed'), '+923001234567', 'ahmed@example.com');
+with c as (insert into public.customers (full_name, area) values ('Fatima Malik', 'DHA Phase 5') returning id) insert into fx select 'fatima', id from c;
+insert into public.customer_contacts (customer_id, phone) values (pg_temp.g('fatima'), '+923217654321');
 with p as (insert into public.pets (name, species_id, microchip_no, color) select 'Tiger', id, '985112003344556', 'golden' from public.species where name = 'Dog' returning id) insert into fx select 'tiger_dog', id from p;
 with p as (insert into public.pets (name, species_id) select 'Tiger', id from public.species where name = 'Cat' returning id) insert into fx select 'tiger_cat', id from p;
 with p as (insert into public.pets (name, species_id) select 'Snowy', id from public.species where name = 'Cat' returning id) insert into fx select 'snowy', id from p;
@@ -71,7 +73,12 @@ select pg_temp.expect((select number from public.invoices where id = pg_temp.g('
 select pg_temp.expect(regexp_replace((select number from public.invoices where id = pg_temp.g('bill')), '^.*-0*', ''), 'bill', 'Fatima Malik', 'bill');
 select pg_temp.expect('royal canin', 'item', 'Royal Canin Kitten 2kg');
 select pg_temp.expect('3182550702447', 'item', 'Royal Canin Kitten 2kg');
-select pg_temp.expect('kitten food', 'item', 'Royal Canin Kitten 2kg');
+-- real price-list items may also match "kitten food", so check it is found rather than first
+do $$ begin
+  if not exists (select 1 from public.smart_search('kitten food') where kind = 'item' and title = 'Royal Canin Kitten 2kg') then
+    raise exception 'FAIL: "kitten food" should find Royal Canin Kitten 2kg'; end if;
+  raise notice 'OK "kitten food" finds Royal Canin Kitten 2kg';
+end $$;
 select pg_temp.expect('pet: tiger', 'pet', 'Tiger');
 select pg_temp.expect('#' || (select token_no from public.visits where pet_id = pg_temp.g('snowy')), 'visit', 'Snowy');
 select pg_temp.expect((select code from public.pets where id = pg_temp.g('snowy')), 'pet', 'Snowy');

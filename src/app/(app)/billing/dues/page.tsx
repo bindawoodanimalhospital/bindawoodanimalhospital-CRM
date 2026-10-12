@@ -13,6 +13,7 @@ import { formatPhone, whatsappLink } from "@/lib/phone";
 import { cn } from "@/lib/utils";
 import { Pagination } from "@/components/app/pagination";
 import { DueActions } from "./due-actions";
+import { withContact } from "@/lib/contacts";
 
 export const metadata: Metadata = { title: "Unpaid bills" };
 const PAGE = 50;
@@ -36,7 +37,7 @@ export default async function DuesPage({ searchParams }: PageProps<"/billing/due
   const supabase = await createClient();
   const [{ data }, methods, clinic] = await Promise.all([
     supabase.from("dues").select(`id, invoice_id, customer_id, original_amount, reason, promised_date, priority, approval_status, missed_promises, created_at,
-      invoices(number, balance, issued_at), customers(full_name, phone, whatsapp), pets(name)`)
+      invoices(number, balance, issued_at), customers(full_name, customer_contacts(phone, whatsapp)), pets(name)`)
       .eq("status", "open").order("promised_date"),
     paymentMethods(),
     getSetting<{ name?: string }>("clinic.profile"),
@@ -45,7 +46,7 @@ export default async function DuesPage({ searchParams }: PageProps<"/billing/due
   const rows = (data ?? []).map((d) => {
     const inv = d.invoices as unknown as { number: string; balance: number; issued_at: string };
     return { ...d, inv, balance: Number(inv.balance), late: daysLate(d.promised_date, today),
-      customer: d.customers as unknown as { full_name: string; phone: string; whatsapp: string | null },
+      customer: withContact(d.customers as unknown as { full_name: string }),
       pet: (d.pets as unknown as { name: string } | null)?.name ?? null };
   }).filter((r) => r.balance > 0);
 
@@ -105,7 +106,7 @@ export default async function DuesPage({ searchParams }: PageProps<"/billing/due
                     {r.approval_status === "rejected" && <StatusPill tone="danger">Not approved</StatusPill>}
                     {r.missed_promises > 0 && <StatusPill tone="danger">{r.missed_promises} missed promise{r.missed_promises > 1 ? "s" : ""}</StatusPill>}
                   </div>
-                  <p className="mt-1 text-sm text-muted-foreground">{formatPhone(r.customer.phone)} · {r.reason}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">{[formatPhone(r.customer.phone), r.reason].filter(Boolean).join(" · ")}</p>
                   <p className="mt-1 text-sm">
                     <b className="text-lg tabular">{formatPKR(r.balance)}</b>
                     <span className="text-muted-foreground"> of {formatPKR(r.original_amount)} · promised {formatDate(r.promised_date)}</span>
@@ -113,7 +114,7 @@ export default async function DuesPage({ searchParams }: PageProps<"/billing/due
                   </p>
                 </div>
                 <div className="flex flex-wrap items-start gap-2 md:justify-end">
-                  <Button asChild variant="outline" size="icon-sm" aria-label="Call"><a href={`tel:${r.customer.phone}`}><Phone /></a></Button>
+                  {r.customer.phone && <Button asChild variant="outline" size="icon-sm" aria-label="Call"><a href={`tel:${r.customer.phone}`}><Phone /></a></Button>}
                   {wa && <Button asChild variant="outline" size="icon-sm" aria-label="WhatsApp reminder"><a href={wa} target="_blank" rel="noreferrer"><MessageCircle /></a></Button>}
                   <DueActions due={{ id: r.id, invoice_id: r.invoice_id, customer_id: r.customer_id, balance: r.balance, approval_status: r.approval_status }}
                     methods={methods.filter((m) => m.key !== "write_off")} canTake={me.can("billing.create")} canManage={me.can("billing.discount_approve")} />

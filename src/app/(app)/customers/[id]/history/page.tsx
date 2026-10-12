@@ -12,6 +12,7 @@ import { loadOwnerHistory, type OwnerEvent } from "@/lib/owner-history";
 import type { Episode } from "@/lib/pet-history";
 import { formatDate } from "@/lib/format";
 import { formatPhone } from "@/lib/phone";
+import { withContact } from "@/lib/contacts";
 
 export const metadata: Metadata = { title: "Owner history" };
 
@@ -48,7 +49,7 @@ export default async function OwnerHistoryPage({ params, searchParams }: PagePro
   const q = typeof sp.q === "string" ? sp.q.trim().toLowerCase().slice(0, 80) : "";
 
   const supabase = await createClient();
-  const { data: c } = await supabase.from("customers").select("id, code, full_name, phone, area, created_at").eq("id", id).maybeSingle();
+  const { data: c } = await supabase.from("customers").select("id, code, full_name, customer_contacts(phone, whatsapp), area, created_at").eq("id", id).maybeSingle();
   if (!c) notFound();
   const h = await loadOwnerHistory(id, me);
   const showMoney = me.can("billing.view");
@@ -68,7 +69,7 @@ export default async function OwnerHistoryPage({ params, searchParams }: PagePro
     <>
       <PageHeader back={{ href: `/customers/${id}`, label: c.full_name }}
         title={`${c.full_name} — full history`}
-        description={[c.code, formatPhone(c.phone), c.area, `Registered ${formatDate(c.created_at)}`].filter(Boolean).join(" · ")}
+        description={[c.code, formatPhone(withContact(c).phone), c.area, `Registered ${formatDate(c.created_at)}`].filter(Boolean).join(" · ")}
         actions={<Button asChild variant="outline"><Link href={`/print/owner-history/${id}`} target="_blank"><Printer /> Print full history</Link></Button>} />
 
       <div className="mb-4 rounded-2xl bg-card p-4 shadow-card ring-1 ring-border"><OwnerSummary h={h} showMoney={showMoney} /></div>

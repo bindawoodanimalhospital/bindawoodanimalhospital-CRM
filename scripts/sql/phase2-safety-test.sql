@@ -27,8 +27,8 @@ set local role authenticated;
 
 -- ---------------------------------------------------------------- reception: walk-ins & appointment check-in
 select pg_temp.act('00000000-0000-0000-0000-0000000000a4');
-insert into public.customers (full_name, phone) values ('Test Owner', '+923009998877');
-insert into ctx select 'customer', id from public.customers where phone = '+923009998877';
+insert into public.customers (full_name) values ('Test Owner');
+insert into ctx select 'customer', id from public.customers where full_name = 'Test Owner';
 insert into public.pets (name, species_id) select 'Rex', id from public.species where name = 'Dog';
 insert into ctx select 'pet', id from public.pets where name = 'Rex' order by created_at desc limit 1;
 insert into public.pet_owners (pet_id, customer_id, is_primary) select (select v from ctx where k='pet'), (select v from ctx where k='customer'), true;
