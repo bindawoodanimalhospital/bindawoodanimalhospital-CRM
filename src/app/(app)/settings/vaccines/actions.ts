@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { assertCan } from "@/lib/auth";
+import { assertCan, getCurrentStaff } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { dbErrorMessage, type FormState } from "@/lib/validation";
 
@@ -64,4 +64,28 @@ export async function setProtocolActive(id: string, active: boolean): Promise<Fo
   const { error } = await supabase.from("vaccination_protocols").update({ is_active: active }).eq("id", id);
   if (error) return { message: dbErrorMessage(error) };
   return done(active ? "Schedule turned on." : "Schedule turned off.");
+}
+
+const vaccineSchema = z.object({
+  name: z.string().trim().min(2, "Give the vaccine a name"),
+  protects_against: z.string().trim().min(2, "Say what it protects against"),
+  species_ids: z.array(z.uuid()).min(1, "Choose at least one species"),
+  default_manufacturer: z.string().trim().optional().transform((v) => v || null),
+  default_route: z.string().trim().optional().transform((v) => v || null),
+  default_dose: z.string().trim().optional().transform((v) => v || null),
+  is_active: z.boolean().default(true),
+});
+
+/** Add or edit a vaccine on the clinic's list (owner / senior doctor). */
+export async function saveVaccine(id: string | null, input: z.input<typeof vaccineSchema>): Promise<FormState> {
+  const me = await getCurrentStaff();
+  if (!me?.can("clinical.reopen") && !me?.can("settings.manage")) return { message: "Only the owner or a senior doctor can change the vaccine list." };
+  const parsed = vaccineSchema.safeParse(input);
+  if (!parsed.success) return { message: parsed.error.issues[0]?.message };
+  const supabase = await createClient();
+  const { error } = id
+    ? await supabase.from("vaccines").update(parsed.data).eq("id", id)
+    : await supabase.from("vaccines").insert(parsed.data);
+  if (error) return { message: error.code === "23505" ? "A vaccine with this name already exists." : dbErrorMessage(error) };
+  return done(id ? "Vaccine saved." : `${parsed.data.name} added — doctors can record it now.`);
 }

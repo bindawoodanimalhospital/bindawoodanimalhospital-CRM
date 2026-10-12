@@ -64,7 +64,7 @@ export const NAV: NavGroup[] = [
       { title: "Staff", href: "/admin/staff", icon: UserCog, anyOf: ["staff.view"] },
       { title: "Who can do what", href: "/admin/roles", icon: ShieldCheck, anyOf: ["staff.view"] },
       { title: "Activity log", href: "/admin/audit", icon: FileClock, anyOf: ["audit.view"] },
-      { title: "Vaccine schedules", href: "/settings/vaccines", icon: Syringe, anyOf: ["clinical.reopen"] },
+      { title: "Vaccines & schedules", href: "/settings/vaccines", icon: Syringe, anyOf: ["clinical.reopen", "settings.manage"] },
       { title: "Reminder settings", href: "/settings/reminders", icon: BellRing, anyOf: ["settings.manage"] },
       { title: "Settings", href: "/settings", icon: Settings, anyOf: ["settings.manage"] },
     ],
