@@ -15,19 +15,22 @@ import { formatDate, formatDateTime, formatPKR } from "@/lib/format";
 import type { FormState } from "@/lib/validation";
 import { applyCredit, recordPayment, refundInvoice, returnItems, voidInvoice } from "../actions";
 import type { Method } from "./editor";
+import { CancelOrderButton } from "../../pos/cancel-order";
 
 export type IssuedLine = { id: string; description: string; quantity: number; unit_price: number; discount_amount: number; line_total: number; returned_qty: number };
 export type PaymentRow = { id: string; code: string; kind: string; method: string; amount: number; allocated: number; received_at: string; reference: string | null; by: string | null };
 export type IssuedInvoice = {
   id: string; number: string; status: "issued" | "void"; customer_id: string | null; total: number; amount_paid: number; returned_amount: number;
   balance: number; void_reason: string | null; due: { status: string; promised_date: string; approval_status: string } | null;
+  /** Pet-store / delivery order — cancelled with "Cancel order" (refund + stock back) instead of Void. */
+  store?: boolean;
 };
 
 const key = () => (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
 
 export function IssuedPanel({ inv, lines, payments, methods, perms, credit }: {
   inv: IssuedInvoice; lines: IssuedLine[]; payments: PaymentRow[]; methods: Method[]; credit: number;
-  perms: { create: boolean; refund: boolean; void: boolean; ret: boolean };
+  perms: { create: boolean; refund: boolean; void: boolean; ret: boolean; cancel?: boolean };
 }) {
   const voided = inv.status === "void";
   return (
@@ -83,7 +86,7 @@ export function IssuedPanel({ inv, lines, payments, methods, perms, credit }: {
               <dd className={`text-3xl font-bold tabular ${inv.balance > 0 && !voided ? "text-danger" : "text-success"}`}>{voided ? "—" : formatPKR(inv.balance)}</dd>
             </div>
           </dl>
-          {voided && <p className="mt-3 rounded-xl bg-muted px-3 py-2 text-sm">Void: {inv.void_reason}</p>}
+          {voided && <p className="mt-3 rounded-xl bg-muted px-3 py-2 text-sm">{inv.void_reason?.startsWith("Cancelled:") ? inv.void_reason : `Void: ${inv.void_reason}`}</p>}
           {inv.due && inv.due.status === "open" && (
             <p className="mt-3 rounded-xl bg-warning-soft px-3 py-2 text-sm text-warning">
               Due — promised by {formatDate(inv.due.promised_date)}{inv.due.approval_status === "pending" ? " · waiting for manager approval" : ""}
@@ -100,7 +103,10 @@ export function IssuedPanel({ inv, lines, payments, methods, perms, credit }: {
             {perms.create && inv.balance > 0 && credit > 0 && <Run label={`Use advance (${formatPKR(credit)})`} icon={<PiggyBank />} fn={() => applyCredit(inv.id)} />}
             {perms.ret && lines.some((l) => l.returned_qty < l.quantity) && <ReturnDialog inv={inv} lines={lines} methods={methods} />}
             {perms.refund && inv.amount_paid > 0 && <RefundDialog inv={inv} methods={methods} />}
-            {perms.void && inv.amount_paid === 0 && inv.returned_amount === 0 && <VoidDialog id={inv.id} />}
+            {inv.store && perms.cancel && inv.returned_amount === 0 && (
+              <CancelOrderButton invoiceId={inv.id} number={inv.number} paid={inv.amount_paid} methods={methods} size="default" />
+            )}
+            {!inv.store && perms.void && inv.amount_paid === 0 && inv.returned_amount === 0 && <VoidDialog id={inv.id} />}
           </section>
         )}
       </aside>

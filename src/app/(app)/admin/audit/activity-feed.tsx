@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Coffee, Copy, Download, ExternalLink, Eye, FileClock, KeyRound, Loader2, LogIn, LogOut, Mail, MessageCircle, Pencil, Phone, Plus, Printer,
+  Ban, Coffee, Copy, Download, ExternalLink, Eye, FileClock, KeyRound, Loader2, LogIn, LogOut, Mail, MessageCircle, Pencil, Phone, Plus, Printer,
   Search, ShieldAlert, ShieldX, Sparkles, SquareX, Trash2, Undo2, type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -201,6 +201,13 @@ function makeDescribe(names: Record<string, string>, roleNames: Record<string, s
         return { icon: Undo2, tone: "bg-muted text-muted-foreground", text: `Came back after about ${c("away_minutes") ?? "?"} minutes away`, detail: onPage(r) };
       case "session.closed":
         return { icon: SquareX, tone: "bg-muted text-muted-foreground", text: "Closed or refreshed the CRM tab", detail: onPage(r) };
+      case "order.cancelled":
+        return { icon: Ban, tone: "bg-danger-soft text-danger", text: `Cancelled order ${c("number") ?? ""}`.trim(),
+          detail: [r.reason, Number(c("refunded") ?? 0) > 0 ? `refunded Rs. ${Number(c("refunded")).toLocaleString("en-PK")}` : null].filter(Boolean).join(" · ") || null,
+          href: r.record_id ? `/billing/${r.record_id}` : null };
+      case "invoice.refund":
+        return { icon: Undo2, tone: "bg-warning-soft text-warning", text: `Refunded Rs. ${Number(c("amount") ?? 0).toLocaleString("en-PK")}`,
+          detail: r.reason, href: r.record_id ? `/billing/${r.record_id}` : null };
       case "access.denied":
         return { icon: ShieldX, tone: "bg-danger-soft text-danger", text: "Tried to open a page they're not allowed to",
           detail: [c("from") && `from ${c("from")}`, c("permission") && `needs “${String(c("permission")).replace(/[._]/g, " ")}”`].filter(Boolean).join(" · ") || null };

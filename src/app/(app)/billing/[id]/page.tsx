@@ -138,12 +138,12 @@ export default async function InvoicePage({ params }: PageProps<"/billing/[id]">
       <IssuedPanel
         inv={{ id: inv.id, number: inv.number!, status: inv.status, customer_id: customer?.id ?? null, total: Number(inv.total),
           amount_paid: Number(inv.amount_paid), returned_amount: Number(inv.returned_amount), balance: Number(inv.balance),
-          void_reason: inv.void_reason, due: dueRow }}
+          void_reason: inv.void_reason, due: dueRow, store: inv.kind === "store" }}
         lines={items.map((i): IssuedLine => ({ id: i.id, description: i.description, quantity: Number(i.quantity), unit_price: Number(i.unit_price),
           discount_amount: Number(i.discount_amount), line_total: Number(i.line_total), returned_qty: Number(i.returned_qty) }))}
         payments={payments} methods={methodsNoWriteOff} credit={credit}
         perms={{ create: me.can("billing.create"), refund: me.can("billing.refund"), void: me.can("billing.void"),
-          ret: me.can("billing.refund") || me.can("pos.return") }}
+          ret: me.can("billing.refund") || me.can("pos.return"), cancel: me.can("pos.use") || me.can("billing.void") }}
       />
     </>
   );

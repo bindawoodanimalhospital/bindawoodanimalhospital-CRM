@@ -128,3 +128,17 @@ export async function collectAndDeliver(invoiceId: string, customerId: string, p
   revalidatePath(`/customers/${customerId}`);
   return { ok: true, message: payment?.amount ? "Cash recorded — order delivered." : "Marked as delivered." };
 }
+
+/** Cancel a pet-store / delivery order: refund what was paid, put the stock back, keep it as Cancelled. Reason optional. */
+export async function cancelOrder(invoiceId: string, reason: string, refundMethod: string | null, key: string): Promise<FormState> {
+  const me = await getCurrentStaff();
+  if (!me?.can("pos.use") && !me?.can("billing.void")) return { message: "You don't have permission to cancel orders." };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("cancel_order", { p_invoice: invoiceId, p_reason: reason.trim() || null, p_refund_method: refundMethod, p_key: key });
+  if (error) return { message: error.message };
+  revalidatePath("/pos/deliveries");
+  revalidatePath(`/billing/${invoiceId}`);
+  revalidatePath("/billing");
+  revalidatePath("/pos");
+  return { ok: true, message: "Order cancelled — stock is back and any payment was refunded." };
+}

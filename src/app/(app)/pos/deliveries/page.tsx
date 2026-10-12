@@ -13,13 +13,14 @@ import { formatDateTime, formatPKR, formatTime } from "@/lib/format";
 import { formatPhone } from "@/lib/phone";
 import { cn } from "@/lib/utils";
 import { DeliveryActions } from "./delivery-actions";
+import { CancelOrderButton } from "../cancel-order";
 import { withContact } from "@/lib/contacts";
 
 export const metadata: Metadata = { title: "Home deliveries" };
 const PAGE = 30;
 const VIEWS = [
   { key: "open", label: "To do" }, { key: "pending", label: "To dispatch" }, { key: "dispatched", label: "Out for delivery" },
-  { key: "delivered", label: "Delivered" }, { key: "all", label: "All" },
+  { key: "delivered", label: "Delivered" }, { key: "cancelled", label: "Cancelled" }, { key: "all", label: "All" },
 ] as const;
 
 export default async function DeliveriesPage({ searchParams }: PageProps<"/pos/deliveries">) {
@@ -33,12 +34,12 @@ export default async function DeliveriesPage({ searchParams }: PageProps<"/pos/d
 
   let q = supabase.from("invoices")
     .select(`id, number, total, balance, amount_paid, returned_amount, issued_at, delivery_status, delivery_address, delivery_rider, delivery_notes,
-      dispatched_at, delivered_at, customers(id, full_name, customer_contacts(phone, whatsapp)), invoice_items(description, quantity, line_role, unit_price)`, { count: "exact" })
-    .eq("fulfilment", "home_delivery").eq("status", "issued")
+      dispatched_at, delivered_at, status, void_reason, voided_at, customers(id, full_name, customer_contacts(phone, whatsapp)), invoice_items(description, quantity, line_role, unit_price)`, { count: "exact" })
+    .eq("fulfilment", "home_delivery").eq("status", view === "cancelled" ? "void" : "issued")
     .order("issued_at", { ascending: view === "open" || view === "pending" })
     .range((page - 1) * PAGE, page * PAGE - 1);
   if (view === "open") q = q.in("delivery_status", ["pending", "dispatched"]);
-  else if (view !== "all") q = q.eq("delivery_status", view);
+  else if (view !== "all" && view !== "cancelled") q = q.eq("delivery_status", view);
 
   const [{ data, count }, { data: counts }, methods] = await Promise.all([
     q,
@@ -88,8 +89,8 @@ export default async function DeliveriesPage({ searchParams }: PageProps<"/pos/d
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <Link href={`/billing/${o.id}`} className="font-semibold hover:underline">{o.number}</Link>
-                      <StatusPill tone={DELIVERY_STATUS[status].tone}>{DELIVERY_STATUS[status].label}</StatusPill>
-                      {Number(o.balance) > 0
+                      {o.status === "void" ? <StatusPill tone="neutral">Cancelled</StatusPill> : <StatusPill tone={DELIVERY_STATUS[status].tone}>{DELIVERY_STATUS[status].label}</StatusPill>}
+                      {o.status === "void" ? null : Number(o.balance) > 0
                         ? <StatusPill tone="danger">{status === "delivered" ? "Unpaid" : "Collect"} {formatPKR(o.balance)}</StatusPill>
                         : <StatusPill tone="success">Paid</StatusPill>}
                     </div>
@@ -105,6 +106,7 @@ export default async function DeliveriesPage({ searchParams }: PageProps<"/pos/d
                       {fee && ` · Delivery ${Number(fee.unit_price) === 0 ? "waived" : formatPKR(fee.unit_price)}`}
                     </p>
                     {o.delivery_notes && <p className="mt-1 text-xs whitespace-pre-wrap text-muted-foreground">Note: {o.delivery_notes}</p>}
+                    {o.status === "void" && <p className="mt-1 text-sm text-danger">{o.void_reason}{o.voided_at ? ` · ${formatDateTime(o.voided_at)}` : ""}</p>}
                     <p className="mt-1 text-xs text-muted-foreground">
                       Ordered {formatDateTime(o.issued_at)}
                       {o.dispatched_at && ` · left ${formatTime(o.dispatched_at)}${o.delivery_rider ? ` with ${o.delivery_rider}` : ""}`}
@@ -115,7 +117,10 @@ export default async function DeliveriesPage({ searchParams }: PageProps<"/pos/d
                     <span className="text-xl font-bold tabular">{formatPKR(o.total)}</span>
                     <div className="flex flex-wrap justify-end gap-2">
                       <Button asChild variant="ghost" size="sm"><Link href={`/print/invoice/${o.id}?receipt=1`} target="_blank"><Printer /> Receipt</Link></Button>
-                      {canWrite && (
+                      {canWrite && o.status !== "void" && status !== "delivered" && (
+                        <CancelOrderButton invoiceId={o.id} number={o.number!} paid={Number(o.amount_paid)} methods={methods.filter((m) => m.key !== "write_off")} />
+                      )}
+                      {canWrite && o.status !== "void" && (
                         <DeliveryActions
                           order={{ id: o.id, number: o.number!, status, balance: Number(o.balance), address: o.delivery_address ?? "",
                             charge: Number(fee?.unit_price ?? 0), customerId: c?.id ?? null, rider: o.delivery_rider }}
