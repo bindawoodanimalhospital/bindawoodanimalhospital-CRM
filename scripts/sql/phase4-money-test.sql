@@ -76,7 +76,7 @@ end $$;
 do $$ begin
   perform public.checkout_invoice(pg_temp.g('inv'), '[{"method":"cash","amount":1000}]', null, 'k-inv-1');
   raise exception 'FAIL: partial payment without a due';
-exception when others then raise notice 'OK unpaid balance needs a promised date & reason (%)', left(sqlerrm, 50);
+exception when others then raise notice 'OK leaving a balance unpaid must be chosen on purpose (%)', left(sqlerrm, 50);
 end $$;
 select public.checkout_invoice(pg_temp.g('inv'), '[{"method":"cash","amount":1000}]',
   jsonb_build_object('promised_date', private.clinic_today() + 7, 'reason', 'Will pay on salary day'), 'k-inv-1') is not null as issued;

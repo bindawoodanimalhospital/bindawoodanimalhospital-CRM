@@ -89,5 +89,17 @@ select private.run_reminders() is not null;
 select pg_temp.check(exists (select 1 from public.messages m join public.dues d on d.id = m.source_id where d.invoice_id = pg_temp.g('cod')),
   'payment reminder starts once delivered and still unpaid');
 
+-- 8) Pay later without paperwork: bill issued now, payment recorded after delivery
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000bb001","role":"authenticated"}', true);
+with i as (insert into public.invoices (customer_id) values (pg_temp.g('a')) returning id) insert into fx select 'later', id from i;
+insert into public.invoice_items (invoice_id, item_id, quantity, unit_price) values (pg_temp.g('later'), pg_temp.g('svc'), 1, 1200);
+select public.checkout_invoice(pg_temp.g('later'), '[]', '{}'::jsonb, 'bl-later');
+select pg_temp.check((select d.reason = 'Payment to follow' and d.promised_date = private.clinic_today() + 7 from public.dues d where d.invoice_id = pg_temp.g('later')),
+  'pay later with no reason or date: bill issued, "Payment to follow" in 7 days');
+select public.record_payment(pg_temp.g('a'), 1200, 'jazzcash', 'bl-later-pay', pg_temp.g('later'), 'TX-55', false, 'Received after delivery');
+select pg_temp.check((select balance = 0 and amount_paid = 1200 from public.invoices where id = pg_temp.g('later')),
+  'the payment that arrives later settles the bill');
+reset role;
 select 'ALL BUSINESS-LOGIC CHECKS PASSED' as result;
 rollback;

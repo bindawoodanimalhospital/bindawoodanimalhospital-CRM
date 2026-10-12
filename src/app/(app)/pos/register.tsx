@@ -37,7 +37,9 @@ export function Register({ initial, popular = [], methods, canDiscount, defaultD
   const [address, setAddress] = useState("");
   const [charge, setCharge] = useState(String(defaultDeliveryCharge));
   const [deliveryNotes, setDeliveryNotes] = useState("");
-  const [cod, setCod] = useState(false);
+  // When the customer pays: now, cash to the rider (delivery only), or later (bill issued now, payment recorded when it arrives).
+  const [payMode, setPayMode] = useState<"now" | "cod" | "later">("now");
+  const [laterDate, setLaterDate] = useState("");
   const [pending, start] = useTransition();
   const scan = useRef<HTMLInputElement>(null);
   const key = useRef(newKey());
@@ -76,7 +78,8 @@ export function Register({ initial, popular = [], methods, canDiscount, defaultD
   const subtotal = cart.reduce((s, l) => s + l.price * l.qty - l.discount, 0);
   const deliveryCharge = delivery ? Math.max(0, Number(charge) || 0) : 0;
   const total = Math.max(0, subtotal + deliveryCharge - (Number(billDiscount) || 0));
-  const payNow = !(delivery && cod);
+  const mode = payMode === "cod" && !delivery ? "now" : payMode === "later" && !customer ? "now" : payMode;
+  const payNow = mode === "now";
   const paid = !payNow ? 0 : tendered === "" ? total : Number(tendered) || 0;
   const change = method === "cash" ? Math.max(0, paid - total) : 0;
   const short = total - Math.min(paid, total);
@@ -95,7 +98,8 @@ export function Register({ initial, popular = [], methods, canDiscount, defaultD
       lines: cart.map((l) => ({ item_id: l.item.id, quantity: l.qty, discount_amount: l.discount, unit_price: l.item.price_is_editable ? l.price : undefined })),
       payments: payNow ? [{ method, amount: Math.min(paid, total), reference }] : [],
       invoice_discount: Number(billDiscount) || 0, discount_reason: discountReason,
-      pay_later: !payNow ? { promised_date: todayPK(), reason: "Cash on delivery" }
+      pay_later: mode === "cod" ? { promised_date: todayPK(), reason: "Cash on delivery" }
+        : mode === "later" ? { promised_date: laterDate || addDaysPK(7), reason: delivery ? "Pay after delivery" : "Pay later" }
         : short > 0 && customer ? { promised_date: addDaysPK(7), reason: "Store credit — balance to pay" } : null,
       delivery: delivery ? { address: address.trim(), charge: deliveryCharge, notes: deliveryNotes.trim() || undefined } : null,
     });
@@ -109,7 +113,7 @@ export function Register({ initial, popular = [], methods, canDiscount, defaultD
 
   const clearSale = () => {
     setCart([]); setCustomer(null); setTendered(""); setReference(""); setBillDiscount(""); setDiscountReason(""); setMethod("cash"); setDone(null);
-    setDelivery(false); setAddress(""); setCharge(String(defaultDeliveryCharge)); setDeliveryNotes(""); setCod(false);
+    setDelivery(false); setAddress(""); setCharge(String(defaultDeliveryCharge)); setDeliveryNotes(""); setPayMode("now"); setLaterDate("");
     setTimeout(() => scan.current?.focus(), 50);
   };
   const reset = () => { clearSale(); setLastSale(null); };
@@ -246,12 +250,20 @@ export function Register({ initial, popular = [], methods, canDiscount, defaultD
           <div className="flex items-baseline justify-between border-t pt-3">
             <span className="font-semibold">Total</span><span className="text-3xl font-bold tabular">{formatPKR(total)}</span>
           </div>
-          {delivery && (
-            <div className="grid grid-cols-2 gap-1 rounded-xl bg-muted p-1" role="radiogroup" aria-label="When the customer pays">
-              {([[false, "Pay now"], [true, "Cash on delivery"]] as const).map(([v, label]) => (
-                <button key={label} type="button" role="radio" aria-checked={cod === v} onClick={() => setCod(v)}
-                  className={cn("h-9 rounded-lg text-sm font-semibold transition", cod === v ? "bg-card shadow-sm ring-1 ring-border" : "text-muted-foreground hover:text-foreground")}>{label}</button>
+          {(delivery || customer) && (
+            <div className={cn("grid gap-1 rounded-xl bg-muted p-1", delivery ? "grid-cols-3" : "grid-cols-2")} role="radiogroup" aria-label="When the customer pays">
+              {(delivery ? [["now", "Pay now"], ["cod", "On delivery"], ["later", "Pay later"]] as const : [["now", "Pay now"], ["later", "Pay later"]] as const).map(([v, label]) => (
+                <button key={v} type="button" role="radio" aria-checked={mode === v} disabled={v === "later" && !customer} onClick={() => setPayMode(v)}
+                  className={cn("h-9 rounded-lg text-sm font-semibold transition disabled:opacity-40", mode === v ? "bg-card shadow-sm ring-1 ring-border" : "text-muted-foreground hover:text-foreground")}>{label}</button>
               ))}
+            </div>
+          )}
+          {mode === "later" && (
+            <div className="grid gap-2 rounded-xl bg-info-soft p-3 text-sm text-info">
+              <p>The bill is made now for {formatPKR(total)}. When the money arrives (cash, JazzCash, bank…), record it on the bill{delivery ? " or on Home deliveries" : ""}.</p>
+              <label className="grid gap-1 font-medium">Expected by <span className="font-normal">(optional)</span>
+                <Input type="date" min={todayPK()} value={laterDate} onChange={(e) => setLaterDate(e.target.value)} className="bg-card" />
+              </label>
             </div>
           )}
           {payNow && (
@@ -262,9 +274,9 @@ export function Register({ initial, popular = [], methods, canDiscount, defaultD
               ))}
             </div>
           )}
-          {!payNow ? (
+          {mode === "cod" ? (
             <p className="rounded-xl bg-info-soft px-3 py-2 text-sm text-info">The rider collects {formatPKR(total)}. Record the cash on <b>Home deliveries</b> when it&apos;s delivered.</p>
-          ) : method === "cash" ? (
+          ) : !payNow ? null : method === "cash" ? (
             <Input className="h-12 text-right text-lg font-semibold tabular" inputMode="decimal" placeholder={`Cash received (${formatPKR(total)})`}
               value={tendered} onChange={(e) => setTendered(e.target.value.replace(/[^\d.]/g, ""))}
               onKeyDown={(e) => { if (e.key === "Enter" && canPay) pay(); }} />
@@ -276,7 +288,7 @@ export function Register({ initial, popular = [], methods, canDiscount, defaultD
           {discountReason.trim() === "" && Number(billDiscount) > 0 && <p className="text-xs text-danger">Give a reason for the discount.</p>}
           <Button size="lg" className="h-14 text-lg" onClick={pay} disabled={!canPay}>
             {pending ? <Loader2 className="animate-spin" /> : delivery ? <Truck /> : <Check />}
-            {!payNow ? "Confirm order — cash on delivery" : `Pay ${formatPKR(Math.min(paid, total))}`}
+            {mode === "cod" ? "Confirm order — cash on delivery" : mode === "later" ? `Make bill — pay later (${formatPKR(total)})` : `Pay ${formatPKR(Math.min(paid, total))}`}
           </Button>
         </section>
       </aside>

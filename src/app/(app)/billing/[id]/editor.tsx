@@ -283,11 +283,12 @@ function Checkout({ invoiceId, totals, methods, canDiscount, hasLines, credit, c
         {balance > 0 && (
           <div className="grid gap-2 rounded-xl bg-warning-soft p-3 ring-1 ring-warning/30">
             <p className="flex items-center gap-2 text-sm font-semibold text-warning"><CalendarClock className="size-4" /> {formatPKR(balance)} will be left to pay</p>
-            <FormField label="Promised payment date"><Input type="date" min={todayPK()} value={promise} onChange={(e) => setPromise(e.target.value)} /></FormField>
-            <FormField label="Reason"><Textarea rows={2} value={laterReason} onChange={(e) => setLaterReason(e.target.value)} placeholder="e.g. Will pay on the 1st, owner's brother will bring the rest" /></FormField>
+            <p className="text-xs text-warning">The bill is issued now — record the payment on this bill (or in Unpaid bills) when it arrives.</p>
+            <FormField label="Expected by" hint="Optional — a week from today if left as is"><Input type="date" min={todayPK()} value={promise} onChange={(e) => setPromise(e.target.value)} /></FormField>
+            <FormField label="Note" hint="Optional"><Textarea rows={2} value={laterReason} onChange={(e) => setLaterReason(e.target.value)} placeholder="e.g. Will pay after delivery / on the 1st" /></FormField>
           </div>
         )}
-        <Button size="lg" disabled={pending || !hasLines || missingRef || (balance > 0 && laterReason.trim().length < 3)} onClick={submit}>
+        <Button size="lg" disabled={pending || !hasLines || missingRef} onClick={submit}>
           {pending ? <Loader2 className="animate-spin" /> : <Check />}
           {balance > 0 ? `Issue bill · ${formatPKR(Math.max(0, paid))} now` : "Take payment & issue bill"}
         </Button>
