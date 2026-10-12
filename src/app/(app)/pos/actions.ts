@@ -5,20 +5,38 @@ import { assertCan, getCurrentStaff } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import type { FormState } from "@/lib/validation";
 
-export type RetailItem = { id: string; name: string; category: string | null; brand: string | null; sale_price: number; unit: string; track_stock: boolean; stock: number | null; barcode: string | null; sku: string | null };
+export type RetailItem = {
+  id: string; name: string; category: string | null; brand: string | null; sale_price: number; unit: string; track_stock: boolean;
+  stock: number | null; barcode: string | null; sku: string | null;
+  /** Sizes of one product share a family ("Petline Kitten" → 400 g / 1.5 kg). */
+  family_id: string | null; family_name: string | null; size_label: string | null; size_grams: number | null;
+  /** "In the shop right now" — staff untick it when a size isn't available. */
+  is_available: boolean;
+};
+
+const RETAIL = "id, name, category, brand, sale_price, unit, track_stock, barcode, sku, family_id, size_label, size_grams, is_available, product_families(name)";
 
 export async function searchRetail(q: string): Promise<RetailItem[]> {
   await assertCan("pos.use");
   const term = q.replace(/[^\p{L}\p{N} .\-]/gu, "").trim();
   const supabase = await createClient();
-  let query = supabase.from("catalog_items").select("id, name, category, brand, sale_price, unit, track_stock, barcode, sku")
-    .eq("is_active", true).eq("is_retail", true).order("name").limit(40);
+  let query = supabase.from("catalog_items").select(RETAIL).eq("is_active", true).eq("is_retail", true).order("name").limit(60);
   if (term) query = query.or(`name.ilike.%${term}%,brand.ilike.%${term}%,category.ilike.%${term}%,barcode.eq.${term},sku.eq.${term}`);
-  const { data } = await query;
-  const ids = (data ?? []).filter((i) => i.track_stock).map((i) => i.id);
+  const { data: hits } = await query;
+  // Show every size of a product that matched, so the size buttons are complete.
+  const famIds = [...new Set((hits ?? []).map((i) => i.family_id).filter((f): f is string => !!f))];
+  const { data: siblings } = famIds.length
+    ? await supabase.from("catalog_items").select(RETAIL).eq("is_active", true).eq("is_retail", true).in("family_id", famIds)
+    : { data: [] };
+  const data = [...new Map([...(hits ?? []), ...(siblings ?? [])].map((i) => [i.id, i])).values()];
+  const ids = data.filter((i) => i.track_stock).map((i) => i.id);
   const { data: levels } = ids.length ? await supabase.from("stock_levels").select("item_id, usable_qty").in("item_id", ids) : { data: [] };
   const stock = new Map((levels ?? []).map((l) => [l.item_id, Number(l.usable_qty)]));
-  return (data ?? []).map((i) => ({ ...i, sale_price: Number(i.sale_price), stock: i.track_stock ? stock.get(i.id) ?? 0 : null }));
+  return data.map(({ product_families, ...i }) => ({
+    ...i, sale_price: Number(i.sale_price), size_grams: i.size_grams == null ? null : Number(i.size_grams),
+    family_name: (product_families as unknown as { name: string } | null)?.name ?? null,
+    stock: i.track_stock ? stock.get(i.id) ?? 0 : null,
+  }));
 }
 
 /** Exact barcode / SKU match for scanners. */

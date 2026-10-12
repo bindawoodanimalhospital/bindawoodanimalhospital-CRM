@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { AlertTriangle, ArrowLeftRight, Boxes, PackagePlus, Plus, Truck } from "lucide-react";
+import { AlertTriangle, ArrowLeftRight, Boxes, Layers, PackagePlus, Plus, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -13,6 +13,8 @@ import { createClient } from "@/lib/supabase/server";
 import { addDaysPK, formatDate, formatPKR, todayPK } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { PriceCell } from "./price-cell";
+import { AvailabilityToggle } from "./size-widgets";
+import { suggestSizeGroups } from "@/lib/sizes";
 
 export const metadata: Metadata = { title: "Inventory" };
 
@@ -48,27 +50,61 @@ export default async function InventoryPage({ searchParams }: PageProps<"/invent
   );
 
   if (tab === "prices") {
-    let pq = supabase.from("catalog_items").select("id, kind, name, category, sale_price, price_is_editable, unit, track_stock, is_retail, is_active").order("category").order("name");
+    let pq = supabase.from("catalog_items")
+      .select("id, kind, name, category, sale_price, price_is_editable, unit, track_stock, is_retail, is_active, is_available, family_id, size_label, size_grams, product_families(name)")
+      .order("category").order("name");
     if (q) pq = pq.ilike("name", `%${q.replace(/[%_,()]/g, "")}%`);
     const { data: items } = await pq;
     const zero = (items ?? []).filter((i) => i.is_active && Number(i.sale_price) === 0 && !i.price_is_editable).length;
+    const suggestions = canEdit ? suggestSizeGroups((items ?? []).filter((i) => i.kind === "product" && i.is_active)
+      .map((i) => ({ id: i.id, name: i.name, sale_price: Number(i.sale_price), family_id: i.family_id }))).length : 0;
+    // Sizes of one product are listed together under the product's name, smallest first.
+    type Row = NonNullable<typeof items>[number];
+    const seen = new Set<string>();
+    const rows: ({ kind: "item"; i: Row; sized?: boolean } | { kind: "family"; id: string; name: string; count: number })[] = [];
+    for (const i of items ?? []) {
+      if (!i.family_id) { rows.push({ kind: "item", i }); continue; }
+      if (seen.has(i.family_id)) continue;
+      seen.add(i.family_id);
+      const sizes = (items ?? []).filter((x) => x.family_id === i.family_id)
+        .sort((a, b) => (Number(a.size_grams ?? Infinity) - Number(b.size_grams ?? Infinity)) || a.name.localeCompare(b.name));
+      rows.push({ kind: "family", id: i.family_id, name: (i.product_families as unknown as { name: string } | null)?.name ?? i.name, count: sizes.length });
+      for (const x of sizes) rows.push({ kind: "item", i: x, sized: true });
+    }
     return (
       <>
         <Suspense><NoticeToast /></Suspense>{header}{tabs}
         {zero > 0 && <p className="mb-4 flex items-center gap-2 rounded-xl bg-warning-soft px-4 py-3 text-sm text-warning"><AlertTriangle className="size-4" /> {zero} items still have no price — set them before billing.</p>}
+        {suggestions > 0 && (
+          <Link href="/inventory/sizes" className="mb-4 flex items-center gap-2 rounded-xl bg-info-soft px-4 py-3 text-sm text-info hover:underline">
+            <Layers className="size-4" /> {suggestions} product{suggestions === 1 ? " seems" : "s seem"} to come in more than one size (e.g. 400 g and 1.5 kg) — review and group the sizes
+          </Link>
+        )}
         <div className="overflow-hidden rounded-2xl bg-card shadow-card ring-1 ring-border">
           <Table>
-            <TableHeader><TableRow><TableHead>Item</TableHead><TableHead className="hidden md:table-cell">Category</TableHead><TableHead>Type</TableHead><TableHead className="text-right">Price (Rs.)</TableHead></TableRow></TableHeader>
+            <TableHeader><TableRow><TableHead>Item</TableHead><TableHead className="hidden md:table-cell">Category</TableHead><TableHead>Type</TableHead>
+              <TableHead className="hidden sm:table-cell">Available</TableHead><TableHead className="text-right">Price (Rs.)</TableHead></TableRow></TableHeader>
             <TableBody>
-              {(items ?? []).map((i) => (
-                <TableRow key={i.id} className={cn(!i.is_active && "opacity-50")}>
-                  <TableCell><Link href={`/inventory/${i.id}`} className="font-medium hover:underline">{i.name}</Link>
-                    {i.is_retail && <StatusPill tone="info" className="ml-2">Store</StatusPill>}</TableCell>
-                  <TableCell className="hidden text-muted-foreground md:table-cell">{i.category}</TableCell>
-                  <TableCell className="text-muted-foreground">{i.kind === "service" ? "Service" : `Product · ${i.unit}`}</TableCell>
+              {rows.map((row) => row.kind === "family" ? (
+                <TableRow key={`f-${row.id}`} className="bg-surface hover:bg-surface">
+                  <TableCell colSpan={5} className="py-2"><span className="inline-flex items-center gap-2 font-semibold"><Layers className="size-4 text-brand" />{row.name}
+                    <span className="text-xs font-normal text-muted-foreground">{row.count} size{row.count === 1 ? "" : "s"}</span></span></TableCell>
+                </TableRow>
+              ) : (
+                <TableRow key={row.i.id} className={cn(!row.i.is_active && "opacity-50")}>
+                  <TableCell className={cn(row.sized && "pl-9")}>
+                    <Link href={`/inventory/${row.i.id}`} className="font-medium hover:underline">{row.sized && row.i.size_label ? row.i.size_label : row.i.name}</Link>
+                    {row.sized && row.i.size_label && <span className="ml-2 text-xs text-muted-foreground">{row.i.name}</span>}
+                    {row.i.is_retail && !row.sized && <StatusPill tone="info" className="ml-2">Store</StatusPill>}</TableCell>
+                  <TableCell className="hidden text-muted-foreground md:table-cell">{row.i.category}</TableCell>
+                  <TableCell className="text-muted-foreground">{row.i.kind === "service" ? "Service" : `Product · ${row.i.unit}`}</TableCell>
+                  <TableCell className="hidden sm:table-cell">
+                    {row.i.kind === "product" ? (canEdit ? <AvailabilityToggle id={row.i.id} available={row.i.is_available} label={false} />
+                      : row.i.is_available ? "Yes" : <span className="text-warning">No</span>) : null}
+                  </TableCell>
                   <TableCell className="text-right">
-                    {i.price_is_editable ? <span className="text-sm text-muted-foreground">set at billing</span>
-                      : canEdit ? <PriceCell id={i.id} price={Number(i.sale_price)} /> : formatPKR(i.sale_price)}
+                    {row.i.price_is_editable ? <span className="text-sm text-muted-foreground">set at billing</span>
+                      : canEdit ? <PriceCell id={row.i.id} price={Number(row.i.sale_price)} /> : formatPKR(row.i.sale_price)}
                   </TableCell>
                 </TableRow>
               ))}

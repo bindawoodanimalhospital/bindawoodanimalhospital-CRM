@@ -51,6 +51,7 @@ export function Register({ initial, methods, canDiscount, defaultDeliveryCharge 
   };
 
   const add = (item: RetailItem) => {
+    if (!item.is_available) { toast.error(`${item.name} is marked “not available” — switch it on in Inventory if it's back in the shop.`); return; }
     const inCart = cart.find((c) => c.item.id === item.id)?.qty ?? 0;
     if (item.stock != null && inCart + 1 > item.stock) { toast.error(`Only ${item.stock} ${item.unit} of ${item.name} in stock.`); return; }
     setCart((c) => c.some((x) => x.item.id === item.id) ? c.map((x) => x.item.id === item.id ? { ...x, qty: x.qty + 1 } : x) : [...c, { item, qty: 1, discount: 0 }]);
@@ -121,22 +122,11 @@ export function Register({ initial, methods, canDiscount, defaultDeliveryCharge 
           </div>
         </div>
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
-          {items.map((i) => {
-            const out = i.stock != null && i.stock <= 0;
-            return (
-              <button key={i.id} type="button" disabled={out} onClick={() => add(i)}
-                className={cn("flex min-h-28 flex-col items-start gap-1 rounded-2xl bg-card p-3 text-left shadow-card ring-1 ring-border transition hover:-translate-y-0.5 hover:ring-brand-muted",
-                  out && "cursor-not-allowed opacity-50 hover:translate-y-0")}>
-                <Package className="size-5 text-brand" />
-                <span className="line-clamp-2 text-sm font-semibold">{i.name}</span>
-                <span className="text-xs text-muted-foreground">{[i.brand, i.category].filter(Boolean).join(" · ")}</span>
-                <span className="mt-auto flex w-full items-end justify-between">
-                  <span className="font-bold tabular">{formatPKR(i.sale_price)}</span>
-                  {i.stock != null && <span className={cn("text-xs", i.stock <= 0 ? "text-danger" : i.stock < 5 ? "text-warning" : "text-muted-foreground")}>{i.stock <= 0 ? "Out of stock" : `${i.stock} left`}</span>}
-                </span>
-              </button>
-            );
-          })}
+          {productCards(items).map((card) => card.sizes.length === 1 && !card.family ? (
+            <SingleCard key={card.key} item={card.sizes[0]} onAdd={add} />
+          ) : (
+            <SizesCard key={card.key} card={card} onAdd={add} />
+          ))}
           {items.length === 0 && <p className="col-span-full rounded-2xl bg-surface p-8 text-center text-muted-foreground">No store products found. Add them in Inventory with “Sold in pet store” ticked.</p>}
         </div>
       </section>
@@ -307,3 +297,75 @@ function CustomerPicker({ value, onChange, required }: { value: CustomerOption |
   );
 }
 
+
+type Card = { key: string; family: boolean; name: string; brand: string | null; category: string | null; sizes: RetailItem[] };
+
+/** One card per product: items that are sizes of the same product share a card. */
+function productCards(items: RetailItem[]): Card[] {
+  const cards = new Map<string, Card>();
+  for (const i of items) {
+    const key = i.family_id ?? i.id;
+    const c = cards.get(key) ?? { key, family: !!i.family_id, name: i.family_name ?? i.name, brand: i.brand, category: i.category, sizes: [] };
+    c.sizes.push(i);
+    cards.set(key, c);
+  }
+  return [...cards.values()]
+    .map((c) => ({ ...c, sizes: c.sizes.sort((a, b) => (a.size_grams ?? Infinity) - (b.size_grams ?? Infinity) || a.name.localeCompare(b.name)) }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/** Why this item can't be sold right now (or null). */
+function blocked(i: RetailItem) {
+  if (!i.is_available) return "Not available";
+  if (i.stock != null && i.stock <= 0) return "Out of stock";
+  return null;
+}
+
+function SingleCard({ item: i, onAdd }: { item: RetailItem; onAdd: (i: RetailItem) => void }) {
+  const why = blocked(i);
+  return (
+    <button type="button" disabled={!!why} onClick={() => onAdd(i)}
+      className={cn("flex min-h-28 flex-col items-start gap-1 rounded-2xl bg-card p-3 text-left shadow-card ring-1 ring-border transition hover:-translate-y-0.5 hover:ring-brand-muted",
+        why && "cursor-not-allowed opacity-50 hover:translate-y-0")}>
+      <Package className="size-5 text-brand" />
+      <span className="line-clamp-2 text-sm font-semibold">{i.name}</span>
+      <span className="text-xs text-muted-foreground">{[i.brand, i.category].filter(Boolean).join(" · ")}</span>
+      <span className="mt-auto flex w-full items-end justify-between">
+        <span className="font-bold tabular">{formatPKR(i.sale_price)}</span>
+        {why ? <span className="text-xs text-danger">{why}</span>
+          : i.stock != null && <span className={cn("text-xs", i.stock < 5 ? "text-warning" : "text-muted-foreground")}>{i.stock} left</span>}
+      </span>
+    </button>
+  );
+}
+
+/** A product with several sizes: one button per size, sizes that can't be sold are greyed out. */
+function SizesCard({ card, onAdd }: { card: Card; onAdd: (i: RetailItem) => void }) {
+  const anyOpen = card.sizes.some((i) => !blocked(i));
+  return (
+    <div className={cn("col-span-2 flex flex-col gap-2 rounded-2xl bg-card p-3 shadow-card ring-1 ring-border sm:col-span-1", !anyOpen && "opacity-60")}>
+      <div className="flex items-start gap-2">
+        <Package className="mt-0.5 size-5 shrink-0 text-brand" />
+        <span className="min-w-0">
+          <span className="line-clamp-2 text-sm font-semibold">{card.name}</span>
+          <span className="block text-xs text-muted-foreground">{[card.brand, card.category, `${card.sizes.length} sizes`].filter(Boolean).join(" · ")}</span>
+        </span>
+      </div>
+      <div className="mt-auto grid grid-cols-2 gap-1.5">
+        {card.sizes.map((i) => {
+          const why = blocked(i);
+          return (
+            <button key={i.id} type="button" disabled={!!why} onClick={() => onAdd(i)} title={why ?? `Add ${i.name}`}
+              className={cn("rounded-xl px-2 py-1.5 text-left ring-1 transition",
+                why ? "cursor-not-allowed bg-muted text-muted-foreground ring-transparent" : "bg-surface ring-border hover:bg-brand-soft hover:ring-brand-muted")}>
+              <span className="block text-xs font-semibold">{i.size_label ?? i.name}</span>
+              <span className={cn("block text-[11px] tabular", why ? "line-through" : "text-foreground/80")}>{formatPKR(i.sale_price)}</span>
+              {why ? <span className="block text-[10px] font-semibold text-danger">{why}</span>
+                : i.stock != null && <span className={cn("block text-[10px]", i.stock < 5 ? "text-warning" : "text-muted-foreground")}>{i.stock} left</span>}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}

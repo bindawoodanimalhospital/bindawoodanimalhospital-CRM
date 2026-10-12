@@ -11,6 +11,8 @@ import { cn } from "@/lib/utils";
 import { saveItem } from "../actions";
 import { ItemForm } from "../item-form";
 import { AdjustDialog, StockCountDialog } from "../stock-widgets";
+import { AvailabilityToggle, SizesPanel } from "../size-widgets";
+import { bySize } from "@/lib/sizes";
 
 export const metadata: Metadata = { title: "Item" };
 
@@ -37,6 +39,16 @@ export default async function ItemPage({ params }: PageProps<"/inventory/[id]">)
     seeCost ? supabase.from("catalog_costs").select("cost_price").eq("item_id", id).maybeSingle() : Promise.resolve({ data: null }),
   ]);
   if (!item) notFound();
+  // Other sizes of the same product (with their stock), when this item is one size of several.
+  const [{ data: family }, { data: sibs }] = item.family_id ? await Promise.all([
+    supabase.from("product_families").select("id, name").eq("id", item.family_id).maybeSingle(),
+    supabase.from("catalog_items").select("id, name, size_label, size_grams, sale_price, is_available, track_stock").eq("family_id", item.family_id).eq("is_active", true),
+  ]) : [{ data: null }, { data: [] }];
+  const sibTracked = (sibs ?? []).filter((x) => x.track_stock).map((x) => x.id);
+  const { data: sibStock } = sibTracked.length ? await supabase.from("stock_levels").select("item_id, usable_qty").in("item_id", sibTracked) : { data: [] };
+  const sibQty = new Map((sibStock ?? []).map((x) => [x.item_id, Number(x.usable_qty)]));
+  const siblings = (sibs ?? []).map((x) => ({ ...x, sale_price: Number(x.sale_price), size_grams: x.size_grams == null ? null : Number(x.size_grams),
+    stock: x.track_stock ? sibQty.get(x.id) ?? 0 : null })).sort(bySize);
   const names = new Map((staff ?? []).map((s) => [s.id, s.full_name]));
   const today = todayPK();
   const onHand = (batches ?? []).reduce((s, b) => s + Number(b.qty_on_hand), 0);
@@ -48,7 +60,9 @@ export default async function ItemPage({ params }: PageProps<"/inventory/[id]">)
       <Suspense><NoticeToast /></Suspense>
       <PageHeader back={{ href: "/inventory", label: "Inventory" }}
         title={<span className="flex flex-wrap items-center gap-3">{item.name}{!item.is_active && <StatusPill>Inactive</StatusPill>}
-          {item.track_stock && <StatusPill tone="info">{onHand} {item.unit} in stock</StatusPill>}</span>}
+          {item.track_stock && <StatusPill tone="info">{onHand} {item.unit} in stock</StatusPill>}
+          {item.kind === "product" && canEdit && <AvailabilityToggle id={item.id} available={item.is_available} />}
+          {item.kind === "product" && !canEdit && !item.is_available && <StatusPill tone="warning">Not available</StatusPill>}</span>}
         description={[item.kind === "service" ? "Service" : "Product", item.category, formatPKR(item.sale_price),
           seeCost && cost != null ? `last cost ${formatPKR(cost)} · margin ${item.sale_price > 0 ? Math.round(((item.sale_price - cost) / item.sale_price) * 100) : 0}%` : null].filter(Boolean).join(" · ")} />
 
@@ -59,6 +73,12 @@ export default async function ItemPage({ params }: PageProps<"/inventory/[id]">)
         </div>
         {item.kind === "product" && (
           <div className="grid min-w-0 content-start gap-6 lg:col-span-2">
+            {canEdit && (
+              <Card>
+                <CardHeader><CardTitle>Sizes</CardTitle></CardHeader>
+                <CardContent><SizesPanel item={{ id: item.id, name: item.name, size_label: item.size_label }} family={family ?? null} siblings={siblings} /></CardContent>
+              </Card>
+            )}
             <Card>
               <CardHeader><CardTitle>Batches</CardTitle>
                 {me.can("inventory.adjust") && <CardAction><StockCountDialog itemId={id} locations={locations ?? []} unit={item.unit} /></CardAction>}</CardHeader>

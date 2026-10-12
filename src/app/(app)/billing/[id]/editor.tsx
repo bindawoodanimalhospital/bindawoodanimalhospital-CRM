@@ -134,7 +134,7 @@ function AddItem({ invoiceId, retailOnly = false }: { invoiceId: string; retailO
               <button type="button" disabled={pending} onMouseDown={(e) => e.preventDefault()} onClick={() => add(h)} onMouseEnter={() => setActive(i)}
                 className={cn("flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left", i === active ? "bg-muted" : "hover:bg-muted")}>
                 {h.kind === "product" ? <Package className="size-4 text-muted-foreground" /> : <Sparkles className="size-4 text-muted-foreground" />}
-                <span className="min-w-0 flex-1 truncate"><b>{h.name}</b> <span className="text-xs text-muted-foreground">{h.category}</span></span>
+                <span className="min-w-0 flex-1 truncate"><b>{h.name}</b> <span className="text-xs text-muted-foreground">{h.category}</span>{!h.is_available && <span className="ml-1 text-xs font-semibold text-warning">· marked not available</span>}</span>
                 <span className="tabular text-sm font-semibold">{h.price_is_editable ? "set price" : formatPKR(h.sale_price)}</span>
               </button>
             </li>

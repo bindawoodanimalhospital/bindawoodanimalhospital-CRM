@@ -39,13 +39,13 @@ export async function billVisit(visitId: string): Promise<FormState> {
   return createInvoice(v.customer_id, v.pet_id, visitId);
 }
 
-export type CatalogHit = { id: string; name: string; kind: "service" | "product"; sale_price: number; unit: string; price_is_editable: boolean; track_stock: boolean; category: string | null };
+export type CatalogHit = { id: string; name: string; kind: "service" | "product"; sale_price: number; unit: string; price_is_editable: boolean; track_stock: boolean; category: string | null; is_available: boolean };
 
 export async function searchCatalog(q: string, retailOnly = false): Promise<CatalogHit[]> {
   const term = q.replace(/[^\p{L}\p{N} .\-/]/gu, "").trim();
   const supabase = await createClient();
   // The delivery charge is added by the pet store's Home delivery flow, never picked by hand.
-  let query = supabase.from("catalog_items").select("id, name, kind, sale_price, unit, price_is_editable, track_stock, category")
+  let query = supabase.from("catalog_items").select("id, name, kind, sale_price, unit, price_is_editable, track_stock, category, is_available")
     .eq("is_active", true).or("system_role.is.null,system_role.neq.delivery_charge").order("name").limit(12);
   if (term) query = query.or(`name.ilike.%${term}%,sku.eq.${term},barcode.eq.${term},category.ilike.%${term}%`);
   if (retailOnly) query = query.eq("is_retail", true);
