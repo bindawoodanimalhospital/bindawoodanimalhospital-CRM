@@ -272,5 +272,30 @@ select pg_temp.check(not exists (select 1 from public.inventory_movements m
   'reports never count loan movements as sales/usage');
 select pg_temp.check((select sum(qty_on_hand) from public.product_batches where item_id = pg_temp.g('litter'))
   = (select sum(qty) from public.inventory_movements where item_id = pg_temp.g('litter')), 'stock reconciles with movements');
+-- Regression: items whose price is set at the till were sold at Rs. 0 when the cart sent no price
+set local role authenticated;
+select pg_temp.act('00000000-0000-0000-0000-0000000000e1');
+with i as (insert into public.catalog_items (kind, name, unit, sale_price, is_retail, price_is_editable)
+  values ('product', 'Till-priced Litter 10L', 'bag', 1100, true, true) returning id) insert into ctx select 'tillitem', id from i;
+with i as (insert into public.catalog_items (kind, name, unit, sale_price, is_retail, price_is_editable)
+  values ('product', 'Unpriced Treat', 'pcs', 0, true, true) returning id) insert into ctx select 'unpriced', id from i;
+insert into ctx select 'tillsale', public.pos_checkout('pos-till-1', pg_temp.g('cust'), null,
+  jsonb_build_array(jsonb_build_object('item_id', pg_temp.g('tillitem'), 'quantity', 1)),
+  '[{"method":"jazzcash","amount":1150,"reference":"TX-991"}]', 0, null, null, '{"address":"House 12","charge":50}');
+select pg_temp.check((select total = 1150 and amount_paid = 1150 from public.invoices where id = pg_temp.g('tillsale')),
+  'a till-priced item with no typed price is billed at its list price (Rs. 1,100 + 50 delivery), not Rs. 0');
+insert into ctx select 'tillsale2', public.pos_checkout('pos-till-2', null, null,
+  jsonb_build_array(jsonb_build_object('item_id', pg_temp.g('tillitem'), 'quantity', 1, 'unit_price', 900)), '[{"method":"cash","amount":900}]');
+select pg_temp.check((select total = 900 from public.invoices where id = pg_temp.g('tillsale2')), 'a price typed at the till is used');
+do $$ begin
+  begin
+    perform public.pos_checkout('pos-till-3', null, null, jsonb_build_array(jsonb_build_object('item_id', pg_temp.g('unpriced'), 'quantity', 1)), '[]');
+    raise exception 'FAIL: a product was sold at Rs. 0';
+  exception when others then
+    if sqlerrm like 'FAIL%' then raise; end if;
+    raise notice 'OK a product with no price is refused instead of being sold at Rs. 0';
+  end;
+end $$;
+reset role;
 select 'ALL POS ENHANCEMENT CHECKS PASSED' as result;
 rollback;
