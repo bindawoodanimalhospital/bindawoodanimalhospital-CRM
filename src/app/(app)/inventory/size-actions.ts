@@ -52,7 +52,7 @@ export async function setSizeLabel(id: string, label: string): Promise<FormState
   return { ok: true, message: "Size updated." };
 }
 
-export type NewSize = { size_label: string; sale_price: number; barcode?: string };
+export type NewSize = { size_label: string; sale_price: number; barcode?: string; stock?: number };
 
 /** Add one more size to a product: copies the family's details from an existing size. */
 export async function addSize(familyId: string, size: NewSize): Promise<FormState & { id?: string }> {
@@ -91,14 +91,22 @@ export async function createSizedProduct(input: {
   const { data: fam, error: famErr } = await supabase.from("product_families")
     .insert({ name, category: input.category.trim() || null, brand: input.brand.trim() || null }).select("id").single();
   if (famErr) return { message: dbErrorMessage(famErr) };
+  const me = await getCurrentStaff();
   const { data: rows, error } = await supabase.from("catalog_items").insert(sizes.map((s) => ({
     kind: "product", name: `${name} ${s.size_label.trim()}`, category: input.category.trim() || null, brand: input.brand.trim() || null,
     unit: input.unit.trim() || "pcs", is_retail: input.is_retail, sale_price: s.sale_price, barcode: s.barcode?.trim() || null,
     family_id: fam.id, size_label: s.size_label.trim(),
-  }))).select("id");
+  }))).select("id, size_label");
   if (error) {
     await supabase.from("product_families").delete().eq("id", fam.id);
     return { message: error.code === "23505" ? "Another item already uses one of these barcodes." : dbErrorMessage(error) };
+  }
+  // "In stock now" per size → opening stock (only for staff allowed to change stock).
+  if (me?.can("inventory.adjust")) {
+    for (const r of rows ?? []) {
+      const qty = sizes.find((s) => s.size_label.trim() === r.size_label)?.stock ?? 0;
+      if (qty > 0) await supabase.rpc("add_stock", { p_item: r.id, p_qty: qty, p_note: "Opening stock" });
+    }
   }
   refresh();
   return { ok: true, message: `${name} added with ${sizes.length} size${sizes.length === 1 ? "" : "s"}.`, id: rows?.[0]?.id };

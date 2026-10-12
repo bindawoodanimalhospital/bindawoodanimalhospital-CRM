@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { AlertTriangle, ArrowLeftRight, Boxes, Layers, PackagePlus, Plus, Truck } from "lucide-react";
+import { AlertTriangle, ArrowLeftRight, Boxes, ClipboardList, Layers, PackagePlus, Plus, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -43,6 +43,7 @@ export default async function InventoryPage({ searchParams }: PageProps<"/invent
       actions={
         <>
           {me.can("inventory.view") && <Button asChild variant="outline"><Link href="/inventory/loans"><ArrowLeftRight /> Borrowed & lent</Link></Button>}
+          {me.can("inventory.adjust") && <Button asChild variant="outline"><Link href="/inventory/count"><ClipboardList /> Shelf count</Link></Button>}
           {me.can("suppliers.manage") && <Button asChild variant="outline"><Link href="/suppliers"><Truck /> Receive stock</Link></Button>}
           {canEdit && <Button asChild><Link href="/inventory/new"><Plus /> New item</Link></Button>}
         </>
@@ -133,12 +134,15 @@ export default async function InventoryPage({ searchParams }: PageProps<"/invent
         <Alert tone={low.length ? "warning" : "ok"} label="Low / reorder" value={low.length} />
         <Alert tone={expiring.length ? "warning" : "ok"} label="Expiring in 60 days" value={expiring.length} />
         <Alert tone={expired.length ? "danger" : "ok"} label="Expired on the shelf" value={expired.length} hint="Remove and write off" />
-        <Alert tone="ok" label="Products not tracked yet" value={untrackedCount ?? 0} hint="Enter opening stock to start" />
+        <Link href="/inventory/count?show=uncounted" className="block rounded-2xl transition hover:ring-2 hover:ring-brand-muted">
+          <Alert tone={untrackedCount ? "warning" : "ok"} label="Products not counted yet" value={untrackedCount ?? 0} hint={untrackedCount ? "Tap to count them now" : "Every product is counted"} />
+        </Link>
       </div>
       {tabs}
       {rows.length === 0 ? (
-        <EmptyState icon={Boxes} title="No stock tracked yet" description="Open a product, enter its opening count, and turn on “Track stock”. Or receive a supplier delivery."
-          action={canEdit ? <Button asChild><Link href="/inventory/new"><PackagePlus /> Add a product</Link></Button> : undefined} />
+        <EmptyState icon={Boxes} title="No stock counted yet" description="Do a shelf count: go along the shelf, type how many of each product you see, and save. From then on every sale counts down automatically."
+          action={me.can("inventory.adjust") ? <Button asChild><Link href="/inventory/count"><ClipboardList /> Start a shelf count</Link></Button>
+            : canEdit ? <Button asChild><Link href="/inventory/new"><PackagePlus /> Add a product</Link></Button> : undefined} />
       ) : (
         <div className="overflow-hidden rounded-2xl bg-card shadow-card ring-1 ring-border">
           <Table>

@@ -52,11 +52,16 @@ export function ItemForm({ action, defaults = {}, hasStock, vaccines, submitLabe
       {kind === "product" && (
         <FormSection title="Stock" description="Tracked items are deducted automatically when billed. Expired batches are never sold.">
           <Label className="font-normal sm:col-span-2">
-            <Checkbox name="track_stock" checked={track} onCheckedChange={(v) => setTrack(v === true)} disabled={!hasStock && !defaults.track_stock} />
-            Track stock for this item
+            <Checkbox name="track_stock" checked={track} onCheckedChange={(v) => setTrack(v === true)} />
+            Count this item&apos;s stock (sales and bills take it out automatically)
           </Label>
-          {!hasStock && !defaults.track_stock && (
-            <p className="text-sm text-muted-foreground sm:col-span-2">Enter the opening stock count (on the item page) first — then switch tracking on.</p>
+          {!defaults.name && (
+            <FormField label="How many do you have now?" hint="Optional — count the shelf. Leave empty if you'll add stock later." className="sm:col-span-2">
+              <Input name="opening_qty" inputMode="decimal" placeholder="e.g. 12" />
+            </FormField>
+          )}
+          {defaults.name && !hasStock && !defaults.track_stock && (
+            <p className="text-sm text-muted-foreground sm:col-span-2">Tip: use <b>Add stock</b> on the right — it switches counting on by itself.</p>
           )}
           <FormField label="Reorder when at or below"><Input name="reorder_level" inputMode="decimal" defaultValue={defaults.reorder_level ?? ""} /></FormField>
           <FormField label="SKU / code"><Input name="sku" defaultValue={defaults.sku ?? ""} /></FormField>

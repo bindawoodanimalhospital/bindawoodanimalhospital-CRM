@@ -49,6 +49,11 @@ export async function saveItem(id: string | null, _prev: FormState, fd: FormData
   }
   const { data, error } = await supabase.from("catalog_items").insert(row).select("id").single();
   if (error) return { message: error.code === "23505" ? "Another item already uses this SKU or barcode." : dbErrorMessage(error) };
+  // "How many do you have now?" on the new-item form → opening stock in the same step.
+  const opening = Number(String(raw.opening_qty ?? "").replace(/[^\d.]/g, ""));
+  if (parsed.data.kind === "product" && opening > 0 && me.can("inventory.adjust")) {
+    await supabase.rpc("add_stock", { p_item: data.id, p_qty: opening, p_note: "Opening stock" });
+  }
   refresh();
   redirect(`/inventory/${data.id}?notice=created`);
 }
@@ -102,4 +107,35 @@ export async function transferBatch(itemId: string, batchId: string, qty: number
   if (error) return { message: error.message };
   refresh(itemId);
   return { ok: true, message: "Moved." };
+}
+
+/** "I'm adding N pieces" — one step; switches stock tracking on. Batch and expiry are optional. */
+export async function addStock(itemId: string, input: { qty: number; location_id?: string; batch_no?: string; expiry_date?: string; note?: string }): Promise<FormState> {
+  await assertCan("inventory.adjust");
+  if (!(input.qty > 0)) return { message: "Enter how many you are adding." };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("add_stock", {
+    p_item: itemId, p_qty: input.qty, p_location: input.location_id || null,
+    p_batch_no: input.batch_no?.trim() || null, p_expiry: input.expiry_date || null, p_note: input.note?.trim() || null,
+  });
+  if (error) return { message: error.message };
+  refresh(itemId);
+  revalidatePath("/pos");
+  return { ok: true, message: `${input.qty} added to stock.` };
+}
+
+/** Shelf count: "there are N on the shelf now" for one or many items. */
+export async function saveCounts(counts: { item_id: string; count: number }[], note?: string): Promise<FormState> {
+  await assertCan("inventory.adjust");
+  const clean = counts.filter((c) => Number.isFinite(c.count) && c.count >= 0);
+  if (!clean.length) return { message: "Type at least one count." };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("set_stock_counts", { p_counts: clean, p_note: note?.trim() || null });
+  if (error) return { message: error.message };
+  refresh();
+  revalidatePath("/inventory/count");
+  revalidatePath("/pos");
+  for (const c of clean) revalidatePath(`/inventory/${c.item_id}`);
+  const n = Number(data ?? 0);
+  return { ok: true, message: n ? `Saved — ${n} item${n === 1 ? "" : "s"} updated.` : "Saved — nothing changed." };
 }

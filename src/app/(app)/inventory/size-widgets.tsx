@@ -130,11 +130,11 @@ export function SizedProductForm() {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [f, setF] = useState({ name: "", category: "", brand: "", unit: "bag", is_retail: true });
-  const [sizes, setSizes] = useState([{ size_label: "", price: "", barcode: "" }, { size_label: "", price: "", barcode: "" }]);
-  const set = (i: number, k: "size_label" | "price" | "barcode", v: string) => setSizes((s) => s.map((x, j) => (j === i ? { ...x, [k]: v } : x)));
+  const [sizes, setSizes] = useState([{ size_label: "", price: "", barcode: "", stock: "" }, { size_label: "", price: "", barcode: "", stock: "" }]);
+  const set = (i: number, k: "size_label" | "price" | "barcode" | "stock", v: string) => setSizes((s) => s.map((x, j) => (j === i ? { ...x, [k]: v } : x)));
   const filled = sizes.filter((s) => s.size_label.trim());
   const save = () => start(async () => {
-    const r = await createSizedProduct({ ...f, sizes: filled.map((s) => ({ size_label: s.size_label, sale_price: Number(s.price), barcode: s.barcode })) });
+    const r = await createSizedProduct({ ...f, sizes: filled.map((s) => ({ size_label: s.size_label, sale_price: Number(s.price), barcode: s.barcode, stock: Number(s.stock) || 0 })) });
     if (r.ok && r.id) { toast.success(r.message); router.push(`/inventory/${r.id}`); } else toast.error(r.message);
   });
   return (
@@ -151,17 +151,18 @@ export function SizedProductForm() {
       <div className="grid gap-3 rounded-2xl bg-card p-5 shadow-card ring-1 ring-border">
         <div>
           <h3 className="font-semibold">Sizes</h3>
-          <p className="text-sm text-muted-foreground">One row per size with its own price. Add only the sizes you sell — you can add more later, and switch a size off when it isn&apos;t in the shop.</p>
+          <p className="text-sm text-muted-foreground">One row per size with its own price, and how many you have now (optional). Add only the sizes you sell — you can add more later, and switch a size off when it isn&apos;t in the shop.</p>
         </div>
         {sizes.map((s, i) => (
-          <div key={i} className="grid grid-cols-[1fr_1fr_auto] gap-2 sm:grid-cols-[8rem_8rem_1fr_auto]">
+          <div key={i} className="grid grid-cols-[1fr_1fr_auto] gap-2 sm:grid-cols-[7rem_7rem_6.5rem_1fr_auto]">
             <Input value={s.size_label} onChange={(e) => set(i, "size_label", e.target.value)} placeholder="Size, e.g. 400 g" aria-label="Size" />
             <Input value={s.price} inputMode="decimal" onChange={(e) => set(i, "price", e.target.value.replace(/[^\d.]/g, ""))} placeholder="Price (Rs.)" aria-label="Price" />
-            <Input value={s.barcode} onChange={(e) => set(i, "barcode", e.target.value)} placeholder="Barcode (optional)" aria-label="Barcode" className="col-span-2 row-start-2 sm:col-span-1 sm:row-start-auto" />
+            <Input value={s.stock} inputMode="decimal" onChange={(e) => set(i, "stock", e.target.value.replace(/[^\d.]/g, ""))} placeholder="In stock now" aria-label="In stock now" className="col-span-1 row-start-2 sm:row-start-auto" />
+            <Input value={s.barcode} onChange={(e) => set(i, "barcode", e.target.value)} placeholder="Barcode (optional)" aria-label="Barcode" className="col-span-1 row-start-2 sm:col-span-1 sm:row-start-auto" />
             <Button variant="ghost" size="icon" aria-label="Remove size" disabled={sizes.length <= 1} onClick={() => setSizes((x) => x.filter((_, j) => j !== i))}><Trash2 /></Button>
           </div>
         ))}
-        <Button variant="outline" size="sm" className="justify-self-start" onClick={() => setSizes((x) => [...x, { size_label: "", price: "", barcode: "" }])}><Plus /> Another size</Button>
+        <Button variant="outline" size="sm" className="justify-self-start" onClick={() => setSizes((x) => [...x, { size_label: "", price: "", barcode: "", stock: "" }])}><Plus /> Another size</Button>
       </div>
       <div className="flex justify-end gap-2">
         <Button variant="outline" onClick={() => history.back()}>Cancel</Button>

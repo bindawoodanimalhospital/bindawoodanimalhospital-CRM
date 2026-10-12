@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { notFound, redirect } from "next/navigation";
-import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader, StatusPill } from "@/components/app/page-header";
 import { NoticeToast } from "@/components/app/notice-toast";
 import { requireStaff } from "@/lib/auth";
@@ -10,7 +10,7 @@ import { formatDate, formatDateTime, formatPKR, todayPK } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { saveItem } from "../actions";
 import { ItemForm } from "../item-form";
-import { AdjustDialog, StockCountDialog } from "../stock-widgets";
+import { AddStockDialog, AdjustDialog, SetCountDialog } from "../stock-widgets";
 import { AvailabilityToggle, SizesPanel } from "../size-widgets";
 import { bySize } from "@/lib/sizes";
 
@@ -79,9 +79,21 @@ export default async function ItemPage({ params }: PageProps<"/inventory/[id]">)
                 <CardContent><SizesPanel item={{ id: item.id, name: item.name, size_label: item.size_label }} family={family ?? null} siblings={siblings} /></CardContent>
               </Card>
             )}
+            <Card className="bg-brand-wash ring-brand-muted">
+              <CardHeader><CardTitle>Stock</CardTitle></CardHeader>
+              <CardContent className="grid gap-3">
+                <p className="text-3xl font-bold tabular">{item.track_stock ? onHand : "—"} <span className="text-base font-normal text-muted-foreground">{item.unit} {item.track_stock ? "in stock" : "· not counted yet"}</span></p>
+                {me.can("inventory.adjust") ? (
+                  <div className="flex flex-wrap gap-2">
+                    <AddStockDialog itemId={id} itemName={item.name} unit={item.unit} locations={locations ?? []} />
+                    <SetCountDialog itemId={id} itemName={item.name} unit={item.unit} current={item.track_stock ? onHand : null} />
+                  </div>
+                ) : <p className="text-sm text-muted-foreground">Ask the inventory manager to add stock.</p>}
+                <p className="text-xs text-muted-foreground"><b>Add stock</b> when new pieces arrive. <b>Set the count</b> when you count the shelf and the number is different.</p>
+              </CardContent>
+            </Card>
             <Card>
-              <CardHeader><CardTitle>Batches</CardTitle>
-                {me.can("inventory.adjust") && <CardAction><StockCountDialog itemId={id} locations={locations ?? []} unit={item.unit} /></CardAction>}</CardHeader>
+              <CardHeader><CardTitle>Batches</CardTitle></CardHeader>
               <CardContent>
                 {!batches?.length ? <p className="text-sm text-muted-foreground">No stock recorded.</p> : (
                   <ul className="grid gap-2">
