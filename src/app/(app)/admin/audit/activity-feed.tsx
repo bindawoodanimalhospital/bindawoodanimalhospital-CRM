@@ -59,13 +59,17 @@ export function ActivityFeed({ initial, total, filters, names, roleNames }: {
     setLoading(false); busy.current = false;
   }, [rows, done, filters]);
 
-  // Load the next batch when the bottom of the list comes into view.
+  // Load the next batch when the bottom of the list comes into view. IntersectionObserver, plus a
+  // scroll check (captures scrolling inside the app's panel too) in case the observer is held back.
   useEffect(() => {
     const el = sentinel.current;
     if (!el || done) return;
+    const near = () => el.getBoundingClientRect().top < window.innerHeight + 600;
     const io = new IntersectionObserver((e) => { if (e[0]?.isIntersecting) void loadMore(); }, { rootMargin: "600px" });
     io.observe(el);
-    return () => io.disconnect();
+    const onScroll = () => { if (near()) void loadMore(); };
+    window.addEventListener("scroll", onScroll, { capture: true, passive: true });
+    return () => { io.disconnect(); window.removeEventListener("scroll", onScroll, { capture: true }); };
   }, [loadMore, done]);
 
   const who = useCallback((id: string | null) => (id ? names[id] ?? "Unknown user" : "System"), [names]);
