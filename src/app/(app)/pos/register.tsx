@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
-import { Check, Loader2, MapPin, Minus, Package, Plus, Printer, ScanBarcode, Search, ShoppingBag, Store, Trash2, Truck, User, X } from "lucide-react";
+import { Check, Loader2, MapPin, Minus, Package, Plus, Printer, ScanBarcode, Search, ShoppingBag, Store, Trash2, Truck, User, X, Zap } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,12 +13,12 @@ import { cn } from "@/lib/utils";
 import { customerAddress, searchCustomers, type CustomerOption } from "../customers/actions";
 import { findByCode, posCheckout, searchRetail, type RetailItem } from "./actions";
 
-type CartLine = { item: RetailItem; qty: number; discount: number };
+type CartLine = { item: RetailItem; qty: number; discount: number; price: number };
 type Method = { key: string; label: string; needs_reference: boolean };
 const newKey = () => (typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
 
-export function Register({ initial, methods, canDiscount, defaultDeliveryCharge }: {
-  initial: RetailItem[]; methods: Method[]; canDiscount: boolean; defaultDeliveryCharge: number;
+export function Register({ initial, popular = [], methods, canDiscount, defaultDeliveryCharge }: {
+  initial: RetailItem[]; popular?: RetailItem[]; methods: Method[]; canDiscount: boolean; defaultDeliveryCharge: number;
 }) {
   const [q, setQ] = useState("");
   const [items, setItems] = useState(initial);
@@ -30,6 +30,8 @@ export function Register({ initial, methods, canDiscount, defaultDeliveryCharge 
   const [billDiscount, setBillDiscount] = useState("");
   const [discountReason, setDiscountReason] = useState("");
   const [done, setDone] = useState<string | null>(null);
+  // In-store sales finish without a pop-up: the cart clears and this bar shows change + receipt.
+  const [lastSale, setLastSale] = useState<{ id: string; total: number; change: number } | null>(null);
   // Home delivery (spec §2–§3): address from the client profile, editable for this order; charge editable by distance.
   const [delivery, setDelivery] = useState(false);
   const [address, setAddress] = useState("");
@@ -54,7 +56,7 @@ export function Register({ initial, methods, canDiscount, defaultDeliveryCharge 
     if (!item.is_available) { toast.error(`${item.name} is marked “not available” — switch it on in Inventory if it's back in the shop.`); return; }
     const inCart = cart.find((c) => c.item.id === item.id)?.qty ?? 0;
     if (item.stock != null && inCart + 1 > item.stock) { toast.error(`Only ${item.stock} ${item.unit} of ${item.name} in stock.`); return; }
-    setCart((c) => c.some((x) => x.item.id === item.id) ? c.map((x) => x.item.id === item.id ? { ...x, qty: x.qty + 1 } : x) : [...c, { item, qty: 1, discount: 0 }]);
+    setCart((c) => c.some((x) => x.item.id === item.id) ? c.map((x) => x.item.id === item.id ? { ...x, qty: x.qty + 1 } : x) : [...c, { item, qty: 1, discount: 0, price: item.sale_price }]);
   };
   const setQty = (id: string, qty: number) => setCart((c) => c.flatMap((x) => {
     if (x.item.id !== id) return [x];
@@ -68,10 +70,10 @@ export function Register({ initial, methods, canDiscount, defaultDeliveryCharge 
     const code = e.currentTarget.value.trim();
     if (!code) return;
     const hit = await findByCode(code);
-    if (hit) { add(hit); e.currentTarget.value = ""; } else { setQ(code); e.currentTarget.value = ""; }
+    if (hit) { addAndClear(hit); e.currentTarget.value = ""; } else { setQ(code); e.currentTarget.value = ""; }
   };
 
-  const subtotal = cart.reduce((s, l) => s + l.item.sale_price * l.qty - l.discount, 0);
+  const subtotal = cart.reduce((s, l) => s + l.price * l.qty - l.discount, 0);
   const deliveryCharge = delivery ? Math.max(0, Number(charge) || 0) : 0;
   const total = Math.max(0, subtotal + deliveryCharge - (Number(billDiscount) || 0));
   const payNow = !(delivery && cod);
@@ -87,9 +89,10 @@ export function Register({ initial, methods, canDiscount, defaultDeliveryCharge 
     : null;
 
   const pay = () => start(async () => {
+    const saleTotal = total, saleChange = change, wasDelivery = delivery;
     const r = await posCheckout({
       key: key.current, customer_id: customer?.id ?? null, pet_id: null,
-      lines: cart.map((l) => ({ item_id: l.item.id, quantity: l.qty, discount_amount: l.discount })),
+      lines: cart.map((l) => ({ item_id: l.item.id, quantity: l.qty, discount_amount: l.discount, unit_price: l.item.price_is_editable ? l.price : undefined })),
       payments: payNow ? [{ method, amount: Math.min(paid, total), reference }] : [],
       invoice_discount: Number(billDiscount) || 0, discount_reason: discountReason,
       pay_later: !payNow ? { promised_date: todayPK(), reason: "Cash on delivery" }
@@ -97,16 +100,22 @@ export function Register({ initial, methods, canDiscount, defaultDeliveryCharge 
       delivery: delivery ? { address: address.trim(), charge: deliveryCharge, notes: deliveryNotes.trim() || undefined } : null,
     });
     if (r.ok && r.invoiceId) {
-      setDone(r.invoiceId); key.current = newKey();
+      key.current = newKey();
+      if (wasDelivery) setDone(r.invoiceId);
+      else { setLastSale({ id: r.invoiceId, total: saleTotal, change: saleChange }); clearSale(); }
       setItems(await searchRetail(q));
     } else toast.error(r.message);
   });
 
-  const reset = () => {
+  const clearSale = () => {
     setCart([]); setCustomer(null); setTendered(""); setReference(""); setBillDiscount(""); setDiscountReason(""); setMethod("cash"); setDone(null);
     setDelivery(false); setAddress(""); setCharge(String(defaultDeliveryCharge)); setDeliveryNotes(""); setCod(false);
     setTimeout(() => scan.current?.focus(), 50);
   };
+  const reset = () => { clearSale(); setLastSale(null); };
+  const addAndClear = (i: RetailItem) => { setLastSale(null); add(i); };
+  const canPay = !(pending || cart.length === 0 || cart.some((l) => !(l.price > 0)) || !!deliveryProblem || (payNow && short > 0 && !customer)
+    || (payNow && m?.needs_reference && !reference.trim()) || (Number(billDiscount) > 0 && !discountReason.trim()));
 
   return (
     <div className={cn("grid grid-cols-1 gap-6 lg:grid-cols-[1fr_400px]", cart.length > 0 && "pb-24 lg:pb-0")}>
@@ -118,20 +127,46 @@ export function Register({ initial, methods, canDiscount, defaultDeliveryCharge 
           </div>
           <div className="relative">
             <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input value={q} onChange={(e) => setQ(e.target.value)} className="h-12 pl-9 text-base" placeholder="Search products — food, shampoo, collar…" />
+            <Input value={q} onChange={(e) => setQ(e.target.value)} className="h-12 pl-9 text-base" placeholder="Search products — food, shampoo, collar…"
+              onKeyDown={(e) => { if (e.key === "Enter" && items.length === 1) { addAndClear(items[0]); setQ(""); } }} />
           </div>
         </div>
+        {!q && popular.length > 0 && (
+          <div>
+            <p className="mb-2 flex items-center gap-1.5 text-xs font-semibold text-muted-foreground"><Zap className="size-3.5 text-brand" /> Quick picks — best sellers this month</p>
+            <div className="flex flex-wrap gap-2">
+              {popular.map((i) => {
+                const why = blocked(i);
+                return (
+                  <button key={i.id} type="button" disabled={!!why} onClick={() => addAndClear(i)}
+                    className="inline-flex items-center gap-2 rounded-full bg-card px-3 py-1.5 text-sm shadow-card ring-1 ring-border transition hover:ring-brand-muted disabled:opacity-50">
+                    <span className="font-medium">{i.name}</span><span className="font-semibold text-brand tabular">{formatPKR(i.sale_price)}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
           {productCards(items).map((card) => card.sizes.length === 1 && !card.family ? (
-            <SingleCard key={card.key} item={card.sizes[0]} onAdd={add} />
+            <SingleCard key={card.key} item={card.sizes[0]} onAdd={addAndClear} />
           ) : (
-            <SizesCard key={card.key} card={card} onAdd={add} />
+            <SizesCard key={card.key} card={card} onAdd={addAndClear} />
           ))}
           {items.length === 0 && <p className="col-span-full rounded-2xl bg-surface p-8 text-center text-muted-foreground">No store products found. Add them in Inventory with “Sold in pet store” ticked.</p>}
         </div>
       </section>
 
       <aside id="checkout" className="grid scroll-mt-20 content-start gap-4 lg:sticky lg:top-20 lg:max-h-[calc(100svh-6rem)] lg:overflow-x-hidden lg:overflow-y-auto lg:overscroll-contain lg:pr-1 lg:pb-2 [scrollbar-width:thin]">
+        {lastSale && (
+          <section className="flex flex-wrap items-center gap-2 rounded-2xl bg-success-soft p-3 text-success ring-1 ring-success/30" role="status">
+            <Check className="size-5" />
+            <span className="font-semibold">Sale complete · {formatPKR(lastSale.total)}</span>
+            {lastSale.change > 0 && <span className="w-full text-lg font-bold">Give change: {formatPKR(lastSale.change)}</span>}
+            <Button asChild size="sm" variant="outline" className="ml-auto bg-card"><Link href={`/print/invoice/${lastSale.id}?receipt=1`} target="_blank"><Printer /> Receipt</Link></Button>
+            <Button size="sm" variant="ghost" onClick={() => setLastSale(null)} aria-label="Dismiss"><X /></Button>
+          </section>
+        )}
         <section className="rounded-2xl bg-card p-4 shadow-card ring-1 ring-border">
           <div className="mb-3 flex items-center gap-2"><ShoppingBag className="size-5 text-brand" /><h2 className="font-semibold">Cart</h2>
             {cart.length > 0 && <Button variant="ghost" size="sm" className="ml-auto" onClick={() => setCart([])}>Clear</Button>}</div>
@@ -141,6 +176,11 @@ export function Register({ initial, methods, canDiscount, defaultDeliveryCharge 
                 <li key={l.item.id} className="rounded-xl bg-surface p-2.5 ring-1 ring-border">
                   <div className="flex items-start gap-2">
                     <span className="min-w-0 flex-1 text-sm font-medium">{l.item.name}</span>
+                    {l.item.price_is_editable && (
+                      // Items whose price is set at the till: starts at the list price, can be changed here.
+                      <Input className="h-7 w-24 text-right text-xs tabular" inputMode="decimal" aria-label={`Price of ${l.item.name}`} value={l.price || ""}
+                        onChange={(e) => { const v = Number(e.target.value.replace(/[^\d.]/g, "")) || 0; setCart((c) => c.map((x) => x.item.id === l.item.id ? { ...x, price: v } : x)); }} />
+                    )}
                     <Button variant="ghost" size="icon-sm" onClick={() => setQty(l.item.id, 0)} aria-label="Remove"><Trash2 /></Button>
                   </div>
                   <div className="mt-1 flex items-center gap-2">
@@ -148,8 +188,8 @@ export function Register({ initial, methods, canDiscount, defaultDeliveryCharge 
                     <span className="w-8 text-center font-semibold tabular">{l.qty}</span>
                     <Button variant="outline" size="icon-sm" onClick={() => setQty(l.item.id, l.qty + 1)} aria-label="More"><Plus /></Button>
                     {canDiscount && <Input className="h-8 w-20 text-xs" inputMode="decimal" placeholder="Disc." value={l.discount || ""}
-                      onChange={(e) => setCart((c) => c.map((x) => x.item.id === l.item.id ? { ...x, discount: Math.min(Number(e.target.value) || 0, x.item.sale_price * x.qty) } : x))} />}
-                    <span className="ml-auto font-bold whitespace-nowrap tabular">{formatPKR(l.item.sale_price * l.qty - l.discount)}</span>
+                      onChange={(e) => setCart((c) => c.map((x) => x.item.id === l.item.id ? { ...x, discount: Math.min(Number(e.target.value) || 0, x.price * x.qty) } : x))} />}
+                    <span className="ml-auto font-bold whitespace-nowrap tabular">{formatPKR(l.price * l.qty - l.discount)}</span>
                   </div>
                 </li>
               ))}
@@ -226,14 +266,15 @@ export function Register({ initial, methods, canDiscount, defaultDeliveryCharge 
             <p className="rounded-xl bg-info-soft px-3 py-2 text-sm text-info">The rider collects {formatPKR(total)}. Record the cash on <b>Home deliveries</b> when it&apos;s delivered.</p>
           ) : method === "cash" ? (
             <Input className="h-12 text-right text-lg font-semibold tabular" inputMode="decimal" placeholder={`Cash received (${formatPKR(total)})`}
-              value={tendered} onChange={(e) => setTendered(e.target.value.replace(/[^\d.]/g, ""))} />
+              value={tendered} onChange={(e) => setTendered(e.target.value.replace(/[^\d.]/g, ""))}
+              onKeyDown={(e) => { if (e.key === "Enter" && canPay) pay(); }} />
           ) : m?.needs_reference && <Input placeholder={`${m.label} transaction ID`} value={reference} onChange={(e) => setReference(e.target.value)} />}
           {change > 0 && <p className="rounded-xl bg-info-soft px-3 py-2 text-center text-lg font-bold text-info">Change: {formatPKR(change)}</p>}
           {deliveryProblem && cart.length > 0 && <p className="text-xs text-danger">{deliveryProblem}</p>}
+          {cart.some((l) => !(l.price > 0)) && <p className="text-xs text-danger">Enter the price for {cart.find((l) => !(l.price > 0))?.item.name}.</p>}
           {payNow && short > 0 && <p className="rounded-xl bg-warning-soft px-3 py-2 text-sm text-warning">{customer ? `${formatPKR(short)} will be added to ${customer.title}'s account.` : "Walk-in sales must be paid in full — or choose the customer."}</p>}
           {discountReason.trim() === "" && Number(billDiscount) > 0 && <p className="text-xs text-danger">Give a reason for the discount.</p>}
-          <Button size="lg" className="h-14 text-lg" onClick={pay}
-            disabled={pending || cart.length === 0 || !!deliveryProblem || (payNow && short > 0 && !customer) || (payNow && m?.needs_reference && !reference.trim()) || (Number(billDiscount) > 0 && !discountReason.trim())}>
+          <Button size="lg" className="h-14 text-lg" onClick={pay} disabled={!canPay}>
             {pending ? <Loader2 className="animate-spin" /> : delivery ? <Truck /> : <Check />}
             {!payNow ? "Confirm order — cash on delivery" : `Pay ${formatPKR(Math.min(paid, total))}`}
           </Button>

@@ -12,9 +12,11 @@ export type RetailItem = {
   family_id: string | null; family_name: string | null; size_label: string | null; size_grams: number | null;
   /** "In the shop right now" — staff untick it when a size isn't available. */
   is_available: boolean;
+  /** Price can be changed at the till (the list price is the starting point). */
+  price_is_editable: boolean;
 };
 
-const RETAIL = "id, name, category, brand, sale_price, unit, track_stock, barcode, sku, family_id, size_label, size_grams, is_available, product_families(name)";
+const RETAIL = "id, name, category, brand, sale_price, price_is_editable, unit, track_stock, barcode, sku, family_id, size_label, size_grams, is_available, product_families(name)";
 
 export async function searchRetail(q: string): Promise<RetailItem[]> {
   await assertCan("pos.use");
@@ -39,6 +41,28 @@ export async function searchRetail(q: string): Promise<RetailItem[]> {
   }));
 }
 
+/** The pet store's best sellers over the last 30 days — one-tap buttons for quick walk-in sales. */
+export async function popularRetail(limit = 8): Promise<RetailItem[]> {
+  await assertCan("pos.use");
+  const supabase = await createClient();
+  const since = new Date(Date.now() - 30 * 86400000).toISOString();
+  const { data } = await supabase.from("invoice_items").select("item_id, quantity, invoices!inner(kind, status, issued_at)")
+    .eq("invoices.kind", "store").eq("invoices.status", "issued").gte("invoices.issued_at", since).is("line_role", null).limit(3000);
+  const sold = new Map<string, number>();
+  for (const l of data ?? []) sold.set(l.item_id, (sold.get(l.item_id) ?? 0) + Number(l.quantity));
+  const top = [...sold.entries()].sort((a, b) => b[1] - a[1]).slice(0, limit * 2).map(([id]) => id);
+  if (!top.length) return [];
+  const { data: items } = await supabase.from("catalog_items").select(RETAIL).in("id", top).eq("is_active", true).eq("is_retail", true);
+  const ids = (items ?? []).filter((i) => i.track_stock).map((i) => i.id);
+  const { data: levels } = ids.length ? await supabase.from("stock_levels").select("item_id, usable_qty").in("item_id", ids) : { data: [] };
+  const stock = new Map((levels ?? []).map((l) => [l.item_id, Number(l.usable_qty)]));
+  return (items ?? []).map(({ product_families, ...i }) => ({
+    ...i, sale_price: Number(i.sale_price), size_grams: i.size_grams == null ? null : Number(i.size_grams),
+    family_name: (product_families as unknown as { name: string } | null)?.name ?? null,
+    stock: i.track_stock ? stock.get(i.id) ?? 0 : null,
+  })).sort((a, b) => top.indexOf(a.id) - top.indexOf(b.id)).slice(0, limit);
+}
+
 /** Exact barcode / SKU match for scanners. */
 export async function findByCode(code: string): Promise<RetailItem | null> {
   const hits = await searchRetail(code);
@@ -47,7 +71,7 @@ export async function findByCode(code: string): Promise<RetailItem | null> {
 
 export async function posCheckout(input: {
   key: string; customer_id: string | null; pet_id: string | null;
-  lines: { item_id: string; quantity: number; discount_amount?: number }[];
+  lines: { item_id: string; quantity: number; discount_amount?: number; unit_price?: number }[];
   payments: { method: string; amount: number; reference?: string }[];
   invoice_discount?: number; discount_reason?: string;
   pay_later?: { promised_date: string; reason: string } | null;
