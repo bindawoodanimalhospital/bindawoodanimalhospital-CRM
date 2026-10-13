@@ -96,7 +96,7 @@
     <div class="sub">Everything the clinic's CRM can do, how each part connects, and step-by-step instructions for every daily task — from the front desk to the ward, the pet store and the owner's reports.</div>
     <div class="meta">
       <div><b>Open the CRM</b><a href="https://bdah-crm.bindawoodanimalhospital.workers.dev">bdah-crm.bindawoodanimalhospital.workers.dev</a></div>
-      <div><b>Version</b>October 2026</div>
+      <div><b>Version</b>October 2026 · updated 13 Oct</div>
       <div><b>Prepared by</b><a href="https://omerbindawood.github.io/Portfolio-Website/">OBD</a></div>
     </div>
   </div>
@@ -111,12 +111,12 @@
     <li><span class="n">3</span><span>Finding your way around<small>Menu, Home page, smart search</small></span></li>
     <li><span class="n">4</span><span>Pet owners &amp; pets<small>Registering, editing, alerts, merging</small></span></li>
     <li><span class="n">5</span><span>Today's queue &amp; appointments<small>Tokens, check-in, booking</small></span></li>
-    <li><span class="n">6</span><span>The visit: doctor's work<small>Consultation, prescriptions, vaccines, tests</small></span></li>
+    <li><span class="n">6</span><span>The visit: doctor's work<small>Consultation, prescriptions, vaccines, deworming, tests</small></span></li>
     <li><span class="n">7</span><span>Surgery &amp; ward<small>Consent, theatre, admissions, doses</small></span></li>
     <li><span class="n">8</span><span>Billing &amp; payments<small>Bills, unpaid bills, returns, statements</small></span></li>
-    <li><span class="n">9</span><span>Pet store &amp; home delivery<small>POS, cash on delivery, home visits</small></span></li>
-    <li><span class="n">10</span><span>Inventory &amp; suppliers<small>Stock, expiry, deliveries, borrow/lend</small></span></li>
-    <li><span class="n">11</span><span>Follow-ups &amp; reminders<small>Due list, WhatsApp messages, tasks, alerts</small></span></li>
+    <li><span class="n">9</span><span>Pet store &amp; home delivery<small>Quick sales, sizes, pay later, cancelling orders</small></span></li>
+    <li><span class="n">10</span><span>Inventory &amp; suppliers<small>Adding stock, shelf count, sizes, expiry, borrow/lend</small></span></li>
+    <li><span class="n">11</span><span>Follow-ups &amp; reminders<small>How next-dose reminders work, WhatsApp, tasks</small></span></li>
     <li><span class="n">12</span><span>Full histories<small>Every visit of a pet or an owner's family</small></span></li>
     <li><span class="n">13</span><span>Expenses &amp; reports<small>Money, activity, stock, data checks</small></span></li>
     <li><span class="n">14</span><span>Owner &amp; admin<small>Staff, permissions, activity log, settings</small></span></li>
@@ -144,7 +144,7 @@
   <p>Each staff member has their own login. Never share logins — the system records who did what, and it can only be accurate if everyone uses their own account. What each person sees and can do depends on their <b>role</b>:</p>
   <table>
     <tr><th>Role</th><th>Typical person</th><th>Main areas</th></tr>
-    <tr><td><b>Owner / Admin</b></td><td>Dr. Musab</td><td>Everything, including staff, permissions, reports and the activity log</td></tr>
+    <tr><td><b>Owner / Admin</b></td><td>Dr. Musab</td><td>Everything, including staff, permissions, reports and the activity log. <b>The only person who can see pet owners' phone numbers and email.</b></td></tr>
     <tr><td><b>Senior Doctor</b></td><td>Experienced vets</td><td>All clinical work, surgery, ward, finalising notes, billing</td></tr>
     <tr><td><b>Junior Doctor</b></td><td>Newer vets</td><td>Consultations, prescriptions, vaccines, tests (with senior oversight)</td></tr>
     <tr><td><b>Intern</b></td><td>Trainees</td><td>Viewing records and assisting; limited changes</td></tr>
@@ -167,8 +167,8 @@
     <div class="card"><div class="tag">Owner ↔ Pets</div><h4>One owner, many pets — one pet, several owners</h4><p>A family can share a pet. Each pet has one <i>primary</i> owner who receives reminders and bills.</p></div>
     <div class="card"><div class="tag">Visit</div><h4>Every time a pet comes in</h4><p>Checking a pet in creates a visit with today's token number. Everything the doctor does is saved inside that visit.</p></div>
     <div class="card"><div class="tag">Bill</div><h4>Built from the visit</h4><p>Services, medicines and vaccines from the visit go onto one bill. Medicines on a bill reduce stock automatically.</p></div>
-    <div class="card"><div class="tag">Unpaid bill</div><h4>Pay later, with a promise date</h4><p>If an owner pays part, the rest becomes an unpaid bill with a promised date, and payment reminders follow.</p></div>
-    <div class="card"><div class="tag">Reminders</div><h4>Created automatically</h4><p>A vaccine sets the next due date; a consultation can set a follow-up. These appear in <span class="ui">Due &amp; follow-ups</span> and become WhatsApp messages.</p></div>
+    <div class="card"><div class="tag">Unpaid bill</div><h4>Pay later, with a promise date</h4><p>If an owner pays part — or nothing yet — the rest becomes an unpaid bill. The reason and promised date are optional; payment is recorded whenever it arrives.</p></div>
+    <div class="card"><div class="tag">Reminders</div><h4>Created automatically</h4><p>A vaccine or deworming sets the next due date; a consultation can set a follow-up. These appear in <span class="ui">Due &amp; follow-ups</span> and become WhatsApp messages.</p></div>
     <div class="card"><div class="tag">From a visit</div><h4>Surgery and ward stays</h4><p>A doctor can plan surgery or admit the pet to the ward from the visit; their costs join the pet's bills.</p></div>
     <div class="card"><div class="tag">Stock</div><h4>Pet store and medicines</h4><p>Pet-store sales and billed medicines take stock out; supplier deliveries and borrowed stock put it back in.</p></div>
     <div class="card"><div class="tag">Everything</div><h4>Recorded in the activity log</h4><p>Every sign-in, page opened, print and change — who, what and when — is kept and cannot be edited.</p></div>
@@ -185,8 +185,8 @@
     <tr><td><b>Today</b></td><td><span class="ui">Home</span> <span class="ui">Today's queue</span> <span class="ui">Appointments</span> <span class="ui">Surgery</span> <span class="ui">Ward</span></td></tr>
     <tr><td><b>Follow-up</b></td><td><span class="ui">Messages to send</span> <span class="ui">Tasks</span> <span class="ui">Due &amp; follow-ups</span> <span class="ui">Alert centre</span></td></tr>
     <tr><td><b>Records</b></td><td><span class="ui">Pet owners</span> <span class="ui">Pets</span></td></tr>
-    <tr><td><b>Money &amp; stock</b></td><td><span class="ui">Billing</span> <span class="ui">Unpaid bills</span> <span class="ui">Pet store</span> <span class="ui">Home deliveries</span> <span class="ui">Inventory</span> <span class="ui">Borrowed &amp; lent stock</span> <span class="ui">Suppliers</span> <span class="ui">Expenses</span> <span class="ui">Reports</span></td></tr>
-    <tr><td><b>Admin</b></td><td><span class="ui">Staff</span> <span class="ui">Who can do what</span> <span class="ui">Activity log</span> <span class="ui">Vaccine schedules</span> <span class="ui">Reminder settings</span> <span class="ui">Settings</span></td></tr>
+    <tr><td><b>Money &amp; stock</b></td><td><span class="ui">Billing</span> <span class="ui">Unpaid bills</span> <span class="ui">Pet store</span> <span class="ui">Home deliveries</span> <span class="ui">Inventory</span> (incl. <span class="ui">Shelf count</span> and <span class="ui">Sizes</span>) <span class="ui">Borrowed &amp; lent stock</span> <span class="ui">Suppliers</span> <span class="ui">Expenses</span> <span class="ui">Reports</span></td></tr>
+    <tr><td><b>Admin</b></td><td><span class="ui">Staff</span> <span class="ui">Who can do what</span> <span class="ui">Activity log</span> <span class="ui">Vaccines &amp; schedules</span> <span class="ui">Reminder settings</span> <span class="ui">Settings</span></td></tr>
   </table>
   <p>The top bar always has the <b>search box</b>, the <b>bell</b> (your notifications) and the <span class="btn">+ New</span> button for registering a new owner or pet. On a phone, tap <b>☰</b> to open the menu.</p>
   <h3>The Home page</h3>
@@ -198,10 +198,10 @@
     <li><b>Needs attention</b> — only appears when something must be done: overdue reminders, money owed, messages to send, your tasks, deliveries, low stock, overdue stock loans. Tap any line to go straight there.</li>
   </ul>
   <h3>Smart search — find anything in seconds</h3>
-  <p>Press <code>Ctrl + K</code> (or <code>/</code>) anywhere, or tap the search box. It searches owners, pets, bills, products and today's tokens at once, forgives spelling mistakes and understands any phone format.</p>
+  <p>Press <code>Ctrl + K</code> (or <code>/</code>) anywhere, or tap the search box. It searches owners, pets, bills, products and today's tokens at once, and forgives spelling mistakes.</p>
   <table>
     <tr><th style="width:36%">Type…</th><th>To find…</th></tr>
-    <tr><td><code>0300 1234567</code>, <code>+92300…</code> or just <code>4567</code></td><td>An owner by any part of their phone number</td></tr>
+    <tr><td><code>0300 1234567</code>, <code>+92300…</code> or just <code>4567</code></td><td>An owner by any part of their phone number — <b>owner (Dr. Musab) only</b>. For everyone else a number finds nothing, so search by name, pet or ID.</td></tr>
     <tr><td><code>tiger ahmed</code></td><td>Pet "Tiger" belonging to owner "Ahmed" (typos like <code>tigr ahmad</code> also work)</td></tr>
     <tr><td><code>C-00012</code> / <code>P-00034</code></td><td>An owner or pet by ID (printed on cards and bills)</td></tr>
     <tr><td><code>#5</code></td><td>Today's token number 5</td></tr>
@@ -218,13 +218,13 @@
   <h3>Register a new owner and their pet</h3>
   <ol class="steps">
     <li>Press <span class="btn">+ New</span> → <b>New pet owner + pet</b> (or use the quick action on Home).</li>
-    <li>Enter the owner's name, mobile number (any format — it is tidied automatically), area and address. Optional: WhatsApp number if different, email, preferred contact.</li>
+    <li>Enter the owner's name, area and address (house, block, street, city) and preferred contact. <b>Phone, WhatsApp and email are optional and only the owner of the hospital can add or see them</b> — other staff see a lock note instead.</li>
     <li>Add the pet on the same form: name, species, breed, sex, date of birth (or estimated age), colour, microchip.</li>
     <li>Save. The owner gets an ID like <code>C-00012</code> and the pet <code>P-00034</code>.</li>
   </ol>
-  <div class="box warn"><b class="t">Avoid duplicates</b>Before registering, search the phone number. The system also warns you if the number already belongs to someone. If two records of the same person were created, the owner can <b>Merge</b> them from the owner page — visits, bills, messages and tasks all move to the kept record.</div>
+  <div class="box warn"><b class="t">Avoid duplicates</b>Before registering, search the owner's name and their pet's name. The form warns you when a similar name already exists (and, for the owner, when the number is already saved). If two records of the same person were created, the owner can <b>Merge</b> them from the owner page — visits, bills, messages and tasks all move to the kept record.</div>
   <h3>The owner page</h3>
-  <p>Shows contact details, all their pets, money owed, home deliveries and home visits, and the contact history (calls, WhatsApps). Buttons at the top let you <b>Call</b>, <b>Edit</b>, start a <span class="btn">New bill</span>, a <b>Pet store sale</b>, <b>Book appointment</b>, open <b>Full history — all pets</b> and the <b>Account &amp; statement</b>.</p>
+  <p>Shows the address (phone numbers and email for the owner only), all their pets, money owed, home deliveries and home visits, and the contact history (calls, WhatsApps). Buttons at the top let you <b>Call</b>, <b>Edit</b>, start a <span class="btn">New bill</span>, a <b>Pet store sale</b>, <b>Book appointment</b>, open <b>Full history — all pets</b> and the <b>Account &amp; statement</b>.</p>
   <h3>The pet page</h3>
   <ul>
     <li><b>Alerts</b> — allergies, conditions and handling warnings. Critical ones show in red at the top of the pet and in every search result. Add them as soon as you learn them.</li>
@@ -232,6 +232,7 @@
     <li><b>Owners</b> — add a second owner, or make someone the primary owner.</li>
     <li><b>Medical history</b> and <b>Due</b> — a summary; press <span class="btn">Full medical history</span> for everything (chapter 12).</li>
   </ul>
+  <div class="box note"><b class="t">Phone numbers are private</b>Only the hospital owner can see, add or change pet owners' phone numbers, WhatsApp and email — on screens, prints, search and messages. This can't be given to any other role. Addresses are visible to staff so deliveries and home visits work.</div>
 </section>
 
 <!-- ============================== 5 ============================== -->
@@ -259,7 +260,7 @@
 <!-- ============================== 6 ============================== -->
 <section class="chapter">
   <div class="chapter-head"><div class="num">6</div><div><h2>The visit: doctor's work</h2><p>Everything for one pet's visit lives on one screen.</p></div></div>
-  <p>Open the visit from the queue. The top shows the pet, owner, token and any <b>allergy alert</b>. Below are tabs: <span class="ui">Consultation</span> <span class="ui">Prescriptions</span> <span class="ui">Vaccines</span> <span class="ui">Tests</span>. Buttons on top: <span class="btn">Bill this visit</span>, <b>Plan surgery</b>, <b>Admit to ward</b>, <b>Full history</b>.</p>
+  <p>Open the visit from the queue. The top shows the pet, owner, token and any <b>allergy alert</b>. Below are tabs: <span class="ui">Consultation</span> <span class="ui">Prescriptions</span> <span class="ui">Vaccines &amp; deworming</span> <span class="ui">Tests</span>. Buttons on top: <span class="btn">Bill this visit</span>, <b>Plan surgery</b>, <b>Admit to ward</b>, <b>Full history</b>.</p>
   <h3>Consultation notes</h3>
   <ol class="steps">
     <li>Record the complaint and history, then vitals: temperature, heart rate, breathing rate, weight, mucous membranes, CRT, hydration, body condition and pain score.</li>
@@ -272,6 +273,14 @@
   <p>Add each medicine with strength, dose, how often, for how long, route, quantity and instructions, plus advice for the owner. Check carefully, then <span class="btn">Issue</span> — it locks and is ready to print. To change an issued prescription, cancel it and issue a new one.</p>
   <h3>Vaccines</h3>
   <p>Record the vaccine, batch number, dose, route and site. The next due date is calculated from the vaccine schedule and appears in <span class="ui">Due &amp; follow-ups</span>. If recorded by mistake, <b>void</b> it with a reason — the reminder it closed is re-opened automatically. A printable <b>vaccination card</b> is available from the pet.</p>
+  <p>When a next dose date is set, a blue <b>What happens next</b> box shows the exact days the owner's WhatsApp reminder is prepared and when reception is alerted.</p>
+  <p>Available vaccines include the <b>Bioveta range</b>: Biofel PCH and PCHR (cats), Biocan Puppy, Biocan Novel DHPPi/L4 and DHPPi/L4R, Biocan R (rabies) and Biocan M (ringworm). The owner or a senior doctor can add more in <span class="ui">Vaccines &amp; schedules</span>.</p>
+  <h3>Deworming</h3>
+  <ol class="steps">
+    <li>On the <span class="ui">Vaccines &amp; deworming</span> tab, fill in <b>Dewormer given</b> (suggestions come from the price list), dose and weight.</li>
+    <li><b>Next deworming due</b> is suggested from the pet's age — every 2 weeks under 12 weeks old, monthly until 6 months, then every 3 months. Use the 2 weeks / 1 month / 3 months buttons or pick any date; clear it for no reminder.</li>
+    <li>Press <span class="btn">Record deworming</span>. The pet appears in <span class="ui">Due &amp; follow-ups</span> on that date and reminders follow, like vaccines. A wrong entry is undone with <b>Entered by mistake</b> (with a reason).</li>
+  </ol>
   <h3>Tests</h3>
   <p>Order blood work, X-ray, ultrasound and other tests with the reason and urgency. When results arrive, enter the findings, values and impression; a senior doctor reviews them. Upload reports and images to the pet's documents.</p>
 </section>
@@ -282,7 +291,7 @@
   <h3>Surgery</h3>
   <ol class="steps">
     <li>From the visit press <b>Plan surgery</b>: procedure, reason, urgency, surgeon, date and estimate.</li>
-    <li><b>Consent</b>: print the consent form for the owner to sign, then record that it was signed.</li>
+    <li><b>Consent</b>: print the consent form for the owner to sign, then record who signed and how (the signer's phone field is shown to the hospital owner only).</li>
     <li><b>Pre-op</b>: weight, vitals, ASA class, fasting confirmed and the pre-op checklist.</li>
     <li><b>In theatre</b>: anaesthesia, start and end times, team, notes, complications and materials used.</li>
     <li><b>Recovery and discharge</b>: recovery notes, home-care instructions, follow-up date, and print the discharge sheet.</li>
@@ -306,7 +315,7 @@
     <li>Add services and products from the price list. Medicines and vaccines from the visit can be added in one tap. Some items (like "Other charge") let you type the price.</li>
     <li>Discounts: per line or for the whole bill, with a reason. Large discounts need a manager's approval.</li>
     <li>Press <b>Checkout</b>: choose the payment method(s) — cash, card, bank transfer, JazzCash/Easypaisa — and the amount. You can split between methods.</li>
-    <li>If the owner pays only part, enter the <b>promised date</b> for the rest. The remainder becomes an unpaid bill.</li>
+    <li>If the owner pays only part or nothing yet, choose <b>Pay later</b>. The note and promised date are optional (if left empty: "Payment to follow", 7 days). The remainder becomes an unpaid bill; record the payment when it arrives.</li>
     <li>Print the bill or the receipt, or share it.</li>
   </ol>
   <div class="box note"><b class="t">Double-tap protection</b>If the checkout button is pressed twice or the internet drops mid-payment, the system records the payment only once.</div>
@@ -325,15 +334,25 @@
 <!-- ============================== 9 ============================== -->
 <section class="chapter">
   <div class="chapter-head"><div class="num">9</div><div><h2>Pet store &amp; home delivery</h2><p>Fast counter sales, deliveries and cash on delivery.</p></div></div>
-  <h3>Make a sale</h3>
+  <h3>Quick sale for walk-in customers</h3>
   <ol class="steps">
-    <li>Open <span class="ui">Pet store</span>. Scan the barcode, type the SKU and press Enter, or search and tap products.</li>
-    <li>Adjust quantities in the cart. Optionally attach the sale to an owner (needed for delivery or pay-later).</li>
-    <li>Choose <b>In store</b> or <b>Home delivery</b> (address and delivery charge).</li>
-    <li>Take payment now, or choose <b>Cash on delivery</b>. Print the receipt.</li>
+    <li>Open <span class="ui">Pet store</span>. The <b>quick picks</b> at the top are the 8 best sellers of the last 30 days — one tap adds one to the cart.</li>
+    <li>Or scan the barcode / type in the search box; when only one product matches, <code>Enter</code> adds it.</li>
+    <li>Type the cash received and press <code>Enter</code> to pay. The sale finishes on the same screen (with change due and a print button) — ready for the next customer.</li>
+  </ol>
+  <h3>Products with sizes</h3>
+  <p>A product sold in several weights or sizes (e.g. 1 kg, 3 kg, 10 kg) shows as one card with a button per size. Sizes that are <b>not available</b> right now are greyed out and can't be added. Prices with an editable amount show a price box in the cart.</p>
+  <h3>Home delivery and payment</h3>
+  <ol class="steps">
+    <li>Attach the sale to a pet owner, choose <b>Home delivery</b>, check the address (filled from their profile) and the delivery charge.</li>
+    <li>Choose how they pay: <b>Pay now</b> (cash, card, bank, JazzCash/Easypaisa with transaction ID), <b>On delivery</b> (cash on delivery), or <b>Pay later</b> (optional date).</li>
+    <li>Print the receipt. Products are always billed at their price — a product can never go out at Rs. 0.</li>
   </ol>
   <h3>Home deliveries</h3>
   <p><span class="ui">Home deliveries</span> lists orders to dispatch and on the way. Mark <b>Dispatched</b> (with rider) and then <b>Delivered</b>. For cash on delivery, payment reminders start only after the order is delivered and still unpaid.</p>
+  <h3>Cancelling an order</h3>
+  <p>Press <b>Cancel order</b> on the delivery or on the bill, optionally with a reason. Any money taken is refunded, the stock goes back on the shelf, and the cancellation is recorded in the activity log. Cancelled orders are listed under <b>Cancelled</b> on <span class="ui">Home deliveries</span>.</p>
+  <div class="box note"><b class="t">Who can cancel</b>Store staff can cancel orders not yet delivered and today's counter sales. Older or delivered orders are cancelled by the owner.</div>
   <h3>Home visits</h3>
   <p>Appointments and visits can be marked as <b>home visit</b> with the address; a home visit charge can be added to the bill. They appear in the owner's service history.</p>
 </section>
@@ -342,11 +361,20 @@
 <section class="chapter">
   <div class="chapter-head"><div class="num">10</div><div><h2>Inventory &amp; suppliers</h2><p>Know what you have, what is expiring and what to order.</p></div></div>
   <h3>Stock and the price list</h3>
-  <p><span class="ui">Inventory</span> has two views: <b>Stock</b> (quantities, batches, expiry) and <b>Price list</b> (every service and product with its price). Summary tiles show <b>low / reorder</b>, <b>expiring in 60 days</b> and <b>expired on the shelf</b>. Press <span class="btn">New item</span> to add a product or service; turn on stock tracking for physical items.</p>
+  <p><span class="ui">Inventory</span> has two views: <b>Stock</b> (quantities, batches, expiry) and <b>Price list</b> (every service and product with its price). Summary tiles show <b>low / reorder</b>, <b>expiring in 60 days</b> and <b>expired on the shelf</b>. Press <span class="btn">New item</span> to add a product or service. For products you can type the <b>opening quantity</b> (how many pieces are on the shelf now), and choose <b>Product with sizes</b> to add all sizes at once.</p>
+  <h3>Adding stock — one step</h3>
+  <ol class="steps">
+    <li>Open the product and press <span class="btn">Add stock</span>.</li>
+    <li>Type <b>how many pieces</b> arrived. Batch and expiry are optional. Save — stock tracking switches on by itself.</li>
+  </ol>
+  <h3>Shelf count</h3>
+  <p><span class="ui">Inventory</span> → <span class="btn">Shelf count</span> lists every product with a box for the number actually on the shelf. Type the counts and save; the system corrects the stock (taking away the soonest-expiring first) and records it. The <b>Uncounted</b> tile shows products never counted.</p>
+  <h3>Sizes and availability</h3>
+  <p>A product's page has a <b>Sizes</b> card: add a size, and switch each size <b>available / not available</b>. <span class="ui">Inventory</span> → <span class="ui">Sizes</span> suggests products that look like sizes of the same item (e.g. "Royal Canin 2kg" and "Royal Canin 4kg") — combine them in one tap.</p>
   <h3>Receive stock from a supplier</h3>
   <ol class="steps">
     <li>Open <span class="ui">Suppliers</span> (add the supplier once), then <b>Receive stock</b>.</li>
-    <li>Add each product with quantity, cost, batch number and expiry date.</li>
+    <li>Add each product with quantity (pieces), cost, batch number and expiry date.</li>
     <li>Save — stock increases and the cost is recorded for profit reports. Record supplier payments on the supplier page.</li>
   </ol>
   <h3>Borrowed &amp; lent stock</h3>
@@ -358,9 +386,18 @@
 <section class="chapter">
   <div class="chapter-head"><div class="num">11</div><div><h2>Follow-ups &amp; reminders</h2><p>The system remembers so staff don't have to.</p></div></div>
   <h3>Due &amp; follow-ups</h3>
-  <p>Every vaccine due, booster and follow-up appears here with views for <b>Today</b>, <b>Overdue</b> and <b>Upcoming</b>. Reception calls or messages the owner and records the outcome (booked, will come, not reachable). Recording the vaccine closes the reminder automatically.</p>
+  <p>Every vaccine due, deworming due, booster and follow-up appears here with views for <b>Today</b>, <b>Overdue</b> and <b>Upcoming</b>. Reception calls or messages the owner and records the outcome (booked, will come, not reachable). Recording the vaccine closes the reminder automatically.</p>
+  <h3>How next-dose reminders work (vaccines &amp; deworming)</h3>
+  <ol class="steps">
+    <li><b>The doctor sets the next date</b> when recording the vaccine or deworming (a schedule or the pet's age suggests it). No date = no reminder.</li>
+    <li><b>It appears in Due &amp; follow-ups</b> under Upcoming → Today → Overdue.</li>
+    <li><b>WhatsApp messages are prepared automatically</b> 3 days before, on the day, and 3 and 7 days after the due date, in the owner's language, in <span class="ui">Messages to send</span>.</li>
+    <li><b>If the pet doesn't come</b>, reception is alerted (on the day and 3 days after), and it is escalated to the owner if still overdue.</li>
+    <li><b>It stops by itself</b> the moment the next dose is recorded. Marking a record "entered by mistake" brings the old reminder back.</li>
+  </ol>
+  <p class="muted">The same explanation is on the <span class="ui">Due &amp; follow-ups</span> and <span class="ui">Reminder settings</span> pages. Days and wording can be changed in Reminder settings.</p>
   <h3>Messages to send</h3>
-  <p>Every 30 minutes the system prepares reminders (vaccines due, follow-ups, payment reminders) according to <span class="ui">Reminder settings</span>. In <span class="ui">Messages to send</span>, press the WhatsApp button on each — WhatsApp opens with the message already written — send it, and mark it sent. Calls and in-person conversations can also be logged on the owner page.</p>
+  <p>Every 30 minutes the system prepares reminders (vaccines due, follow-ups, payment reminders) according to <span class="ui">Reminder settings</span>. In <span class="ui">Messages to send</span>, press the WhatsApp button on each — WhatsApp opens with the message already written — send it, and mark it sent. Because phone numbers are private, <b>only the hospital owner can send them</b>; other staff see "the number is private — the owner sends this one". Calls and in-person conversations can also be logged on the owner page.</p>
   <h3>Tasks</h3>
   <p>Create tasks for yourself or a colleague ("Call Mrs. Khan about lab result"), with a due time and linked owner. Your open tasks show on Home; overdue ones are in red.</p>
   <h3>Alert centre &amp; notifications</h3>
@@ -411,7 +448,7 @@
     <li>When someone leaves, turn <b>Access</b> off — they are signed out immediately everywhere, and their history stays.</li>
   </ol>
   <h3>Who can do what</h3>
-  <p>A grid of roles and permissions. Tick or untick to change what a role can see and do. Changes apply immediately to everyone with that role, and are recorded.</p>
+  <p>A grid of roles and permissions. Tick or untick to change what a role can see and do. Changes apply immediately to everyone with that role, and are recorded. <b>"See &amp; edit phone numbers and email" is locked to the Owner</b> and can't be given to any other role.</p>
   <h3>Activity log — every action, by every person</h3>
   <p>The owner sees everything staff do in the CRM, in plain sentences, grouped by day:</p>
   <div class="cards">
@@ -422,11 +459,11 @@
     <div class="card"><h4>Away, back, tab closed</h4><p>Idle after 10 minutes, the return, and closing the CRM.</p></div>
     <div class="card"><h4>Blocked pages</h4><p>Attempts to open pages a person isn't allowed to.</p></div>
   </div>
-  <p>The cards at the top show when each staff member last signed in and was last active (green dot = active in the last 15 minutes). Filter by person, kind of action, record type and dates. <b>Entries can never be edited or deleted.</b></p>
+  <p>The cards at the top show when each staff member last signed in and was last active (green dot = active in the last 15 minutes). Filter by person, kind of action, record type and dates. The log loads 60 entries at a time — scroll down (or press <b>Load more</b>) for older ones. <b>Entries can never be edited or deleted.</b></p>
   <h3>Settings</h3>
   <ul>
     <li><span class="ui">Settings</span> — clinic name, address, phone/WhatsApp (03331606689), email and details printed on bills, prescriptions and certificates; billing rules such as discount approval limits.</li>
-    <li><span class="ui">Vaccine schedules</span> — vaccines and the intervals used to calculate next due dates.</li>
+    <li><span class="ui">Vaccines &amp; schedules</span> — add or edit vaccines, and the schedules used to calculate next due dates. New schedules start as <b>drafts</b> and only suggest dates after a senior doctor approves them.</li>
     <li><span class="ui">Reminder settings</span> — which reminders are prepared, when, and the message wording.</li>
   </ul>
 </section>
@@ -437,10 +474,11 @@
   <table>
     <tr><th style="width:34%">Protection</th><th>What it means for you</th></tr>
     <tr><td><b>Role-based access</b></td><td>Each person only sees and changes what their role allows — enforced in the database, not just hidden on screen.</td></tr>
+    <tr><td><b>Private phone numbers</b></td><td>Pet owners' phone numbers and email are visible only to the hospital owner — not on screens, prints, search, messages or the activity log for anyone else. Enforced by the database.</td></tr>
     <tr><td><b>Allergy &amp; handling alerts</b></td><td>Shown in red on the pet, the visit and in every search result.</td></tr>
     <tr><td><b>Locked medical notes</b></td><td>Finalized consultations and issued prescriptions cannot be silently changed; every revision is kept with a reason.</td></tr>
     <tr><td><b>No double charges</b></td><td>Pressing a button twice or a lost connection cannot create a second payment or sale.</td></tr>
-    <tr><td><b>Accurate money</b></td><td>Totals, discounts, refunds and balances are calculated by the database; returns refund exactly what was paid.</td></tr>
+    <tr><td><b>Accurate money</b></td><td>Totals, discounts, refunds and balances are calculated by the database; returns refund exactly what was paid; a product can't be sold at Rs. 0.</td></tr>
     <tr><td><b>One visit per pet per day</b></td><td>No duplicate tokens or bills for the same pet.</td></tr>
     <tr><td><b>Pakistan time everywhere</b></td><td>Dates, tokens, "today" and greetings follow Pakistan time, whatever the device clock says.</td></tr>
     <tr><td><b>Permanent activity log</b></td><td>Everything is recorded and cannot be altered, so questions can always be answered.</td></tr>
@@ -454,7 +492,11 @@
   <table>
     <tr><th style="width:38%">Question</th><th>Answer</th></tr>
     <tr><td>A page says I don't have access.</td><td>Your role doesn't include it. Ask the owner to adjust <span class="ui">Who can do what</span> if you need it.</td></tr>
-    <tr><td>I can't find an owner.</td><td>Search part of the phone number (last 4 digits work), or the pet's name with the owner's name.</td></tr>
+    <tr><td>I can't find an owner.</td><td>Search the owner's name, the pet's name with the owner's name (e.g. <code>tiger ahmed</code>), the area or the ID. Only the hospital owner can search by phone number.</td></tr>
+    <tr><td>Why can't I see a pet owner's phone number?</td><td>Phone numbers and email are private to the hospital owner. Ask Dr. Musab to call or message the client.</td></tr>
+    <tr><td>A size of a product is out of stock.</td><td>Open the product → Sizes card → switch that size to <b>not available</b>. Switch it back when it arrives.</td></tr>
+    <tr><td>The stock number on screen is wrong.</td><td>Inventory → <b>Shelf count</b>: type what is really on the shelf and save.</td></tr>
+    <tr><td>A customer cancelled their order.</td><td>Press <b>Cancel order</b> on the delivery or bill; money is refunded and stock goes back.</td></tr>
     <tr><td>I registered someone twice.</td><td>The owner can merge the two records from the owner page.</td></tr>
     <tr><td>A payment was entered wrongly.</td><td>Use refund or void on the bill with a reason — never re-enter it. Every correction is recorded.</td></tr>
     <tr><td>The doctor's notes need correcting after finalizing.</td><td>A doctor re-opens the consultation with a reason, corrects it and finalizes again.</td></tr>
