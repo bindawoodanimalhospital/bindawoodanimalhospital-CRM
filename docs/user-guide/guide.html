@@ -595,7 +595,8 @@
     <tr><td><b>Batches</b></td><td>Each batch with quantity and expiry; <b>Adjust</b> with a reason (damaged, expired, found).</td></tr>
     <tr><td><b>Sizes</b></td><td><b>Add a size</b>, available / not available switch, <b>Remove this size from the group</b>, <b>Make this a product with sizes</b>.</td></tr>
     <tr><td><b>Stock history</b></td><td>Every movement: received, sold, billed, returned, counted, adjusted, loaned — with who and when.</td></tr>
-    <tr><td>Details</td><td>Price, category, unit, barcode/SKU, reorder level, editable price, retail (pet store) or clinic use.</td></tr>
+    <tr><td>Details</td><td>Price, category, unit, barcode/SKU, reorder level, editable price, retail (pet store) or clinic use. Untick <b>Active</b> to hide an item you no longer sell.</td></tr>
+    <tr><td><b>Delete</b></td><td>Appears only on items <b>never used</b> (no bills, stock or history) — e.g. created by mistake. Confirm, optionally with a reason; it's recorded in the activity log. Used items can't be deleted — hide them instead.</td></tr>
   </table>
   <h3>New item</h3>
   <p>Choose service or product; for products the <b>opening quantity</b> (pieces on the shelf now) and reorder level; or <b>Product with sizes</b> to enter every size at once.</p>
@@ -745,6 +746,7 @@
     <tr><td>No reminder appeared for a vaccine.</td><td>The next date was left empty, or the schedule is still a draft. Set the date on the visit.</td></tr>
     <tr><td>A customer cancelled their order.</td><td><b>Cancel order</b> — refund and stock back in one step.</td></tr>
     <tr><td>A product size is out of stock at the distributor.</td><td>Product → Sizes card → <b>not available</b>.</td></tr>
+    <tr><td>How do I delete an item?</td><td>Never used → <b>Delete</b> on its page. Already used → Edit → untick <b>Active</b> (hidden from billing and the pet store, history kept). Damaged or expired stock → <b>Adjust</b> the batch.</td></tr>
     <tr><td>The stock number is wrong.</td><td><b>Shelf count</b> or <b>Set the count</b> on the product.</td></tr>
     <tr><td>The client wants everything on paper.</td><td>Full medical history → Print, or Account &amp; statement → Statement.</td></tr>
     <tr><td>"Error 1102" from Cloudflare.</td><td>The free hosting limit was hit on a heavy page. Refresh once; if it repeats, tell the owner (the $5/month Workers plan removes it).</td></tr>

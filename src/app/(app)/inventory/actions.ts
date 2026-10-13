@@ -139,3 +139,16 @@ export async function saveCounts(counts: { item_id: string; count: number }[], n
   const n = Number(data ?? 0);
   return { ok: true, message: n ? `Saved — ${n} item${n === 1 ? "" : "s"} updated.` : "Saved — nothing changed." };
 }
+
+/** Delete an item that was never used (no bills, stock or history). Used items can only be hidden. */
+export async function deleteItem(id: string, reason: string): Promise<FormState> {
+  const me = await getCurrentStaff();
+  if (!me?.can("inventory.manage") && !me?.can("settings.manage")) return { message: "You don't have permission." };
+  const supabase = await createClient();
+  const { data: item } = await supabase.from("catalog_items").select("name").eq("id", id).maybeSingle();
+  const { error } = await supabase.rpc("delete_unused_item", { p_item: id, p_reason: reason.trim() || null });
+  if (error) return { message: error.message };
+  refresh();
+  revalidatePath("/pos");
+  return { ok: true, message: `${item?.name ?? "Item"} deleted.` };
+}

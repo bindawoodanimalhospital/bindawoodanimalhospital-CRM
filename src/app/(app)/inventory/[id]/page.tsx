@@ -12,6 +12,7 @@ import { saveItem } from "../actions";
 import { ItemForm } from "../item-form";
 import { AddStockDialog, AdjustDialog, SetCountDialog } from "../stock-widgets";
 import { AvailabilityToggle, SizesPanel } from "../size-widgets";
+import { DeleteItemButton } from "./delete-item";
 import { bySize } from "@/lib/sizes";
 
 export const metadata: Metadata = { title: "Item" };
@@ -54,11 +55,14 @@ export default async function ItemPage({ params }: PageProps<"/inventory/[id]">)
   const onHand = (batches ?? []).reduce((s, b) => s + Number(b.qty_on_hand), 0);
   const canEdit = me.can("inventory.manage") || me.can("settings.manage");
   const cost = (costQ.data as { cost_price: number } | null)?.cost_price;
+  // Delete only appears for items never used anywhere (checked by the database, which also enforces it).
+  const { data: deletable } = canEdit ? await supabase.rpc("item_is_deletable", { p_item: item.id }) : { data: false };
 
   return (
     <>
       <Suspense><NoticeToast /></Suspense>
       <PageHeader back={{ href: "/inventory", label: "Inventory" }}
+        actions={deletable ? <DeleteItemButton id={item.id} name={item.name} /> : undefined}
         title={<span className="flex flex-wrap items-center gap-3">{item.name}{!item.is_active && <StatusPill>Inactive</StatusPill>}
           {item.track_stock && <StatusPill tone="info">{onHand} {item.unit} in stock</StatusPill>}
           {item.kind === "product" && canEdit && <AvailabilityToggle id={item.id} available={item.is_available} />}

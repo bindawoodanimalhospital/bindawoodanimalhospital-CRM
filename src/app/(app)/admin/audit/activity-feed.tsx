@@ -205,6 +205,9 @@ function makeDescribe(names: Record<string, string>, roleNames: Record<string, s
         return { icon: Ban, tone: "bg-danger-soft text-danger", text: `Cancelled order ${c("number") ?? ""}`.trim(),
           detail: [r.reason, Number(c("refunded") ?? 0) > 0 ? `refunded Rs. ${Number(c("refunded")).toLocaleString("en-PK")}` : null].filter(Boolean).join(" · ") || null,
           href: r.record_id ? `/billing/${r.record_id}` : null };
+      case "item.deleted":
+        return { icon: Trash2, tone: "bg-danger-soft text-danger", text: `Deleted price-list item “${c("name") ?? ""}”`,
+          detail: [r.reason, c("price") != null ? `was Rs. ${Number(c("price")).toLocaleString("en-PK")}` : null].filter(Boolean).join(" · ") || null };
       case "invoice.refund":
         return { icon: Undo2, tone: "bg-warning-soft text-warning", text: `Refunded Rs. ${Number(c("amount") ?? 0).toLocaleString("en-PK")}`,
           detail: r.reason, href: r.record_id ? `/billing/${r.record_id}` : null };
