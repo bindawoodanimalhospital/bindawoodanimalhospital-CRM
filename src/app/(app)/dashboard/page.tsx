@@ -3,7 +3,7 @@ import Link from "next/link";
 import {
   ArrowLeftRight, ArrowRight, ArrowUpRight, BedDouble, Boxes, CalendarClock, CalendarDays, CalendarPlus, CheckCircle2, Clock, CreditCard,
   ListOrdered, ListTodo, MessageCircle, PackageCheck, PawPrint, Receipt, Search, ShieldAlert, ShoppingBag, Syringe, UserCog, UserPlus, Users,
-  Wallet, type LucideIcon,
+  Wallet, type LucideIcon, Trash2,
 } from "lucide-react";
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -59,7 +59,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
 
   const seeMoney = me.can("finance.view") || me.can("billing.create");
   const canDeliveries = me.can("pos.use") || me.can("billing.create");
-  const [customers, pets, newCustomers, newPets, recent, queue, appts, dueToday, overdue, inWard, theatre, payToday, openDues, stock, toSend, myTasks, deliveries, loansDue] = await Promise.all([
+  const [customers, pets, newCustomers, newPets, recent, queue, appts, dueToday, overdue, inWard, theatre, payToday, openDues, stock, toSend, myTasks, deliveries, loansDue, removals] = await Promise.all([
     canCustomers ? supabase.from("customers").select("id", { count: "exact", head: true }).neq("status", "merged") : null,
     canPets ? supabase.from("pets").select("id", { count: "exact", head: true }).eq("status", "active") : null,
     canCustomers ? supabase.from("customers").select("id", { count: "exact", head: true }).gte("created_at", today) : null,
@@ -84,6 +84,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
     canDeliveries ? supabase.from("invoices").select("delivery_status").eq("fulfilment", "home_delivery").eq("status", "issued").in("delivery_status", ["pending", "dispatched"]) : null,
     me.can("inventory.view") ? supabase.from("stock_loans").select("id", { count: "exact", head: true })
       .in("status", ["pending_return", "partially_returned"]).lt("expected_return_date", ymd) : null,
+    supabase.from("removal_requests").select("id", { count: "exact", head: true }).eq("status", "open"),
   ]);
   const queueRows = (queue?.data ?? []) as unknown as QueueRow[];
   const waitingCount = queueRows.filter((v) => v.status === "waiting").length;
@@ -136,6 +137,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
     (myTasks?.count ?? 0) > 0 && { label: "My tasks", sub: myOverdueTasks ? `${myOverdueTasks} overdue` : "none overdue", count: String(myTasks?.count), icon: ListTodo, href: "/tasks", tone: myOverdueTasks ? "danger" : "warning" },
     canDeliveries && toDispatch + outForDelivery > 0 && { label: "Home deliveries", sub: `${toDispatch} to dispatch · ${outForDelivery} on the way`, count: String(toDispatch + outForDelivery), icon: PackageCheck, href: "/pos/deliveries", tone: "warning" },
     me.can("inventory.view") && stockAlerts > 0 && { label: "Stock to check", sub: "low or expired items", count: String(stockAlerts), icon: Boxes, href: "/inventory", tone: "warning" },
+    (me.can("customers.delete") || me.can("pets.delete")) && (removals?.count ?? 0) > 0 && { label: "Please remove — added by mistake", sub: "staff asked you to remove pet owners / pets", count: String(removals?.count), icon: Trash2, href: "/removals", tone: "danger" },
     me.can("inventory.view") && (loansDue?.count ?? 0) > 0 && { label: "Stock loans overdue", sub: "borrowed / lent items not returned", count: String(loansDue?.count), icon: ArrowLeftRight, href: "/inventory/loans", tone: "danger" },
   ].filter(Boolean) as Todo[]);
 
@@ -175,7 +177,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
               </OpenSearch>
               <div className="mt-3 flex flex-wrap items-center gap-1.5 text-xs">
                 <span className="mr-0.5 text-white/60">Try</span>
-                {TRY.map((t) => (
+                {TRY.filter((t) => t.label !== "phone" || me.can("customers.contact")).map((t) => (
                   <OpenSearch key={t.label} q={t.q} className="rounded-full bg-white/10 px-2.5 py-1 text-white ring-1 ring-white/20 transition hover:bg-white/20">
                     <code className="font-mono font-semibold">{t.q.trim()}</code> <span className="text-white/65">{t.label}</span>
                   </OpenSearch>

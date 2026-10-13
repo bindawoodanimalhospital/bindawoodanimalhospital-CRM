@@ -13,6 +13,8 @@ import { formatAge, formatDate, formatDateTime, sentence } from "@/lib/format";
 import { formatPhone, whatsappLink } from "@/lib/phone";
 import { CONTACT, contactOf } from "@/lib/contacts";
 import { MergeCustomerDialog } from "./merge-dialog";
+import { RemovalPanel } from "@/components/app/removal-panel";
+import { removalState } from "@/lib/removals";
 import { NewBillButton } from "../../billing/new-bill";
 import { CustomerSummaryCards } from "./summary-cards";
 import { ContactHistory } from "./contact-history";
@@ -57,6 +59,7 @@ export default async function CustomerPage({ params }: PageProps<"/customers/[id
   const contact = contactOf(c);
   const wa = whatsappLink(contact.whatsapp ?? contact.phone);
   const mergedInto = c.merged_into as { id: string; full_name: string } | null;
+  const removal = c.status !== "merged" ? await removalState(me, "customer", c.id, c.full_name) : null;
 
   return (
     <>
@@ -197,6 +200,7 @@ export default async function CustomerPage({ params }: PageProps<"/customers/[id
         </div>
       </div>
 
+      {removal && <RemovalPanel state={removal} />}
       <p className="mt-6 text-xs text-muted-foreground">Last updated {formatDateTime(c.updated_at)}</p>
     </>
   );

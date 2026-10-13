@@ -14,6 +14,8 @@ import { formatPhone, whatsappLink } from "@/lib/phone";
 import { AddOwnerDialog, AlertForm, MakePrimaryButton, ResolveAlertButton, WeightForm } from "./widgets";
 import { PetDueCard, PetTimeline } from "./timeline";
 import { withContact } from "@/lib/contacts";
+import { RemovalPanel } from "@/components/app/removal-panel";
+import { removalState } from "@/lib/removals";
 
 export async function generateMetadata({ params }: PageProps<"/pets/[id]">): Promise<Metadata> {
   const { id } = await params;
@@ -49,6 +51,7 @@ export default async function PetPage({ params }: PageProps<"/pets/[id]">) {
   const latest = weights?.[0];
   const canEdit = me.can("pets.edit");
   const critical = [...(alerts ?? []).filter((a) => a.severity !== "info")];
+  const removal = await removalState(me, "pet", p.id, p.name);
 
   return (
     <>
@@ -188,6 +191,7 @@ export default async function PetPage({ params }: PageProps<"/pets/[id]">) {
         {me.can("clinical.view") && <PetTimeline petId={p.id} />}
         {(me.can("clinical.view") || me.can("crm.view")) && <PetDueCard petId={p.id} />}
       </div>
+      <RemovalPanel state={removal} />
       <p className="mt-6 text-xs text-muted-foreground">Last updated {formatDateTime(p.updated_at)}</p>
     </>
   );

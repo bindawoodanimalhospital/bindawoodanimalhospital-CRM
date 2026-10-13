@@ -1,5 +1,5 @@
 import {
-  ArrowLeftRight, ChartColumnBig, BedDouble, BellRing, Boxes, CalendarClock, ListTodo, MessageCircle, CalendarDays, CreditCard, FileClock, PackageCheck, Receipt, Scissors, ShoppingBag, Truck, Wallet, House, ListOrdered, PawPrint, Settings, ShieldCheck, Syringe, UserCog, Users, type LucideIcon,
+  ArrowLeftRight, ChartColumnBig, BedDouble, BellRing, Boxes, CalendarClock, ListTodo, MessageCircle, CalendarDays, CreditCard, FileClock, PackageCheck, Receipt, Scissors, ShoppingBag, Truck, Wallet, House, ListOrdered, PawPrint, Settings, ShieldCheck, Syringe, Trash2, UserCog, Users, type LucideIcon,
 } from "lucide-react";
 import type { Permission } from "@/lib/permissions";
 
@@ -64,6 +64,7 @@ export const NAV: NavGroup[] = [
       { title: "Staff", href: "/admin/staff", icon: UserCog, anyOf: ["staff.view"] },
       { title: "Who can do what", href: "/admin/roles", icon: ShieldCheck, anyOf: ["staff.view"] },
       { title: "Activity log", href: "/admin/audit", icon: FileClock, anyOf: ["audit.view"] },
+      { title: "Removal requests", href: "/removals", icon: Trash2, anyOf: ["customers.delete", "pets.delete"] },
       { title: "Vaccines & schedules", href: "/settings/vaccines", icon: Syringe, anyOf: ["clinical.reopen", "settings.manage"] },
       { title: "Reminder settings", href: "/settings/reminders", icon: BellRing, anyOf: ["settings.manage"] },
       { title: "Settings", href: "/settings", icon: Settings, anyOf: ["settings.manage"] },

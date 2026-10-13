@@ -205,6 +205,11 @@ function makeDescribe(names: Record<string, string>, roleNames: Record<string, s
         return { icon: Ban, tone: "bg-danger-soft text-danger", text: `Cancelled order ${c("number") ?? ""}`.trim(),
           detail: [r.reason, Number(c("refunded") ?? 0) > 0 ? `refunded Rs. ${Number(c("refunded")).toLocaleString("en-PK")}` : null].filter(Boolean).join(" · ") || null,
           href: r.record_id ? `/billing/${r.record_id}` : null };
+      case "customer.deleted":
+        return { icon: Trash2, tone: "bg-danger-soft text-danger", text: `Deleted pet owner “${c("name") ?? ""}”${c("code") ? ` (${c("code")})` : ""}`,
+          detail: [r.reason, Number(c("pets_deleted") ?? 0) > 0 ? `with ${c("pets_deleted")} pet(s)` : null].filter(Boolean).join(" · ") || null };
+      case "pet.deleted":
+        return { icon: Trash2, tone: "bg-danger-soft text-danger", text: `Deleted pet “${c("name") ?? ""}”${c("code") ? ` (${c("code")})` : ""}`, detail: r.reason };
       case "item.deleted":
         return { icon: Trash2, tone: "bg-danger-soft text-danger", text: `Deleted price-list item “${c("name") ?? ""}”`,
           detail: [r.reason, c("price") != null ? `was Rs. ${Number(c("price")).toLocaleString("en-PK")}` : null].filter(Boolean).join(" · ") || null };
