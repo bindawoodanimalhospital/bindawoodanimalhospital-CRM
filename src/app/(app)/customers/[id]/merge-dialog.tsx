@@ -49,7 +49,7 @@ export function MergeCustomerDialog({ source }: { source: { id: string; name: st
         </DialogHeader>
         <div className="grid gap-4">
           <FormField label="Keep this customer">
-            <Input value={q} onChange={(e) => { setQ(e.target.value); setTarget(null); }} placeholder="Search name or phone…" />
+            <Input value={q} onChange={(e) => { setQ(e.target.value); setTarget(null); }} placeholder="Search name or ID…" />
             {options.length > 0 && !target && (
               <ul className="max-h-48 overflow-auto rounded-lg border">
                 {options.map((o) => (

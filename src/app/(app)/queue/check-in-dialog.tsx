@@ -97,7 +97,7 @@ export function CheckInDialog({ doctors, types, trigger }: {
             <div className="relative">
               <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input autoFocus value={q} onChange={(e) => setQ(e.target.value)} className="h-12 pl-9 text-base"
-                placeholder="Pet name or owner's phone number" />
+                placeholder="Pet name or owner's name" />
             </div>
             <div className="grid max-h-72 gap-1 overflow-auto">
               {searching && <p className="flex items-center gap-2 p-2 text-sm text-muted-foreground"><Loader2 className="size-4 animate-spin" /> Searching…</p>}

@@ -133,7 +133,7 @@ export function AddOwnerDialog({ petId, existing }: { petId: string; existing: s
         </DialogHeader>
         <div className="grid gap-3">
           <Input value={relationship} onChange={(e) => setRelationship(e.target.value)} placeholder="Relationship (e.g. Brother, Wife)" />
-          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search customer by name or phone…" autoFocus />
+          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search customer by name or ID…" autoFocus />
           <ul className="max-h-56 overflow-auto rounded-lg border empty:hidden">
             {options.map((o) => (
               <li key={o.id}>

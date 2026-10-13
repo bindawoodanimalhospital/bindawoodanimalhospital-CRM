@@ -107,7 +107,7 @@ export function BookingDialog({ doctors, types, defaultDate, appointment, trigge
             <div className="grid gap-2">
               <div className="relative">
                 <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-                <Input autoFocus value={q} onChange={(e) => setQ(e.target.value)} className="h-12 pl-9 text-base" placeholder="Owner name or phone" />
+                <Input autoFocus value={q} onChange={(e) => setQ(e.target.value)} className="h-12 pl-9 text-base" placeholder="Owner or pet name" />
               </div>
               {options.map((o) => (
                 <button key={o.id} type="button" onClick={() => setCustomer(o)} className="rounded-xl p-2.5 text-left hover:bg-muted">

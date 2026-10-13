@@ -30,7 +30,7 @@ export function NewBillButton({ customer, label = "New bill" }: { customer?: { i
         <DialogHeader><DialogTitle>New bill</DialogTitle><DialogDescription>For a visit, use “Bill this visit” in the queue — it fills in the bill for you.</DialogDescription></DialogHeader>
         <div className="relative">
           <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input autoFocus value={q} onChange={(e) => setQ(e.target.value)} className="h-12 pl-9" placeholder="Customer name or phone" />
+          <Input autoFocus value={q} onChange={(e) => setQ(e.target.value)} className="h-12 pl-9" placeholder="Customer or pet name" />
         </div>
         <ul className="grid gap-1">
           {options.map((o) => (

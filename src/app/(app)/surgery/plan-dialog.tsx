@@ -76,7 +76,7 @@ export function PlanSurgeryDialog({ procedures, doctors, fixed, trigger }: {
             <div className="grid gap-2">
               <div className="relative">
                 <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-                <Input autoFocus value={q} onChange={(e) => setQ(e.target.value)} className="h-12 pl-9 text-base" placeholder="Pet name or owner's phone" />
+                <Input autoFocus value={q} onChange={(e) => setQ(e.target.value)} className="h-12 pl-9 text-base" placeholder="Pet name or owner's name" />
               </div>
               {results.map((p) => (
                 <button key={p.id} type="button" onClick={() => p.owners[0] && setPet({ id: p.id, name: p.name, customer_id: p.owners[0].id })}
