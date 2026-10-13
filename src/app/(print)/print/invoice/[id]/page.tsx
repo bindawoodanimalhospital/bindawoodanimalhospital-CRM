@@ -22,7 +22,7 @@ export default async function InvoicePrint({ params, searchParams }: PageProps<"
   const supabase = await createClient();
   const [{ data: inv }, clinic, cfg, { data: allocs }, { data: methodRows }] = await Promise.all([
     supabase.from("invoices").select(`number, kind, status, subtotal, line_discounts, invoice_discount, discount_reason, tax_total, total, amount_paid,
-      returned_amount, balance, issued_at, void_reason, notes, customers(full_name, customer_contacts(phone, whatsapp), area), pets(name, code),
+      returned_amount, balance, issued_at, void_reason, notes, walk_in_name, customers(full_name, customer_contacts(phone, whatsapp), area), pets(name, code),
       fulfilment, delivery_status, delivery_address, delivery_notes, service_location, service_address,
       invoice_items(description, quantity, unit_price, discount_amount, line_total, returned_qty, sort_order, line_role), dues(promised_date, status)`).eq("id", id).maybeSingle(),
     getSetting<ClinicProfile>("clinic.profile"),
@@ -66,7 +66,7 @@ export default async function InvoicePrint({ params, searchParams }: PageProps<"
             <p className="mt-1 font-sans text-sm font-bold">{(clinic?.name || "Bin Dawood Animal Hospital").toUpperCase()}</p>
             {clinic?.phone && <p>{formatPhone(clinic.phone)}</p>}
             <p className="mt-1">{inv.number} · {formatDateTime(inv.issued_at)}</p>
-            {customer && <p>{customer.full_name}</p>}
+            {customer ? <p>{customer.full_name}</p> : inv.walk_in_name && <p>{inv.walk_in_name}</p>}
           </div>
           {(isDelivery || isHomeVisit) && (
             <div className="mt-2 border border-dashed border-ink p-1.5">
@@ -100,7 +100,7 @@ export default async function InvoicePrint({ params, searchParams }: PageProps<"
       <div className="flex justify-between text-xs text-muted-foreground"><span>No. {inv.number}</span><span>{formatDateTime(inv.issued_at)}</span></div>
       <div className="mt-2">
         <InfoGrid rows={[
-          ["Customer", customer ? [customer.full_name, formatPhone(customer.phone)].filter(Boolean).join(" · ") : "Walk-in"],
+          ["Customer", customer ? [customer.full_name, formatPhone(customer.phone)].filter(Boolean).join(" · ") : inv.walk_in_name ? `${inv.walk_in_name} (walk-in)` : "Walk-in"],
           ["Pet", pet ? `${pet.name} (${pet.code})` : null],
           ["Service at", inv.kind === "clinic" ? (isHomeVisit ? `Home visit — ${inv.service_address}` : "Bin Dawood Animal Hospital") : null],
           ["Fulfilment", inv.kind === "store" ? (isDelivery ? "Home delivery" : "In store") : null],

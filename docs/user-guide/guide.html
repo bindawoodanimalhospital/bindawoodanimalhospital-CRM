@@ -371,14 +371,15 @@
 <section class="chapter">
   <div class="chapter-head"><div class="num">9</div><div><h2>Walkthrough: the pet store</h2><p>A walk-in buyer, a phone order for home delivery, and a cancelled order.</p></div></div>
   <h3><span class="role">Store staff</span> A · Walk-in customer buys cat food — in seconds</h3>
-  <div class="flow"><span class="n">Tap / scan</span><span class="a">→</span><span class="n">Cash, Enter</span><span class="a">→</span><span class="n dark">Next customer</span></div>
+  <div class="flow"><span class="n">Name + Enter</span><span class="a">→</span><span class="n">Tap / scan</span><span class="a">→</span><span class="n">Cash, Enter</span><span class="a">→</span><span class="n dark">Next customer</span></div>
   <ol class="steps">
-    <li>Open <span class="ui">Pet store</span>. The <b>quick picks</b> at the top are the 8 best sellers of the last 30 days — tap one to add it.</li>
+    <li>Open <span class="ui">Pet store</span>. Ask the customer's name and type it in the <b>Customer name</b> box. A registered client shows up — tap them. Otherwise press <code>Enter</code> (or tap <b>Bill as walk-in: Ali</b>): the name goes on the bill and receipt, with no registration and no phone number.</li>
+    <li>The <b>quick picks</b> at the top are the 8 best sellers of the last 30 days — tap one to add it.</li>
     <li>Or scan the barcode / type in the search; when only one product matches, <code>Enter</code> adds it. Products with sizes show one card with a button per size; greyed-out sizes are not available.</li>
     <li>Change quantity in the cart if needed. Items with a typed price show a price box.</li>
     <li>Type the cash received and press <code>Enter</code>. The sale finishes on the same screen showing <b>change due</b> and a print button — the screen is ready for the next customer.</li>
   </ol>
-  <div class="box note"><b class="t">No customer needed</b>Walk-in sales don't need an owner. Attach an owner only for delivery, pay later, or if they want it on their account.</div>
+  <div class="box note"><b class="t">Name optional, registration not needed</b>A walk-in sale works with no name at all, or with just a walk-in name (shown as "Ali (walk-in)" in Billing and on the receipt). A registered client is needed only for home delivery, pay later, or to keep the sale on their account.</div>
 
   <h3><span class="role">Store staff</span> B · Phone order for home delivery, cash on delivery</h3>
   <div class="flow"><span class="n">Cart + owner</span><span class="a">→</span><span class="n">Home delivery</span><span class="a">→</span><span class="n">On delivery</span><span class="a">→</span><span class="n">Dispatch (rider)</span><span class="a">→</span><span class="n">Delivered</span><span class="a">→</span><span class="n dark">Receive payment</span></div>
@@ -573,7 +574,7 @@
     <tr><td>Search &amp; scan</td><td>Name, SKU or barcode; Enter adds the only match. Out-of-stock and not-available items are flagged.</td></tr>
     <tr><td>Sizes</td><td>One card per product, one button per size; unavailable sizes greyed out.</td></tr>
     <tr><td>Typed prices</td><td>Items with an editable price show a price box in the cart.</td></tr>
-    <tr><td>Customer</td><td>Optional; required for delivery and pay later.</td></tr>
+    <tr><td>Customer</td><td>Optional. Search a registered client, or type a walk-in's name + Enter to put it on the bill. A registered client is required for delivery and pay later.</td></tr>
     <tr><td>Payment</td><td>Pay now (split methods, transaction IDs), On delivery, Pay later. Enter in the cash box pays.</td></tr>
     <tr><td>After the sale</td><td>Inline bar with change due, print and <span class="btn">New sale</span>; <b>Clear</b> empties the cart.</td></tr>
   </table>

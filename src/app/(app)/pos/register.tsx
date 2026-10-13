@@ -24,6 +24,8 @@ export function Register({ initial, popular = [], methods, canDiscount, defaultD
   const [items, setItems] = useState(initial);
   const [cart, setCart] = useState<CartLine[]>([]);
   const [customer, setCustomer] = useState<CustomerOption | null>(null);
+  // Walk-in buyer: just a name for the bill and receipt — no registration.
+  const [walkIn, setWalkIn] = useState<string | null>(null);
   const [method, setMethod] = useState("cash");
   const [tendered, setTendered] = useState("");
   const [reference, setReference] = useState("");
@@ -31,7 +33,7 @@ export function Register({ initial, popular = [], methods, canDiscount, defaultD
   const [discountReason, setDiscountReason] = useState("");
   const [done, setDone] = useState<string | null>(null);
   // In-store sales finish without a pop-up: the cart clears and this bar shows change + receipt.
-  const [lastSale, setLastSale] = useState<{ id: string; total: number; change: number } | null>(null);
+  const [lastSale, setLastSale] = useState<{ id: string; total: number; change: number; name: string | null } | null>(null);
   // Home delivery (spec §2–§3): address from the client profile, editable for this order; charge editable by distance.
   const [delivery, setDelivery] = useState(false);
   const [address, setAddress] = useState("");
@@ -51,6 +53,7 @@ export function Register({ initial, popular = [], methods, canDiscount, defaultD
 
   const chooseCustomer = async (c: CustomerOption | null) => {
     setCustomer(c);
+    if (c) setWalkIn(null);
     setAddress(c ? await customerAddress(c.id) : "");
   };
 
@@ -85,14 +88,14 @@ export function Register({ initial, popular = [], methods, canDiscount, defaultD
   const short = total - Math.min(paid, total);
   const m = methods.find((x) => x.key === method);
   const deliveryProblem = !delivery ? null
-    : !customer ? "Choose the customer for a home delivery."
+    : !customer ? (walkIn ? "Home delivery needs a registered customer (for the address) — search their name or register them." : "Choose the customer for a home delivery.")
     : !address.trim() ? "Enter the delivery address."
     : charge.trim() === "" || Number(charge) < 0 ? "Enter the delivery charge."
     : deliveryCharge === 0 && !canDiscount ? "Only staff who can give discounts can waive the delivery charge."
     : null;
 
   const pay = () => start(async () => {
-    const saleTotal = total, saleChange = change, wasDelivery = delivery;
+    const saleTotal = total, saleChange = change, wasDelivery = delivery, saleName = customer?.title ?? walkIn;
     const r = await posCheckout({
       key: key.current, customer_id: customer?.id ?? null, pet_id: null,
       lines: cart.map((l) => ({ item_id: l.item.id, quantity: l.qty, discount_amount: l.discount, unit_price: l.item.price_is_editable ? l.price : undefined })),
@@ -102,17 +105,18 @@ export function Register({ initial, popular = [], methods, canDiscount, defaultD
         : mode === "later" ? { promised_date: laterDate || addDaysPK(7), reason: delivery ? "Pay after delivery" : "Pay later" }
         : short > 0 && customer ? { promised_date: addDaysPK(7), reason: "Store credit — balance to pay" } : null,
       delivery: delivery ? { address: address.trim(), charge: deliveryCharge, notes: deliveryNotes.trim() || undefined } : null,
+      walk_in_name: customer ? null : walkIn,
     });
     if (r.ok && r.invoiceId) {
       key.current = newKey();
       if (wasDelivery) setDone(r.invoiceId);
-      else { setLastSale({ id: r.invoiceId, total: saleTotal, change: saleChange }); clearSale(); }
+      else { setLastSale({ id: r.invoiceId, total: saleTotal, change: saleChange, name: saleName }); clearSale(); }
       setItems(await searchRetail(q));
     } else toast.error(r.message);
   });
 
   const clearSale = () => {
-    setCart([]); setCustomer(null); setTendered(""); setReference(""); setBillDiscount(""); setDiscountReason(""); setMethod("cash"); setDone(null);
+    setCart([]); setCustomer(null); setWalkIn(null); setTendered(""); setReference(""); setBillDiscount(""); setDiscountReason(""); setMethod("cash"); setDone(null);
     setDelivery(false); setAddress(""); setCharge(String(defaultDeliveryCharge)); setDeliveryNotes(""); setPayMode("now"); setLaterDate("");
     setTimeout(() => scan.current?.focus(), 50);
   };
@@ -165,7 +169,7 @@ export function Register({ initial, popular = [], methods, canDiscount, defaultD
         {lastSale && (
           <section className="flex flex-wrap items-center gap-2 rounded-2xl bg-success-soft p-3 text-success ring-1 ring-success/30" role="status">
             <Check className="size-5" />
-            <span className="font-semibold">Sale complete · {formatPKR(lastSale.total)}</span>
+            <span className="font-semibold">Sale complete{lastSale.name ? ` — ${lastSale.name}` : ""} · {formatPKR(lastSale.total)}</span>
             {lastSale.change > 0 && <span className="w-full text-lg font-bold">Give change: {formatPKR(lastSale.change)}</span>}
             <Button asChild size="sm" variant="outline" className="ml-auto bg-card"><Link href={`/print/invoice/${lastSale.id}?receipt=1`} target="_blank"><Printer /> Receipt</Link></Button>
             <Button size="sm" variant="ghost" onClick={() => setLastSale(null)} aria-label="Dismiss"><X /></Button>
@@ -211,7 +215,8 @@ export function Register({ initial, popular = [], methods, canDiscount, defaultD
               </button>
             ))}
           </div>
-          <CustomerPicker value={customer} onChange={chooseCustomer} required={delivery} />
+          <CustomerPicker value={customer} onChange={chooseCustomer} required={delivery}
+            walkIn={walkIn} onWalkIn={(n) => { setWalkIn(n); setTimeout(() => scan.current?.focus(), 50); }} />
           {delivery && (
             <div className="grid gap-2 rounded-xl bg-surface p-3 ring-1 ring-border">
               <label className="grid gap-1 text-sm font-medium">
@@ -324,7 +329,10 @@ export function Register({ initial, popular = [], methods, canDiscount, defaultD
   );
 }
 
-function CustomerPicker({ value, onChange, required }: { value: CustomerOption | null; onChange: (c: CustomerOption | null) => void; required?: boolean }) {
+function CustomerPicker({ value, onChange, required, walkIn, onWalkIn }: {
+  value: CustomerOption | null; onChange: (c: CustomerOption | null) => void; required?: boolean;
+  walkIn: string | null; onWalkIn: (name: string | null) => void;
+}) {
   const [q, setQ] = useState("");
   const [opts, setOpts] = useState<CustomerOption[]>([]);
   useEffect(() => {
@@ -332,24 +340,39 @@ function CustomerPicker({ value, onChange, required }: { value: CustomerOption |
     const t = setTimeout(async () => setOpts(await searchCustomers(q)), 250);
     return () => clearTimeout(t);
   }, [q, value]);
+  const name = q.trim().replace(/\s+/g, " ").slice(0, 80);
+  const pickWalkIn = () => { if (name.length < 2) return; onWalkIn(name); setQ(""); setOpts([]); };
   if (value) return (
     <div className="flex items-center gap-2 rounded-xl bg-brand-wash px-3 py-2 ring-1 ring-brand-muted">
       <User className="size-4 text-brand" /><span className="flex-1 truncate text-sm font-semibold">{value.title}</span>
       <Button variant="ghost" size="icon-sm" onClick={() => onChange(null)} aria-label="Remove customer"><X /></Button>
     </div>
   );
+  if (walkIn) return (
+    <div className="flex items-center gap-2 rounded-xl bg-surface px-3 py-2 ring-1 ring-border">
+      <User className="size-4 text-muted-foreground" />
+      <span className="flex-1 truncate text-sm"><b>{walkIn}</b> <span className="text-muted-foreground">· walk-in</span></span>
+      <Button variant="ghost" size="icon-sm" onClick={() => onWalkIn(null)} aria-label="Remove name"><X /></Button>
+    </div>
+  );
   return (
     <div className="relative">
-      <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder={required ? "Customer (required for delivery) — name or phone" : "Customer (optional) — name or phone"} />
-      {q.trim().length >= 2 && opts.length > 0 && (
+      <Input value={q} onChange={(e) => setQ(e.target.value)}
+        onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); pickWalkIn(); } }}
+        placeholder={required ? "Customer (required for delivery) — search name" : "Customer name — search, or type a walk-in's name + Enter"} />
+      {name.length >= 2 && (
         <ul className="absolute z-20 mt-1 w-full rounded-xl bg-popover p-1 shadow-float ring-1 ring-border">
           {opts.map((o) => <li key={o.id}><button type="button" onClick={() => { onChange(o); setQ(""); setOpts([]); }} className="w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-muted"><b>{o.title}</b> <span className="text-muted-foreground">{o.subtitle}</span></button></li>)}
+          {!required && (
+            <li><button type="button" onClick={pickWalkIn} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm hover:bg-muted">
+              <Plus className="size-4 text-brand" /><span>Bill as walk-in: <b>{name}</b> <span className="text-muted-foreground">(Enter · no registration)</span></span>
+            </button></li>
+          )}
         </ul>
       )}
     </div>
   );
 }
-
 
 type Card = { key: string; family: boolean; name: string; brand: string | null; category: string | null; sizes: RetailItem[] };
 

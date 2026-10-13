@@ -118,6 +118,19 @@ insert into ctx select 'instore', public.pos_checkout('k-in', null, null,
   jsonb_build_array(jsonb_build_object('item_id', pg_temp.g('litter'), 'quantity', 1)), '[{"method":"cash","amount":1000}]');
 select pg_temp.check((select fulfilment = 'in_store' and delivery_status is null and total = 1000 from public.invoices where id = pg_temp.g('instore')),
   'in-store sale unchanged');
+-- Walk-in name: kept on the bill when no customer is attached; a registered customer always wins
+insert into ctx select 'walkin', public.pos_checkout('k-walk', null, null,
+  jsonb_build_array(jsonb_build_object('item_id', pg_temp.g('litter'), 'quantity', 1)), '[{"method":"cash","amount":1000}]',
+  0, null, null, null, '  Ali Raza  ');
+select pg_temp.check((select walk_in_name = 'Ali Raza' and customer_id is null from public.invoices where id = pg_temp.g('walkin')), 'walk-in name saved on the bill (trimmed)');
+insert into ctx select 'walkin2', public.pos_checkout('k-walk2', pg_temp.g('cust'), null,
+  jsonb_build_array(jsonb_build_object('item_id', pg_temp.g('litter'), 'quantity', 1)), '[{"method":"cash","amount":1000}]',
+  0, null, null, null, 'Someone else');
+select pg_temp.check((select walk_in_name is null from public.invoices where id = pg_temp.g('walkin2')), 'walk-in name ignored when a customer is chosen');
+insert into ctx select 'walkin3', public.pos_checkout('k-walk3', null, null,
+  jsonb_build_array(jsonb_build_object('item_id', pg_temp.g('litter'), 'quantity', 1)), '[{"method":"cash","amount":1000}]',
+  0, null, null, null, '   ');
+select pg_temp.check((select walk_in_name is null from public.invoices where id = pg_temp.g('walkin3')), 'blank walk-in name → none');
 do $$ begin
   perform public.update_delivery(pg_temp.g('instore'), 'dispatched');
   raise exception 'FAIL: in-store sale dispatched';

@@ -77,6 +77,8 @@ export async function posCheckout(input: {
   pay_later?: { promised_date: string; reason: string } | null;
   /** Home delivery: address for this order + delivery charge (its own bill line). */
   delivery?: { address: string; charge: number; notes?: string } | null;
+  /** A walk-in's name, typed at the counter (kept on the bill, no customer record). */
+  walk_in_name?: string | null;
 }): Promise<FormState & { invoiceId?: string }> {
   await assertCan("pos.use");
   const supabase = await createClient();
@@ -84,7 +86,7 @@ export async function posCheckout(input: {
     p_key: input.key, p_customer: input.customer_id, p_pet: input.pet_id, p_lines: input.lines,
     p_payments: input.payments.filter((p) => p.amount > 0), p_invoice_discount: input.invoice_discount ?? 0,
     p_discount_reason: input.discount_reason ?? null, p_pay_later: input.pay_later ?? null,
-    p_delivery: input.delivery ?? null,
+    p_delivery: input.delivery ?? null, p_walk_in_name: input.customer_id ? null : input.walk_in_name?.trim() || null,
   });
   if (error) return { message: error.message };
   revalidatePath("/pos");

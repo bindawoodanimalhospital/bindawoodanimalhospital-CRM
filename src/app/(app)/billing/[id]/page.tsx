@@ -52,7 +52,7 @@ export default async function InvoicePage({ params }: PageProps<"/billing/[id]">
         </StatusPill>
         {inv.kind === "store" && <StatusPill tone="info">Pet store</StatusPill>}
         {inv.fulfilment === "home_delivery" && <StatusPill tone="brand"><Truck className="mr-1 size-3" />Home delivery</StatusPill>}</span>}
-      description={[customer ? [customer.full_name, formatPhone(customer.phone)].filter(Boolean).join(" · ") : "Walk-in customer", pet?.name,
+      description={[customer ? [customer.full_name, formatPhone(customer.phone)].filter(Boolean).join(" · ") : inv.walk_in_name ? `${inv.walk_in_name} (walk-in)` : "Walk-in customer", pet?.name,
         inv.issued_at ? `issued ${formatDateTime(inv.issued_at)}` : null].filter(Boolean).join(" · ")}
       actions={
         <>
@@ -112,7 +112,7 @@ export default async function InvoicePage({ params }: PageProps<"/billing/[id]">
         <InvoiceEditor invoiceId={inv.id} lines={lines} suggestions={suggestions} unmatched={unmatched} methods={methodsNoWriteOff}
           totals={{ subtotal: Number(inv.subtotal), line_discounts: Number(inv.line_discounts), invoice_discount: Number(inv.invoice_discount),
             tax_total: Number(inv.tax_total), total: Number(inv.total), discount_reason: inv.discount_reason }}
-          perms={{ discount: me.can("billing.discount") }} customerCredit={credit} customerName={customer?.full_name ?? "walk-in customer"} />
+          perms={{ discount: me.can("billing.discount") }} customerCredit={credit} customerName={customer?.full_name ?? inv.walk_in_name ?? "walk-in customer"} />
       </>
     );
   }
