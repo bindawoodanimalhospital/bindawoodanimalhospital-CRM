@@ -32,7 +32,7 @@ export default async function CustomersPage({ searchParams }: PageProps<"/custom
     .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
   const pattern = searchPattern(q);
   if (/\d{4}|@/.test(q)) {
-    // A phone number or email: matched privately by the database (full number only, unless allowed).
+    // A phone number or email: matched privately by the database (owner only; finds nothing for other staff).
     const { data: hits } = await supabase.rpc("smart_search", { q, p_scope: "owner", max_results: 50 });
     query = query.in("id", ((hits ?? []) as { id: string }[]).map((h) => h.id).concat("00000000-0000-0000-0000-000000000000"));
   } else if (pattern) query = query.ilike("search_text", pattern);
@@ -48,7 +48,7 @@ export default async function CustomersPage({ searchParams }: PageProps<"/custom
         )}
       />
       <form className="mb-4 max-w-sm">
-        <Input name="q" defaultValue={q} placeholder={canContact ? "Filter by name, phone, area or ID…" : "Filter by name, area, ID or full phone number…"} className="bg-card" />
+        <Input name="q" defaultValue={q} placeholder={canContact ? "Filter by name, phone, area or ID…" : "Filter by name, area or ID…"} className="bg-card" />
       </form>
 
       {!customers?.length ? (

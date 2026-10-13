@@ -103,7 +103,7 @@ export default async function SurgeryDetailPage({ params }: PageProps<"/surgery/
       {clinical ? (
         <SurgeryWorkspace s={data} doctors={doctors} staff={staff} checklist={checklist ?? []}
           consentText={consentText ?? { en: "", ur: "" }}
-          perms={{ manage: me.can("surgery.manage"), assist: me.can("surgery.assist"), consent: me.can("surgery.consent"),
+          perms={{ manage: me.can("surgery.manage"), assist: me.can("surgery.assist"), consent: me.can("surgery.consent"), phones: me.can("customers.contact"),
             reopen: me.can("clinical.reopen"), clinical }}
           admitSlot={me.can("inpatient.manage") && ["recovery", "discharged"].includes(s.status) ? (
             <AdmitDialog kennels={kennels} doctors={doctors}
@@ -111,7 +111,7 @@ export default async function SurgeryDetailPage({ params }: PageProps<"/surgery/
               trigger={<Button variant="outline"><BedDouble /> Keep in ward</Button>} />
           ) : null} />
       ) : (
-        <ReceptionView data={data} consentText={consentText ?? { en: "", ur: "" }} />
+        <ReceptionView data={data} consentText={consentText ?? { en: "", ur: "" }} canPhone={me.can("customers.contact")} />
       )}
     </>
   );
@@ -126,7 +126,7 @@ function Alert({ text, critical }: { text: string; critical: boolean }) {
 }
 
 /** Reception sees scheduling, estimate and consent — not the clinical notes. */
-function ReceptionView({ data, consentText }: { data: SurgeryData; consentText: { en: string; ur: string; status?: string } }) {
+function ReceptionView({ data, consentText, canPhone }: { data: SurgeryData; consentText: { en: string; ur: string; status?: string }; canPhone: boolean }) {
   const consent = data.consents.find((c) => !c.revoked_at);
   return (
     <div className="grid max-w-xl gap-4 rounded-2xl bg-card p-6 shadow-card ring-1 ring-border">
@@ -136,7 +136,8 @@ function ReceptionView({ data, consentText }: { data: SurgeryData; consentText: 
         ? <StatusPill tone="success" className="w-fit">Consent recorded by {consent.signed_by_name}</StatusPill>
         : ["planned", "scheduled", "admitted", "pre_op"].includes(data.status) && (
           <ConsentDialog surgeryId={data.id} procedure={data.procedure_name} estimate={(data.fields.estimate_amount as number) ?? null}
-            ownerName={data.owner.name} ownerPhone={data.owner.phone ?? ""} text={consentText} draft={consentText.status === "draft"} />
+            ownerName={data.owner.name} ownerPhone={data.owner.phone ?? ""} text={consentText} draft={consentText.status === "draft"}
+            canPhone={canPhone} />
         )}
     </div>
   );

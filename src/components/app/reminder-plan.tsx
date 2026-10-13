@@ -56,7 +56,7 @@ export function HowRemindersWork({ vaccine, deworming }: { vaccine: RulePlan; de
       <ol className="mt-3 grid gap-2 text-sm">
         <li><b>1. The doctor sets the next date.</b> When recording a vaccine or deworming on the visit, the doctor fills in “Next dose due” (a schedule or the pet&apos;s age suggests it). No date = no reminder.</li>
         <li><b>2. It appears here.</b> The pet is listed in Due &amp; follow-ups under Upcoming → Today → Overdue.</li>
-        <li><b>3. WhatsApp messages are prepared automatically</b> (checked every 30 minutes) — vaccines: {list(vaccine)}; deworming: {list(deworming)} the due date — in the owner&apos;s language, in <b>Messages to send</b>. Reception opens each one in WhatsApp and presses Send. Only staff allowed to see phone numbers can send them.</li>
+        <li><b>3. WhatsApp messages are prepared automatically</b> (checked every 30 minutes) — vaccines: {list(vaccine)}; deworming: {list(deworming)} the due date — in the owner&apos;s language, in <b>Messages to send</b>. Reception opens each one in WhatsApp and presses Send. Phone numbers are private, so only the hospital owner can send them.</li>
         <li><b>4. If the pet doesn&apos;t come,</b> reception is alerted to call, and it is escalated to the owner if still overdue.</li>
         <li><b>5. It stops by itself</b> the moment the next dose is recorded. Marking a record “entered by mistake” brings the old reminder back.</li>
       </ol>

@@ -126,8 +126,9 @@ const consentSchema = z.object({
 export type ConsentInput = z.input<typeof consentSchema>;
 
 export async function recordConsent(surgeryId: string, input: ConsentInput): Promise<FormState> {
-  await assertCan("surgery.consent");
-  const parsed = consentSchema.safeParse(input);
+  const me = await assertCan("surgery.consent");
+  // The signer's phone is owner-only (the database refuses it from anyone else).
+  const parsed = consentSchema.safeParse(me.can("customers.contact") ? input : { ...input, signer_phone: "" });
   if (!parsed.success) return { message: parsed.error.issues[0]?.message };
   const supabase = await createClient();
   const [{ data: s }, { data: text }] = await Promise.all([

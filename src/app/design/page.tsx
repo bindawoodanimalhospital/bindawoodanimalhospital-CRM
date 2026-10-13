@@ -126,7 +126,7 @@ export default function DesignPage() {
             <PageHeader title="Surgery workspace" description="Pre-op stage: consent recorded, pre-op check still missing → Start surgery is locked." />
             <SurgeryWorkspace s={SAMPLE_SURGERY} doctors={[{ id: "d1", full_name: "Dr. Musab Bin Dawood" }]} staff={[{ id: "d1", full_name: "Dr. Musab Bin Dawood" }]}
               checklist={["Owner consent recorded", "Fasting confirmed", "Weight taken today", "IV line placed"]} consentText={{ en: "", ur: "" }}
-              perms={{ manage: true, assist: true, consent: true, reopen: true, clinical: true }} />
+              perms={{ manage: true, assist: true, consent: true, reopen: true, clinical: true, phones: true }} />
           </div>
 
           <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">

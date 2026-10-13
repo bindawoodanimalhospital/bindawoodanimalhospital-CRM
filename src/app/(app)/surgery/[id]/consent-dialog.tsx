@@ -17,9 +17,11 @@ import { formatPKR } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { recordConsent } from "../actions";
 
-export function ConsentDialog({ surgeryId, procedure, estimate, ownerName, ownerPhone, text, draft }: {
+export function ConsentDialog({ surgeryId, procedure, estimate, ownerName, ownerPhone, text, draft, canPhone }: {
   surgeryId: string; procedure: string; estimate: number | null; ownerName: string; ownerPhone: string;
   text: { en: string; ur: string }; draft: boolean;
+  /** Phone numbers are for the hospital owner only. */
+  canPhone: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [lang, setLang] = useState<"en" | "ur">("ur");
@@ -33,7 +35,7 @@ export function ConsentDialog({ surgeryId, procedure, estimate, ownerName, owner
 
   const submit = () => start(async () => {
     const r = await recordConsent(surgeryId, {
-      signed_by_name: name, relationship, signer_phone: phone, method, language: lang,
+      signed_by_name: name, relationship, signer_phone: canPhone ? phone : "", method, language: lang,
       risks_explained: risks as true, estimate_explained: cost as true,
     });
     if (r.ok) { toast.success(r.message); setOpen(false); } else toast.error(r.message);
@@ -73,10 +75,10 @@ export function ConsentDialog({ surgeryId, procedure, estimate, ownerName, owner
           </div>
           <p className="text-sm">Estimated cost: <b>{estimate != null ? formatPKR(estimate) : "not set"}</b></p>
 
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className={cn("grid gap-3", canPhone ? "sm:grid-cols-3" : "sm:grid-cols-2")}>
             <FormField label="Consent given by" required><Input value={name} onChange={(e) => setName(e.target.value)} /></FormField>
             <FormField label="Relationship"><Input value={relationship} onChange={(e) => setRelationship(e.target.value)} placeholder="Owner, son, wife…" /></FormField>
-            <FormField label="Phone"><Input value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="tel" /></FormField>
+            {canPhone && <FormField label="Phone"><Input value={phone} onChange={(e) => setPhone(e.target.value)} inputMode="tel" /></FormField>}
           </div>
           <FormField label="How was consent given?">
             <Select value={method} onValueChange={(v) => setMethod(v as typeof method)}>

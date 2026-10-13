@@ -1,4 +1,4 @@
--- Owners' phone numbers and email are private to staff with customers.contact (Owner by default). Rolled back.
+-- Pet owners' phone numbers and email are for the hospital owner only; addresses are visible to staff. Rolled back.
 begin;
 insert into auth.users (id, email, instance_id, aud, role) values
   ('00000000-0000-0000-0000-0000000ee001', 'cp-owner@cp.t.local', '00000000-0000-0000-0000-000000000000', 'authenticated', 'authenticated'),
@@ -23,7 +23,7 @@ set local role authenticated;
 
 -- Reception registers an owner without any number (phone is optional now)
 select pg_temp.as_('00000000-0000-0000-0000-0000000ee002');
-with c as (insert into public.customers (full_name, area) values ('CP Sana Tariq', 'Gulberg') returning id) insert into fx select 'c', id from c;
+with c as (insert into public.customers (full_name, house_no, address, area) values ('CP Sana Tariq', '5', 'Main Boulevard', 'Gulberg') returning id) insert into fx select 'c', id from c;
 select pg_temp.check(pg_temp.g('c') is not null, 'reception can register an owner with no phone number');
 do $$ begin
   begin
@@ -52,8 +52,11 @@ update public.customer_contacts set phone = '+923000000000' where customer_id = 
 delete from public.customer_contacts where customer_id = pg_temp.g('c');
 select pg_temp.check(not exists (select 1 from public.customers where search_text like '%923%' or search_text like '%sana@%'),
   'owner record keeps no number or email in its search text');
-select pg_temp.check(exists (select 1 from public.smart_search('0300 1239876') where id = pg_temp.g('c')), 'reception finds the owner by the complete number…');
-select pg_temp.check(not exists (select 1 from public.smart_search('0300 1239876') where subtitle ~ '[0-9]{4}'), '…but the number is not shown');
+select pg_temp.check(not exists (select 1 from public.smart_search('0300 1239876') where id = pg_temp.g('c')), 'reception cannot find anyone by the complete number');
+select pg_temp.check(not exists (select 1 from public.smart_search('CP Sana') where id = pg_temp.g('c') and subtitle ~ '[0-9]{4}'), 'search results show no number');
+select pg_temp.check(exists (select 1 from public.smart_search('Gulberg') where id = pg_temp.g('c')), 'reception can still search by area');
+select pg_temp.check(public.customer_address_line(pg_temp.g('c')) = 'House 5, Main Boulevard, Gulberg, Lahore', 'reception sees the address');
+select pg_temp.check(not exists (select 1 from public.find_customer_duplicates(null, 'CP Sana Tariq') where phone is not null), 'duplicate check shows no number');
 select pg_temp.check(not exists (select 1 from public.smart_search('9876') where id = pg_temp.g('c')), 'reception cannot fish with part of a number');
 select pg_temp.check(not exists (select 1 from public.smart_search('sana@example.com') where id = pg_temp.g('c')), 'reception cannot search by email');
 select pg_temp.check(not exists (select 1 from public.find_customer_duplicates('+923001239876', null) where phone is not null),
@@ -74,17 +77,27 @@ with m as (insert into public.messages (customer_id, channel, body, to_phone, cr
   values (pg_temp.g('c'), 'whatsapp', 'hi', '+923001239876', '00000000-0000-0000-0000-0000000ee001') returning id) insert into fx select 'm', id from m;
 select pg_temp.check((select to_phone is null from public.messages where id = pg_temp.g('m')), 'a message never keeps the phone number');
 
--- The owner can give the permission to another role, and take it back
+-- The permission can never be given to another role, and the Owner role can't be renamed
 reset role;
-insert into public.role_permissions (role_id, permission_key) select id, 'customers.contact' from public.roles where key = 'reception';
+do $$ begin
+  insert into public.role_permissions (role_id, permission_key) select id, 'customers.contact' from public.roles where key = 'senior_doctor';
+  raise exception 'FAIL: contact permission given to doctors';
+exception when insufficient_privilege then raise notice 'OK contact details cannot be given to any other role'; end $$;
+do $$ begin
+  update public.role_permissions set role_id = (select id from public.roles where key = 'reception')
+   where permission_key = 'customers.contact';
+  raise exception 'FAIL: contact permission moved to reception';
+exception when insufficient_privilege then raise notice 'OK nor moved to another role'; end $$;
+do $$ begin
+  update public.roles set key = 'owner_old' where key = 'owner';
+  raise exception 'FAIL: owner role renamed';
+exception when insufficient_privilege then raise notice 'OK the Owner role cannot be renamed'; end $$;
+
+-- Surgery consent: the signer's phone is owner-only too
 set local role authenticated;
-select pg_temp.as_('00000000-0000-0000-0000-0000000ee002');
-select pg_temp.check((select count(*) from public.customer_contacts where customer_id = pg_temp.g('c')) = 1, 'granting the permission lets reception see numbers');
+select pg_temp.as_('00000000-0000-0000-0000-0000000ee003');
+select pg_temp.check((select count(*) from public.consent_contacts) = 0, 'doctor cannot read consent signer phones');
 reset role;
-delete from public.role_permissions where permission_key = 'customers.contact' and role_id = (select id from public.roles where key = 'reception');
-set local role authenticated;
-select pg_temp.as_('00000000-0000-0000-0000-0000000ee002');
-select pg_temp.check((select count(*) from public.customer_contacts) = 0, 'removing it hides them again');
 
 -- Every change to a number is in the activity log
 reset role;
@@ -96,7 +109,12 @@ select pg_temp.check((select array_agg(r.key order by r.key) = '{owner}' from pu
 insert into public.role_permissions (role_id, permission_key) select id, 'audit.view' from public.roles where key = 'reception' on conflict do nothing;
 set local role authenticated;
 select pg_temp.as_('00000000-0000-0000-0000-0000000ee002');
-select pg_temp.check(not exists (select 1 from public.audit_logs where table_name = 'customer_contacts'), 'activity-log entries about numbers stay hidden from others');
+select pg_temp.check(not exists (select 1 from public.audit_logs where table_name in ('customer_contacts', 'consent_contacts')),
+  'activity-log entries about numbers stay hidden from others');
+select pg_temp.check(not exists (select 1 from public.audit_logs where table_name in ('customers', 'invoices', 'visits', 'appointments', 'surgery_consents', 'messages')
+  and (jsonb_strip_nulls(coalesce(old_data, '{}')) ?| array['phone', 'whatsapp', 'alt_phone', 'email', 'signer_phone', 'to_phone']
+    or jsonb_strip_nulls(coalesce(new_data, '{}')) ?| array['phone', 'whatsapp', 'alt_phone', 'email', 'signer_phone', 'to_phone'])),
+  'no phone number or email anywhere in the visible activity-log history');
 reset role;
 select 'ALL CONTACT-PRIVACY CHECKS PASSED' as result;
 rollback;

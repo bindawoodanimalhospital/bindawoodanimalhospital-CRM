@@ -43,7 +43,7 @@ export type SurgeryData = {
   admission_id: string | null;
 };
 
-export type Perms = { manage: boolean; assist: boolean; consent: boolean; reopen: boolean; clinical: boolean };
+export type Perms = { manage: boolean; assist: boolean; consent: boolean; reopen: boolean; clinical: boolean; phones: boolean };
 
 const METHOD: Record<string, string> = { signed_paper: "signed paper form", signed_on_screen: "signed on screen", verbal_phone: "by phone" };
 
@@ -228,7 +228,7 @@ export function SurgeryWorkspace({ s, perms, doctors, staff, checklist, consentT
                 <p className="text-muted-foreground">No consent yet. Needed before the operation (except life-saving emergencies).</p>
                 {perms.consent && !closed && (
                   <ConsentDialog surgeryId={s.id} procedure={s.procedure_name} estimate={(f.estimate_amount as number) ?? null}
-                    ownerName={s.owner.name} ownerPhone={s.owner.phone} text={consentText} draft={consentText.status === "draft"} />
+                    ownerName={s.owner.name} ownerPhone={s.owner.phone} text={consentText} draft={consentText.status === "draft"} canPhone={perms.phones} />
                 )}
               </div>
             )}
