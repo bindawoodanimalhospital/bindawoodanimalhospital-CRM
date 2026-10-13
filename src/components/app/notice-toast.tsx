@@ -10,6 +10,7 @@ const MESSAGES: Record<string, [kind: "success" | "error", text: string]> = {
   merged: ["success", "Customers merged."],
   "pet-failed": ["error", "Customer saved, but the pet couldn't be registered. Please add it again."],
   "contact-failed": ["error", "Owner saved, but the phone number couldn't be saved. Please add it again from Edit."],
+  "previous-balance-failed": ["error", "Owner saved, but the previous balance couldn't be added. Add it from their Account page."],
 };
 
 /** Shows a one-off toast for ?notice=… after a redirect, then strips it from the URL. */

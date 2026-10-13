@@ -9,6 +9,7 @@ import { getSetting } from "@/lib/queries";
 import { formatDate, formatDateTime, formatPKR } from "@/lib/format";
 import { formatPhone } from "@/lib/phone";
 import { withContact } from "@/lib/contacts";
+import { previousBalance } from "@/lib/billing";
 
 export const metadata: Metadata = { title: "Bill" };
 
@@ -22,7 +23,7 @@ export default async function InvoicePrint({ params, searchParams }: PageProps<"
   const supabase = await createClient();
   const [{ data: inv }, clinic, cfg, { data: allocs }, { data: methodRows }] = await Promise.all([
     supabase.from("invoices").select(`number, kind, status, subtotal, line_discounts, invoice_discount, discount_reason, tax_total, total, amount_paid,
-      returned_amount, balance, issued_at, void_reason, notes, walk_in_name, customers(full_name, customer_contacts(phone, whatsapp), area), pets(name, code),
+      returned_amount, balance, issued_at, void_reason, notes, walk_in_name, customer_id, is_previous_balance, previous_ref, customers(full_name, customer_contacts(phone, whatsapp), area), pets(name, code),
       fulfilment, delivery_status, delivery_address, delivery_notes, service_location, service_address,
       invoice_items(description, quantity, unit_price, discount_amount, line_total, returned_qty, sort_order, line_role), dues(promised_date, status)`).eq("id", id).maybeSingle(),
     getSetting<ClinicProfile>("clinic.profile"),
@@ -42,6 +43,14 @@ export default async function InvoicePrint({ params, searchParams }: PageProps<"
   const pet = inv.pets as unknown as { name: string; code: string } | null;
   const due = (Array.isArray(inv.dues) ? inv.dues[0] : inv.dues) as { promised_date: string; status: string } | null;
   const pays = (allocs ?? []).map((a) => ({ amount: Number(a.amount), ...(a.payments as unknown as { kind: string; method: string; received_at: string; reference: string | null }) }));
+  // Still owed from this owner's earlier bills (incl. balances from before the CRM) when this bill was made.
+  const prev = inv.customer_id && inv.status !== "void" ? await previousBalance(inv.customer_id, id, inv.issued_at) : null;
+  const prevRows = prev && prev.amount > 0 ? (
+    <>
+      <Row l={`Previous balance (since ${formatDate(prev.since)})`} v={formatPKR(prev.amount)} />
+      <Row l="Total due now" v={formatPKR(prev.amount + Number(inv.balance))} strong />
+    </>
+  ) : null;
 
   const totals = (
     <dl className="grid gap-1">
@@ -52,6 +61,7 @@ export default async function InvoicePrint({ params, searchParams }: PageProps<"
       {Number(inv.returned_amount) > 0 && <Row l="Returned" v={`− ${formatPKR(inv.returned_amount)}`} />}
       <Row l="Paid" v={formatPKR(inv.amount_paid)} />
       <Row l={Number(inv.balance) > 0 ? "Balance to pay" : "Balance"} v={formatPKR(inv.balance)} strong />
+      {prevRows}
     </dl>
   );
 

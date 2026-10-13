@@ -2,14 +2,14 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { MapPin, Stethoscope, Truck } from "lucide-react";
+import { History, MapPin, Stethoscope, Truck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PageHeader, StatusPill } from "@/components/app/page-header";
 import { NoticeToast } from "@/components/app/notice-toast";
 import { requireStaff } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { customerCredit, paymentMethods } from "@/lib/billing";
-import { formatDateTime, formatPKR } from "@/lib/format";
+import { customerCredit, paymentMethods, previousBalance } from "@/lib/billing";
+import { formatDate, formatDateTime, formatPKR } from "@/lib/format";
 import { DELIVERY_STATUS, addressLine, type AddressParts, type DeliveryStatus, type ServiceLocation } from "@/lib/clinic";
 import { ServiceLocationControl } from "@/components/app/service-location";
 import { setInvoiceServiceLocation } from "../actions";
@@ -39,7 +39,8 @@ export default async function InvoicePage({ params }: PageProps<"/billing/[id]">
   const visit = inv.visits as unknown as { id: string; token_no: number } | null;
   const items = ((inv.invoice_items ?? []) as (Line & { sort_order: number; returned_qty: number; catalog_items: { price_is_editable: boolean; track_stock: boolean } })[])
     .sort((a, b) => a.sort_order - b.sort_order);
-  const [methods, credit] = await Promise.all([paymentMethods(), customer ? customerCredit(customer.id) : Promise.resolve(0)]);
+  const [methods, credit, prevBal] = await Promise.all([paymentMethods(), customer ? customerCredit(customer.id) : Promise.resolve(0),
+    customer && inv.status !== "void" ? previousBalance(customer.id, inv.id, inv.issued_at) : Promise.resolve(null)]);
   const methodsNoWriteOff = methods.filter((m) => m.key !== "write_off");
 
   const title = inv.status === "draft" ? "New bill" : `Bill ${inv.number}`;
@@ -51,6 +52,7 @@ export default async function InvoicePage({ params }: PageProps<"/billing/[id]">
           {inv.status === "draft" ? "Draft" : inv.status === "void" ? "Void" : inv.balance > 0 ? "Unpaid balance" : "Paid"}
         </StatusPill>
         {inv.kind === "store" && <StatusPill tone="info">Pet store</StatusPill>}
+        {inv.is_previous_balance && <StatusPill tone="warning">Previous balance (before CRM)</StatusPill>}
         {inv.fulfilment === "home_delivery" && <StatusPill tone="brand"><Truck className="mr-1 size-3" />Home delivery</StatusPill>}</span>}
       description={[customer ? [customer.full_name, formatPhone(customer.phone)].filter(Boolean).join(" · ") : inv.walk_in_name ? `${inv.walk_in_name} (walk-in)` : "Walk-in customer", pet?.name,
         inv.issued_at ? `issued ${formatDateTime(inv.issued_at)}` : null].filter(Boolean).join(" · ")}
@@ -62,6 +64,18 @@ export default async function InvoicePage({ params }: PageProps<"/billing/[id]">
       }
     />
   );
+
+  // What the owner still owes from earlier bills (incl. balances from before the CRM).
+  const prevCard = prevBal && prevBal.amount > 0 ? (
+    <div className="-mt-2 mb-6 flex flex-wrap items-center gap-3 rounded-2xl bg-warning-soft px-4 py-3 text-sm text-warning ring-1 ring-warning/30">
+      <History className="size-5 shrink-0" />
+      <span className="min-w-0 flex-1">
+        <b>Previous balance {formatPKR(prevBal.amount)}</b> — unpaid since {formatDate(prevBal.since)} ({prevBal.count} earlier bill{prevBal.count === 1 ? "" : "s"}).
+        {" "}Total due now: <b>{formatPKR(prevBal.amount + Number(inv.status === "draft" ? inv.total : inv.balance))}</b>.
+      </span>
+      {customer && <Link href={`/customers/${customer.id}/account`} className="font-semibold underline-offset-2 hover:underline">Account</Link>}
+    </div>
+  ) : null;
 
   // Where the service was given (clinic bills): editable on drafts, shown on issued bills.
   const serviceLocation = inv.kind === "clinic" ? (
@@ -108,6 +122,7 @@ export default async function InvoicePage({ params }: PageProps<"/billing/[id]">
       <>
         <Suspense><NoticeToast /></Suspense>
         {header}
+        {prevCard}
         {serviceLocation}
         <InvoiceEditor invoiceId={inv.id} lines={lines} suggestions={suggestions} unmatched={unmatched} methods={methodsNoWriteOff}
           totals={{ subtotal: Number(inv.subtotal), line_discounts: Number(inv.line_discounts), invoice_discount: Number(inv.invoice_discount),
@@ -133,6 +148,7 @@ export default async function InvoicePage({ params }: PageProps<"/billing/[id]">
     <>
       <Suspense><NoticeToast /></Suspense>
       {header}
+      {prevCard}
       {serviceLocation}
       {deliveryCard}
       <IssuedPanel

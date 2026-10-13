@@ -30,13 +30,14 @@ export async function visitSuggestions(visitId: string): Promise<{ suggestions: 
       reason, source_table, source_id, kind: item.kind });
   };
 
-  const [vacc, dx, rx, sx, adm] = await Promise.all([
+  const [vacc, dx, rx, sx, adm, dew] = await Promise.all([
     supabase.from("vaccinations").select("id, vaccine_id, vaccine_name").eq("visit_id", visitId).is("voided_at", null),
     supabase.from("diagnostic_orders").select("id, type_id, diagnostic_types(name)").eq("visit_id", visitId).neq("status", "cancelled"),
     supabase.from("prescription_items").select("id, medicine_id, medicine_name, quantity, prescriptions!inner(visit_id, status)")
       .eq("prescriptions.visit_id", visitId).eq("prescriptions.status", "issued"),
     supabase.from("surgeries").select("id, procedure_id, procedure_name, surgery_consumables(id, product_id, item_name, quantity)").eq("visit_id", visitId).neq("status", "cancelled"),
     supabase.from("admissions").select("id, admitted_at, discharged_at, status").eq("visit_id", visitId).neq("status", "cancelled"),
+    supabase.from("dewormings").select("id, product").eq("visit_id", visitId).is("voided_at", null),
   ]);
 
   if (visit.visit_type_id) {
@@ -46,6 +47,11 @@ export async function visitSuggestions(visitId: string): Promise<{ suggestions: 
     push("visit_home_charge", visit.id, find((c) => c.system_role === "home_visit_charge"), 1, "Home visit", "Home visit charge");
   }
   for (const v of vacc.data ?? []) push("vaccinations", v.id, find((c) => c.vaccine_id === v.vaccine_id), 1, "Vaccine given", v.vaccine_name);
+  // Dewormer given: the price-list item with the same name (chosen from the list on the visit).
+  for (const d of dew.data ?? []) {
+    const name = d.product.trim().toLowerCase();
+    push("dewormings", d.id, find((c) => c.name.trim().toLowerCase() === name), 1, "Deworming given", `Deworming — ${d.product}`);
+  }
   for (const d of dx.data ?? []) push("diagnostic_orders", d.id, find((c) => c.diagnostic_type_id === d.type_id), 1, "Test",
     (d.diagnostic_types as unknown as { name: string }).name);
   for (const r of rx.data ?? []) {

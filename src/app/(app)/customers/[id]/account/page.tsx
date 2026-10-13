@@ -12,6 +12,7 @@ import { formatDate, formatDateTime, formatPKR } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { NewBillButton } from "../../../billing/new-bill";
 import { PayBalance } from "./pay-balance";
+import { AddPreviousBalance } from "./previous-balance";
 
 export const metadata: Metadata = { title: "Customer account" };
 
@@ -31,13 +32,16 @@ export default async function AccountPage({ params }: PageProps<"/customers/[id]
   const me = await requireStaff("billing.view");
   const { id } = await params;
   const supabase = await createClient();
-  const [{ data: c }, { data: ledger }, { data: open }, credit, methods] = await Promise.all([
+  const [{ data: c }, { data: ledger }, { data: open }, credit, methods, { data: prev }] = await Promise.all([
     supabase.from("customers").select("id, full_name").eq("id", id).maybeSingle(),
     supabase.from("customer_ledger").select("*").eq("customer_id", id).order("at"),
     supabase.from("invoices").select("id, number, total, balance, issued_at, pets(name), dues(promised_date, status)").eq("customer_id", id).eq("status", "issued").gt("balance", 0).order("issued_at"),
     customerCredit(id),
     paymentMethods(),
+    supabase.from("invoices").select("id, previous_ref").eq("customer_id", id).eq("is_previous_balance", true),
   ]);
+  // Balances from before the CRM are labelled as such in the ledger.
+  const previous = new Map((prev ?? []).map((p) => [p.id, p.previous_ref]));
   if (!c) notFound();
   const rows = withRunningBalance(ledger ?? []);
   const balance = rows.at(-1)?.running ?? 0;
@@ -49,6 +53,7 @@ export default async function AccountPage({ params }: PageProps<"/customers/[id]
         actions={<>
           <Button asChild variant="outline"><Link href={`/print/statement/${id}`} target="_blank"><Printer /> Statement</Link></Button>
           {me.can("billing.create") && <NewBillButton customer={{ id }} label="New bill" />}
+          {me.can("billing.create") && <AddPreviousBalance customerId={id} />}
           {me.can("billing.create") && <PayBalance customerId={id} balance={Math.max(0, balance)} methods={methods.filter((m) => m.key !== "write_off")} />}
         </>} />
 
@@ -71,7 +76,7 @@ export default async function AccountPage({ params }: PageProps<"/customers/[id]
                 {rows.map((r) => (
                   <tr key={`${r.entry}-${r.ref_id}`} className="border-t">
                     <td className="py-2 whitespace-nowrap text-muted-foreground">{formatDateTime(r.at)}</td>
-                    <td>{ENTRY[r.entry] ?? r.entry} {r.entry === "invoice" ? <Link href={`/billing/${r.ref_id}`} className="font-mono text-xs text-brand hover:underline">{r.ref}</Link> : <span className="font-mono text-xs text-muted-foreground">{r.ref}</span>}</td>
+                    <td>{r.entry === "invoice" && previous.has(r.ref_id) ? `Previous balance (before CRM)${previous.get(r.ref_id) ? ` · old bill ${previous.get(r.ref_id)}` : ""}` : ENTRY[r.entry] ?? r.entry} {r.entry === "invoice" ? <Link href={`/billing/${r.ref_id}`} className="font-mono text-xs text-brand hover:underline">{r.ref}</Link> : <span className="font-mono text-xs text-muted-foreground">{r.ref}</span>}</td>
                     <td className="text-right tabular">{Number(r.debit) ? formatPKR(r.debit) : ""}</td>
                     <td className="text-right tabular text-success">{Number(r.credit) ? formatPKR(r.credit) : ""}</td>
                     <td className={cn("text-right font-semibold tabular", r.running > 0 && "text-danger")}>{formatPKR(r.running)}</td>

@@ -202,3 +202,20 @@ export async function setInvoiceServiceLocation(invoiceId: string, location: "cl
   refresh(invoiceId);
   return { ok: true, message: location === "home_visit" ? "Marked as a home visit." : "Marked as at the hospital." };
 }
+
+/** A balance owed from before the CRM: recorded as an old bill with its original date (see add_previous_balance). */
+export async function addPreviousBalance(customerId: string, input: { amount: number; date: string; ref?: string; note?: string; key: string }): Promise<FormState> {
+  await assertCan("billing.create");
+  if (!(input.amount > 0)) return { message: "Enter the amount owed." };
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(input.date)) return { message: "Enter the date of the old bill / last visit." };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("add_previous_balance", {
+    p_customer: customerId, p_amount: input.amount, p_date: input.date, p_ref: input.ref?.trim() || null, p_note: input.note?.trim() || null, p_key: input.key,
+  });
+  if (error) return { message: error.message };
+  revalidatePath(`/customers/${customerId}`);
+  revalidatePath(`/customers/${customerId}/account`);
+  revalidatePath("/billing");
+  revalidatePath("/billing/dues");
+  return { ok: true, message: "Previous balance added to the account." };
+}

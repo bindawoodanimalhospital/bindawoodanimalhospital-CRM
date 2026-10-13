@@ -25,7 +25,7 @@ export default async function BillingPage({ searchParams }: PageProps<"/billing"
   const supabase = await createClient();
 
   let q = supabase.from("invoices")
-    .select("id, number, kind, status, total, amount_paid, balance, issued_at, created_at, walk_in_name, customers(full_name), pets(name)", { count: "exact" })
+    .select("id, number, kind, status, total, amount_paid, balance, issued_at, created_at, walk_in_name, is_previous_balance, customers(full_name), pets(name)", { count: "exact" })
     .order("created_at", { ascending: false }).range((page - 1) * PAGE, page * PAGE - 1);
   if (view === "today") q = q.gte("created_at", `${today}T00:00:00+05:00`);
   if (view === "unpaid") q = q.eq("status", "issued").gt("balance", 0);
@@ -67,6 +67,7 @@ export default async function BillingPage({ searchParams }: PageProps<"/billing"
                   <TableCell>
                     <Link href={`/billing/${i.id}`} className="font-semibold after:absolute after:inset-0">{i.number ?? "Draft"}</Link>
                     {i.kind === "store" && <StatusPill tone="info" className="ml-2">Store</StatusPill>}
+                    {i.is_previous_balance && <StatusPill tone="warning" className="ml-2">Before CRM</StatusPill>}
                     {i.status === "void" && <StatusPill className="ml-2">Void</StatusPill>}
                   </TableCell>
                   <TableCell>{(i.customers as unknown as { full_name: string } | null)?.full_name ?? (i.walk_in_name ? `${i.walk_in_name} (walk-in)` : "Walk-in")}

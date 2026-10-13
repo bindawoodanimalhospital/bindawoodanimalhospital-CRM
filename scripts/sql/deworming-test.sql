@@ -70,5 +70,18 @@ end $$;
 reset role;
 select pg_temp.check((select count(*) = 2 from public.message_templates where key = 'deworming_due') and exists (select 1 from public.reminder_rules where key = 'deworming_due' and is_active),
   'deworming has its own message (English + Urdu) and reminder rule');
+-- Earlier dewormings (before the CRM), entered on the pet page with no visit
+select pg_temp.as_('00000000-0000-0000-0000-0000000dd201');
+with p as (insert into public.pets (name, species_id) select 'DW Old Dog', id from public.species where name = 'Dog' returning id) insert into fx select 'old', id from p;
+insert into public.pet_owners (pet_id, customer_id, is_primary) values (pg_temp.g('old'), pg_temp.g('cust'), true);
+insert into public.dewormings (pet_id, product, given_at, next_due_date)
+values (pg_temp.g('old'), 'Drontal Plus', (private.clinic_today() - 200 + time '12:00') at time zone 'Asia/Karachi', private.clinic_today() - 110);
+select pg_temp.check(exists (select 1 from public.due_items where pet_id = pg_temp.g('old') and kind = 'deworming' and status = 'pending'
+  and due_on = private.clinic_today() - 110), 'earlier deworming with a past next date: pet shows as overdue');
+insert into public.dewormings (pet_id, product, given_at, next_due_date)
+values (pg_temp.g('old'), 'Drontal Plus', (private.clinic_today() - 20 + time '12:00') at time zone 'Asia/Karachi', private.clinic_today() + 70);
+select pg_temp.check((select count(*) = 1 from public.due_items where pet_id = pg_temp.g('old') and kind = 'deworming' and status = 'pending' and due_on = private.clinic_today() + 70)
+  and not exists (select 1 from public.due_items where pet_id = pg_temp.g('old') and kind = 'deworming' and status = 'pending' and due_on = private.clinic_today() - 110),
+  'a later earlier-dose closes the old reminder and sets the new one');
 select 'ALL DEWORMING CHECKS PASSED' as result;
 rollback;

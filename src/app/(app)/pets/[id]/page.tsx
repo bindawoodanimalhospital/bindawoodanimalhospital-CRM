@@ -16,6 +16,8 @@ import { PetDueCard, PetTimeline } from "./timeline";
 import { withContact } from "@/lib/contacts";
 import { RemovalPanel } from "@/components/app/removal-panel";
 import { removalState } from "@/lib/removals";
+import { DewormingPanel, type DewormingRow } from "../../visits/[id]/deworming-panel";
+import { reminderPlans } from "@/lib/queries";
 
 export async function generateMetadata({ params }: PageProps<"/pets/[id]">): Promise<Metadata> {
   const { id } = await params;
@@ -52,6 +54,13 @@ export default async function PetPage({ params }: PageProps<"/pets/[id]">) {
   const canEdit = me.can("pets.edit");
   const critical = [...(alerts ?? []).filter((a) => a.severity !== "info")];
   const removal = await removalState(me, "pet", p.id, p.name);
+  // Deworming history — and earlier dewormings (before the CRM) can be added here so reminders continue.
+  const showDeworming = me.can("clinical.view") || me.can("vaccinations.manage");
+  const [dewormQ, dewormerQ, plans] = showDeworming ? await Promise.all([
+    supabase.from("dewormings").select("id, visit_id, product, dose, given_at, next_due_date, given_by, voided_at, void_reason").eq("pet_id", p.id).order("given_at", { ascending: false }),
+    supabase.from("catalog_items").select("name").eq("is_active", true).or("name.ilike.%deworm%,category.ilike.%deworm%,name.ilike.%drontal%,name.ilike.%prazi%,name.ilike.%febendazole%,name.ilike.%milbemax%").limit(30),
+    reminderPlans(),
+  ]) : [null, null, null];
 
   return (
     <>
@@ -188,6 +197,11 @@ export default async function PetPage({ params }: PageProps<"/pets/[id]">) {
           </CardContent>
         </Card>
 
+        {showDeworming && plans && (
+          <DewormingPanel visitId={null} petId={p.id} dob={p.date_of_birth} weight={latest ? Number(latest.weight_kg) : null}
+            history={(dewormQ?.data ?? []) as DewormingRow[]} products={(dewormerQ?.data ?? []).map((x) => x.name)}
+            plan={plans.deworming} canRecord={me.can("vaccinations.manage")} />
+        )}
         {me.can("clinical.view") && <PetTimeline petId={p.id} />}
         {(me.can("clinical.view") || me.can("crm.view")) && <PetDueCard petId={p.id} />}
       </div>

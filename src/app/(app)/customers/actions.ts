@@ -33,8 +33,18 @@ export async function createCustomer(_prev: FormState, fd: FormData): Promise<Fo
   const withPet = Boolean(petFields.name?.trim());
   const pet = withPet ? petSchema.safeParse(petFields) : null;
 
-  if (!parsed.success || (pet && !pet.success) || (contact && !contact.success)) {
+  // Balance owed from before the CRM (optional, needs billing.create).
+  const prevAmount = Number(String(fd.get("prev_amount") ?? "").replace(/[^\d.]/g, "")) || 0;
+  const prevDate = String(fd.get("prev_date") ?? "");
+  const prevErrors: Record<string, string> = {};
+  if (prevAmount > 0 && me.can("billing.create")) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(prevDate)) prevErrors.prev_date = "Enter the date of the old bill";
+    else if (prevDate > new Date().toISOString().slice(0, 10)) prevErrors.prev_date = "The date can't be in the future";
+  }
+
+  if (!parsed.success || (pet && !pet.success) || (contact && !contact.success) || Object.keys(prevErrors).length) {
     const errors = {
+      ...prevErrors,
       ...(parsed.success ? {} : fieldErrors(parsed.error)),
       ...(contact && !contact.success ? fieldErrors(contact.error) : {}),
       ...(pet && !pet.success ? Object.fromEntries(Object.entries(fieldErrors(pet.error)).map(([k, v]) => [`pet.${k}`, v])) : {}),
@@ -53,6 +63,13 @@ export async function createCustomer(_prev: FormState, fd: FormData): Promise<Fo
     const { data: newPet, error: petErr } = await supabase.from("pets").insert(pet.data).select("id").single();
     if (petErr) redirect(`/customers/${customer.id}?notice=pet-failed`);
     await supabase.from("pet_owners").insert({ pet_id: newPet.id, customer_id: customer.id, is_primary: true });
+  }
+  if (prevAmount > 0 && me.can("billing.create")) {
+    const { error: prevErr } = await supabase.rpc("add_previous_balance", {
+      p_customer: customer.id, p_amount: prevAmount, p_date: prevDate, p_ref: String(fd.get("prev_ref") ?? "").trim() || null,
+      p_note: null, p_key: `new-customer-prev:${customer.id}`,
+    });
+    if (prevErr) redirect(`/customers/${customer.id}?notice=previous-balance-failed`);
   }
 
   revalidatePath("/customers");

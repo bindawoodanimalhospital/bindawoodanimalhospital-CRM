@@ -23,7 +23,7 @@ export type CustomerDefaults = Partial<{
 }>;
 
 export function CustomerForm({
-  action, defaults = {}, species, referralSources, submitLabel, canContact,
+  action, defaults = {}, species, referralSources, submitLabel, canContact, canPreviousBalance,
 }: {
   action: (prev: FormState, fd: FormData) => Promise<FormState>;
   defaults?: CustomerDefaults;
@@ -33,6 +33,8 @@ export function CustomerForm({
   submitLabel: string;
   /** Only staff with customers.contact (Owner by default) see and enter phone numbers and email. */
   canContact: boolean;
+  /** New customers: the money they already owe from before the CRM (needs billing.create). */
+  canPreviousBalance?: boolean;
 }) {
   const { pending, onSubmit, errors } = useFormAction(action);
   const [phone, setPhone] = useState(formatPhone(defaults.phone) || "");
@@ -153,6 +155,20 @@ export function CustomerForm({
           <Input id="city" name="city" defaultValue={defaults.city ?? "Lahore"} />
         </FormField>
       </FormSection>
+
+      {canPreviousBalance && (
+        <FormSection title="Owes from before the CRM?" description="Optional — an existing client's unpaid balance from the old register. More old bills can be added later on their Account page.">
+          <FormField label="Amount owed (Rs.)" htmlFor="prev_amount" error={errors.prev_amount}>
+            <Input id="prev_amount" name="prev_amount" inputMode="decimal" placeholder="0" />
+          </FormField>
+          <FormField label="Date of that bill / last visit" htmlFor="prev_date" error={errors.prev_date}>
+            <Input id="prev_date" name="prev_date" type="date" />
+          </FormField>
+          <FormField label="Old bill / register no." htmlFor="prev_ref" hint="Optional">
+            <Input id="prev_ref" name="prev_ref" />
+          </FormField>
+        </FormSection>
+      )}
 
       {species && (
         <FormSection title="First pet" description="Optional — fill in to register the pet in the same step.">

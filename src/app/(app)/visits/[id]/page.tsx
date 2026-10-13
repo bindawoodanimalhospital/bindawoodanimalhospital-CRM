@@ -74,7 +74,7 @@ export default async function VisitPage({ params, searchParams }: PageProps<"/vi
       .eq("visit_id", id).order("created_at", { ascending: false }),
     supabase.from("staff").select("id, full_name"),
     supabase.from("pet_weights").select("weight_kg").eq("pet_id", pet.id).order("measured_at", { ascending: false }).limit(1).maybeSingle(),
-    supabase.from("dewormings").select("id, product, dose, given_at, next_due_date, given_by, voided_at, void_reason").eq("pet_id", pet.id).order("given_at", { ascending: false }),
+    supabase.from("dewormings").select("id, visit_id, product, dose, given_at, next_due_date, given_by, voided_at, void_reason").eq("pet_id", pet.id).order("given_at", { ascending: false }),
     // Dewormers on the price list, offered as suggestions (the doctor can type any product).
     supabase.from("catalog_items").select("name").eq("is_active", true).or("name.ilike.%deworm%,category.ilike.%deworm%,name.ilike.%drontal%,name.ilike.%prazi%,name.ilike.%febendazole%,name.ilike.%milbemax%").limit(30),
     reminderPlans(),

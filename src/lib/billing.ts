@@ -17,3 +17,16 @@ export async function paymentMethods() {
   const { data } = await supabase.from("payment_methods").select("key, label, needs_reference").eq("is_active", true).order("sort_order");
   return data ?? [];
 }
+
+/**
+ * What the pet owner still owes from earlier bills (including balances from before the CRM),
+ * not counting `excludeId`. With `before`, only bills issued before that moment.
+ */
+export async function previousBalance(customerId: string, excludeId: string, before?: string | null): Promise<{ amount: number; since: string | null; count: number }> {
+  const supabase = await createClient();
+  let q = supabase.from("invoices").select("balance, issued_at").eq("customer_id", customerId).eq("status", "issued").gt("balance", 0).neq("id", excludeId);
+  if (before) q = q.lt("issued_at", before);
+  const { data } = await q.order("issued_at");
+  const rows = data ?? [];
+  return { amount: Math.round(rows.reduce((s, r) => s + Number(r.balance), 0) * 100) / 100, since: rows[0]?.issued_at ?? null, count: rows.length };
+}
