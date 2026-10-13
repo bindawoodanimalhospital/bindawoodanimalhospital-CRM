@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BedDouble, CalendarClock, FlaskConical, History, Lock, Pill, Scissors, Stethoscope, Syringe } from "lucide-react";
+import { BedDouble, Bug, CalendarClock, FlaskConical, History, Lock, Pill, Scissors, Stethoscope, Syringe } from "lucide-react";
 import { Card, CardAction, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusPill } from "@/components/app/page-header";
 import { createClient } from "@/lib/supabase/server";
@@ -136,7 +136,7 @@ export async function PetDueCard({ petId }: { petId: string }) {
               const isToday = d.due_on === today;
               return (
                 <li key={d.id} className="flex items-center gap-2 text-sm">
-                  {d.kind === "vaccination" ? <Syringe className="size-4 text-muted-foreground" /> : <Stethoscope className="size-4 text-muted-foreground" />}
+                  {d.kind === "vaccination" ? <Syringe className="size-4 text-muted-foreground" /> : d.kind === "deworming" ? <Bug className="size-4 text-muted-foreground" /> : <Stethoscope className="size-4 text-muted-foreground" />}
                   <span className="min-w-0 flex-1 truncate">{d.title}</span>
                   <StatusPill tone={overdue ? "danger" : isToday ? "warning" : "neutral"}>
                     {overdue ? `Overdue · ${formatDate(d.due_on)}` : isToday ? "Today" : formatDate(d.due_on)}

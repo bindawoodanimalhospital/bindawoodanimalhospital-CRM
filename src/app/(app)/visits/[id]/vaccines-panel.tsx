@@ -12,6 +12,7 @@ import { FormField } from "@/components/app/form-field";
 import { StatusPill } from "@/components/app/page-header";
 import { addDaysPK as addDays, formatDate, todayPK } from "@/lib/format";
 import { recordVaccination, voidVaccination } from "./actions";
+import { ReminderPlan, type RulePlan } from "@/components/app/reminder-plan";
 
 export type VaccineOption = { id: string; name: string; protects_against: string | null; default_route: string | null; default_manufacturer: string | null };
 export type ProtocolOption = {
@@ -25,9 +26,9 @@ export type VaccinationRow = {
 export type DueRow = { id: string; title: string; due_on: string; kind: string };
 
 
-export function VaccinesPanel({ visitId, petId, vaccines, protocols, history, due, canRecord }: {
+export function VaccinesPanel({ visitId, petId, vaccines, protocols, history, due, canRecord, plan }: {
   visitId: string; petId: string; vaccines: VaccineOption[]; protocols: ProtocolOption[];
-  history: VaccinationRow[]; due: DueRow[]; canRecord: boolean;
+  history: VaccinationRow[]; due: DueRow[]; canRecord: boolean; plan?: RulePlan;
 }) {
   const [vaccineId, setVaccineId] = useState("");
   const [manufacturer, setManufacturer] = useState("");
@@ -154,6 +155,7 @@ export function VaccinesPanel({ visitId, petId, vaccines, protocols, history, du
               <Input type="date" value={nextDue} min={addDays(1)} onChange={(e) => { setNextDue(e.target.value); setSuggested(null); }} />
             </FormField>
             <FormField label="Next dose name"><Input value={nextLabel} onChange={(e) => setNextLabel(e.target.value)} placeholder="e.g. DHPPi Dose 2" /></FormField>
+            {plan && nextDue && nextDue > today && <ReminderPlan due={nextDue} plan={plan} what={nextLabel || "the next dose"} className="sm:col-span-2 lg:col-span-3" />}
             {suggested && (
               <p className="flex items-start gap-2 rounded-xl bg-info-soft p-3 text-sm text-info sm:col-span-2">
                 <Info className="mt-0.5 size-4 shrink-0" /> Suggested: {suggested}. Please check the date before saving.

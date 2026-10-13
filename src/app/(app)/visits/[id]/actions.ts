@@ -279,3 +279,33 @@ export async function signedFileUrl(path: string): Promise<string | null> {
   const { data } = await supabase.storage.from("clinical-files").createSignedUrl(path, 600);
   return data?.signedUrl ?? null;
 }
+
+// ---------------------------------------------------------------------------- Deworming
+
+export async function recordDeworming(input: {
+  visit_id: string; pet_id: string; product: string; dose?: string; weight_kg?: number | null; next_due_date?: string; notes?: string;
+}): Promise<FormState> {
+  await assertCan("vaccinations.manage");
+  if (input.product.trim().length < 2) return { message: "Write which dewormer was given." };
+  const supabase = await createClient();
+  const { error } = await supabase.from("dewormings").insert({
+    visit_id: input.visit_id, pet_id: input.pet_id, product: input.product.trim(), dose: input.dose?.trim() || null,
+    weight_kg: input.weight_kg || null, next_due_date: input.next_due_date || null, notes: input.notes?.trim() || null,
+  });
+  if (error) {
+    if (error.code === "23514") return { message: "The next due date must be after today." };
+    return { message: dbErrorMessage(error) };
+  }
+  refresh(input.visit_id);
+  return { ok: true, message: input.next_due_date ? "Deworming recorded — the next reminder is set." : "Deworming recorded." };
+}
+
+export async function voidDeworming(visitId: string, id: string, reason: string): Promise<FormState> {
+  await assertCan("vaccinations.manage");
+  if (reason.trim().length < 3) return { message: "Give a reason." };
+  const supabase = await createClient();
+  const { error } = await supabase.from("dewormings").update({ voided_at: new Date().toISOString(), void_reason: reason.trim() }).eq("id", id);
+  if (error) return { message: dbErrorMessage(error) };
+  refresh(visitId);
+  return { ok: true, message: "Marked as entered by mistake." };
+}

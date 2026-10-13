@@ -3,12 +3,15 @@ import { PageHeader } from "@/components/app/page-header";
 import { requireStaff } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { RuleCard, TemplateEditor, type Rule } from "./widgets";
+import { HowRemindersWork } from "@/components/app/reminder-plan";
+import { reminderPlans } from "@/lib/queries";
 
 export const metadata: Metadata = { title: "Reminder settings" };
 
 export default async function ReminderSettingsPage() {
   await requireStaff("settings.manage");
   const supabase = await createClient();
+  const plans = await reminderPlans();
   const [{ data: rules }, { data: templates }, { data: roles }] = await Promise.all([
     supabase.from("reminder_rules").select("*").order("label"),
     supabase.from("message_templates").select("key, language, label, body, is_promotional").order("key").order("language"),
@@ -18,6 +21,7 @@ export default async function ReminderSettingsPage() {
     <>
       <PageHeader back={{ href: "/settings", label: "Settings" }} title="Reminders & messages"
         description="When owners get reminders, when staff are alerted, and who is told if nothing happens. Changes apply from the next check (every 30 minutes)." />
+      <HowRemindersWork vaccine={plans.vaccine} deworming={plans.deworming} />
       <div className="grid gap-6">
         {(rules ?? []).map((r) => <RuleCard key={r.key} rule={r as Rule} roles={roles ?? []} />)}
       </div>

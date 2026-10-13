@@ -13,6 +13,7 @@ import { formatDate, todayPK } from "@/lib/format";
 import { formatPhone, whatsappLink } from "@/lib/phone";
 import type { FormState } from "@/lib/validation";
 import { closeDue, markContacted, rescheduleDue } from "./actions";
+import { Bug } from "lucide-react";
 
 export type DueEntry = {
   id: string; kind: string; title: string; due_on: string; outcome: string | null; previous_due_on: string | null;
@@ -28,10 +29,12 @@ export function DueRow({ d, canWork, clinicName }: { d: DueEntry; canWork: boole
   const [pending, start] = useTransition();
   const today = todayPK();
   const overdue = d.due_on < today;
-  const Icon = d.kind === "vaccination" ? Syringe : Stethoscope;
+  const Icon = d.kind === "vaccination" ? Syringe : d.kind === "deworming" ? Bug : Stethoscope;
 
   const message = d.kind === "vaccination"
     ? `Assalam o Alaikum ${d.owner?.full_name ?? ""}, ${d.pet.name}'s ${d.title} is due on ${formatDate(d.due_on)}. Please reply to book a time. — ${clinicName}`
+    : d.kind === "deworming"
+    ? `Assalam o Alaikum ${d.owner?.full_name ?? ""}, ${d.pet.name}'s deworming is due on ${formatDate(d.due_on)}. Please reply to book a time. — ${clinicName}`
     : `Assalam o Alaikum ${d.owner?.full_name ?? ""}, ${d.pet.name} is due for a follow-up (${d.title}) on ${formatDate(d.due_on)}. Please reply to book a time. — ${clinicName}`;
   const wa = whatsappLink(d.owner?.whatsapp, message);
 

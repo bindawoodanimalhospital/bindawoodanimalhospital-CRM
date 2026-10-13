@@ -1,6 +1,6 @@
 import Link from "next/link";
 import {
-  BedDouble, FlaskConical, Home, Pill, Receipt, Scissors, Stethoscope, Syringe, UserRound, type LucideIcon,
+  BedDouble, Bug, FlaskConical, Home, Pill, Receipt, Scissors, Stethoscope, Syringe, UserRound, type LucideIcon,
 } from "lucide-react";
 import type { Episode, PetHistory } from "@/lib/pet-history";
 import { formatDate, formatDateTime, formatTime } from "@/lib/format";
@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 
 const rs = (n: number) => `Rs. ${Math.round(n).toLocaleString("en-PK")}`;
 const cap = (s: string) => s.replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase());
-const ICON: Record<Episode["kind"], LucideIcon> = { visit: Stethoscope, surgery: Scissors, ward: BedDouble, vaccination: Syringe, bill: Receipt };
+const ICON: Record<Episode["kind"], LucideIcon> = { visit: Stethoscope, surgery: Scissors, ward: BedDouble, vaccination: Syringe, deworming: Bug, bill: Receipt };
 
 /** Summary numbers across the pet's whole life at the clinic. */
 export function HistorySummary({ h, showMoney }: { h: PetHistory; showMoney: boolean }) {
@@ -95,6 +95,13 @@ export function EpisodeCard({ e, print, showMoney, showPrivate, open, showPet }:
         </Section>
       ))}
 
+      {e.dewormings.length > 0 && (
+        <Section title="Deworming" icon={Bug}>
+          <Table head={["Dewormer", "Dose", "Given by", "Next due"]}
+            rows={e.dewormings.map((d) => [d.product, d.dose, d.by, d.nextDue ? formatDate(d.nextDue) : null])} />
+        </Section>
+      )}
+
       {e.vaccinations.length > 0 && (
         <Section title="Vaccinations" icon={Syringe}>
           <Table head={["Vaccine", "Batch", "Dose / route / site", "Given by", "Next due", "Reaction"]}
@@ -170,6 +177,7 @@ export function EpisodeCard({ e, print, showMoney, showPrivate, open, showPet }:
           {(e.doctor ?? c?.doctor) && <span className="inline-flex items-center gap-1"><UserRound className="size-3" />{e.doctor ?? c?.doctor}</span>}
           {e.prescriptions.length > 0 && <span>{e.prescriptions.reduce((n, p) => n + p.lines.length, 0)} medicine(s)</span>}
           {e.vaccinations.length > 0 && <span>{e.vaccinations.length} vaccine(s)</span>}
+          {e.dewormings.length > 0 && <span>dewormed</span>}
           {e.tests.length > 0 && <span>{e.tests.length} test(s)</span>}
           {showMoney && e.bills.length > 0 && <span>{rs(e.bills.reduce((n, b) => n + b.total, 0))}</span>}
         </span>

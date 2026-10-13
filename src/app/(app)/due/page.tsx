@@ -10,6 +10,8 @@ import { addDaysPK, todayPK } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { DueRow, type DueEntry } from "./due-row";
 import { withContact } from "@/lib/contacts";
+import { HowRemindersWork } from "@/components/app/reminder-plan";
+import { reminderPlans } from "@/lib/queries";
 
 export const metadata: Metadata = { title: "Due & follow-ups" };
 
@@ -31,6 +33,7 @@ export default async function DuePage({ searchParams }: PageProps<"/due">) {
     .select("id, kind, title, due_on, outcome, previous_due_on, pets(id, name, status, pet_owners(is_primary, customers(full_name, customer_contacts(phone, whatsapp))))")
     .eq("status", "pending").order("due_on").limit(200);
   q = view === "overdue" ? q.lt("due_on", today) : view === "today" ? q.eq("due_on", today) : q.gt("due_on", today).lte("due_on", addDaysPK(7));
+  const plans = await reminderPlans();
   const [{ data }, counts, clinic] = await Promise.all([
     q,
     Promise.all([
@@ -54,7 +57,8 @@ export default async function DuePage({ searchParams }: PageProps<"/due">) {
 
   return (
     <>
-      <PageHeader title="Due & follow-ups" description="Vaccine doses and follow-up visits. Items stay here until the pet comes in or someone closes them with a reason." />
+      <PageHeader title="Due & follow-ups" description="Vaccine doses, deworming and follow-up visits. Items stay here until the pet comes in or someone closes them with a reason." />
+      <HowRemindersWork vaccine={plans.vaccine} deworming={plans.deworming} />
       <div className="mb-6 flex flex-wrap gap-2">
         {VIEWS.map((x) => (
           <Link key={x.key} href={`?view=${x.key}`}

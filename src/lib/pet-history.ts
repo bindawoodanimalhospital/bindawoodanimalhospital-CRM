@@ -15,6 +15,7 @@ type Obj = Record<string, unknown>;
 export type Who = string | null;
 export type RxLine = { medicine: string; strength: string | null; form: string | null; dose: string | null; frequency: string | null; duration: string | null; route: string | null; quantity: number | null; instructions: string | null };
 export type Rx = { id: string; code: string; status: string; issuedAt: string | null; doctor: Who; notes: string | null; lines: RxLine[] };
+export type Deworming = { id: string; at: string; product: string; dose: string | null; by: Who; nextDue: string | null };
 export type Vaccination = { id: string; at: string; name: string; manufacturer: string | null; batch: string | null; dose: string | null; route: string | null; site: string | null; by: Who; nextDue: string | null; reaction: string | null; notes: string | null };
 export type Test = { id: string; code: string | null; type: string; status: string; reason: string | null; urgent: boolean; orderedBy: Who; orderedAt: string; lab: string | null; findings: string | null; impression: string | null; values: unknown; resultedAt: string | null; resultedBy: Who; reviewedBy: Who };
 export type Surgery = { id: string; code: string | null; procedure: string; status: string; urgency: string | null; at: string; surgeon: Who; team: { name: Who; role: string }[]; indication: string | null; asa: string | null; anaesthesia: string | null; complications: string | null; intraOp: string | null; recovery: string | null; consumables: string[]; dischargedBy: Who; followUp: string | null };
@@ -23,12 +24,12 @@ export type Bill = { id: string; number: string | null; status: string; at: stri
 export type Consultation = { status: string; doctor: Who; finalizedAt: string | null; finalizedBy: Who; complaint: string | null; history: string | null; vitals: [string, string][]; exam: string | null; observations: string | null; assessment: string | null; treatment: string | null; medicinesGiven: string | null; followUpPlan: string | null; followUpDate: string | null; doctorNotes: string | null; diagnoses: { label: string; primary: boolean; certainty: string | null }[]; revisions: number };
 
 export type Episode = {
-  key: string; petId: string | null; petName: string | null; at: string; kind: "visit" | "surgery" | "ward" | "vaccination" | "bill";
+  key: string; petId: string | null; petName: string | null; at: string; kind: "visit" | "surgery" | "ward" | "vaccination" | "deworming" | "bill";
   title: string; visitId: string | null; token: number | null; status: string | null; reason: string | null;
   doctor: Who; broughtBy: string | null; checkedInBy: Who; homeVisit: string | null;
   steps: { at: string; label: string; by: Who }[];
   weight: number | null;
-  consultation: Consultation | null; prescriptions: Rx[]; vaccinations: Vaccination[]; tests: Test[];
+  consultation: Consultation | null; prescriptions: Rx[]; vaccinations: Vaccination[]; dewormings: Deworming[]; tests: Test[];
   surgeries: Surgery[]; ward: WardStay[]; bills: Bill[];
 };
 
@@ -54,7 +55,7 @@ export async function loadHistory({ petIds, customerId }: { petIds: string[]; cu
   const supabase = await createClient();
   const ids = petIds.length ? petIds : ["00000000-0000-0000-0000-000000000000"];
   const billFilter = customerId ? `pet_id.in.(${ids.join(",")}),customer_id.eq.${customerId}` : `pet_id.in.(${ids.join(",")})`;
-  const [visits, consults, rx, vacc, tests, surg, team, cons, adm, orders, doses, notes, bills, weights, staff, pets, steps] = await Promise.all([
+  const [visits, consults, rx, vacc, tests, surg, team, cons, adm, orders, doses, notes, bills, weights, staff, pets, steps, dew] = await Promise.all([
     supabase.from("visits").select("id, pet_id, token_no, status, reason, priority, checked_in_at, started_at, completed_at, doctor_id, created_by, service_location, service_address, customers(full_name), appointment_types(name)")
       .in("pet_id", ids).order("checked_in_at", { ascending: false }).limit(CAP),
     supabase.from("consultations").select("*, consultation_diagnoses(label, is_primary, certainty), consultation_revisions(id)").in("pet_id", ids).limit(CAP),
@@ -79,6 +80,7 @@ export async function loadHistory({ petIds, customerId }: { petIds: string[]; cu
     supabase.from("staff").select("id, full_name"),
     supabase.from("pets").select("id, name").in("id", ids),
     supabase.from("visit_status_events").select("visit_id, to_status, changed_at, changed_by, visits!inner(pet_id)").in("visits.pet_id", ids).order("changed_at").limit(CAP),
+    supabase.from("dewormings").select("id, pet_id, visit_id, product, dose, given_at, given_by, next_due_date").in("pet_id", ids).is("voided_at", null).limit(CAP),
   ]);
 
   const names = new Map((staff.data ?? []).map((s) => [s.id as string, s.full_name as string]));
@@ -157,6 +159,8 @@ export async function loadHistory({ petIds, customerId }: { petIds: string[]; cu
   const consultBy = by(consults.data as Obj[] | null, "visit_id");
   const rxBy = by(rx.data as Obj[] | null, "visit_id");
   const vaccBy = by(vacc.data as Obj[] | null, "visit_id");
+  const dewBy = by(dew.data as Obj[] | null, "visit_id");
+  const toDew = (d: Obj): Deworming => ({ id: d.id as string, at: d.given_at as string, product: String(d.product), dose: str(d.dose), by: who(d.given_by), nextDue: str(d.next_due_date) });
   const testBy = by(tests.data as Obj[] | null, "visit_id");
   const surgBy = by(surg.data as Obj[] | null, "visit_id");
   const admBy = by(adm.data as Obj[] | null, "visit_id");
@@ -167,7 +171,7 @@ export async function loadHistory({ petIds, customerId }: { petIds: string[]; cu
 
   const blank = (key: string, at: string, kind: Episode["kind"], title: string, petId?: unknown): Episode => ({
     key, at, kind, title, petId: typeof petId === "string" ? petId : null, petName: typeof petId === "string" ? petNames.get(petId) ?? null : null, visitId: null, token: null, status: null, reason: null, doctor: null, broughtBy: null, checkedInBy: null, homeVisit: null,
-    steps: [], weight: null, consultation: null, prescriptions: [], vaccinations: [], tests: [], surgeries: [], ward: [], bills: [],
+    steps: [], weight: null, consultation: null, prescriptions: [], vaccinations: [], dewormings: [], tests: [], surgeries: [], ward: [], bills: [],
   });
 
   const episodes: Episode[] = (visits.data ?? []).map((v) => {
@@ -181,6 +185,7 @@ export async function loadHistory({ petIds, customerId }: { petIds: string[]; cu
     e.consultation = c ? toConsult(c) : null;
     e.prescriptions = (rxBy.get(id) ?? []).map(toRx);
     e.vaccinations = (vaccBy.get(id) ?? []).map(toVacc);
+    e.dewormings = (dewBy.get(id) ?? []).map(toDew);
     e.tests = (testBy.get(id) ?? []).map(toTest);
     e.surgeries = (surgBy.get(id) ?? []).map((s) => (usedSurg.add(s.id as string), toSurgery(s)));
     e.ward = (admBy.get(id) ?? []).map((a) => (usedAdm.add(a.id as string), toWard(a)));
@@ -204,6 +209,12 @@ export async function loadHistory({ petIds, customerId }: { petIds: string[]; cu
     const e = blank(`a-${a.id}`, a.admitted_at as string, "ward", "Hospital stay", a.pet_id);
     e.ward = [toWard(a)];
     e.bills = (bills.data ?? []).filter((b) => b.admission_id === a.id && !usedBill.has(b.id as string)).map((b) => (usedBill.add(b.id as string), toBill(b)));
+    episodes.push(e);
+  }
+  for (const d of dew.data ?? []) {
+    if (d.visit_id) continue;
+    const e = blank(`w-${d.id}`, d.given_at as string, "deworming", `Deworming — ${d.product}`, d.pet_id);
+    e.dewormings = [toDew(d)];
     episodes.push(e);
   }
   for (const v of vacc.data ?? []) {

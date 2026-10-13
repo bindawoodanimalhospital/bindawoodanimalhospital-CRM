@@ -73,3 +73,14 @@ export async function getStaffOptions(): Promise<DoctorOption[]> {
   const { data } = await supabase.from("staff").select("id, full_name").eq("is_active", true).order("full_name");
   return data ?? [];
 }
+
+/** Days around the due date when vaccine / deworming reminders fire (for the "what happens next" panels). */
+export async function reminderPlans(): Promise<{ vaccine: { customer: number[]; staff: number[] }; deworming: { customer: number[]; staff: number[] } }> {
+  const supabase = await createClient();
+  const { data } = await supabase.from("reminder_rules").select("key, customer_offsets, staff_offsets, is_active").in("key", ["vaccination_due", "deworming_due"]);
+  const pick = (key: string) => {
+    const r = (data ?? []).find((x) => x.key === key);
+    return r && r.is_active ? { customer: (r.customer_offsets ?? []) as number[], staff: (r.staff_offsets ?? []) as number[] } : { customer: [], staff: [] };
+  };
+  return { vaccine: pick("vaccination_due"), deworming: pick("deworming_due") };
+}

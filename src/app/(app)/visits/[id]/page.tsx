@@ -18,6 +18,8 @@ import { ServiceLocationControl } from "@/components/app/service-location";
 import { setVisitServiceLocation } from "../../queue/actions";
 import { ConsultationPanel, type Consultation, type Template } from "./consultation-panel";
 import { VaccinesPanel, type ProtocolOption, type VaccinationRow, type VaccineOption } from "./vaccines-panel";
+import { DewormingPanel, type DewormingRow } from "./deworming-panel";
+import { reminderPlans } from "@/lib/queries";
 import { RxPanel, type Rx } from "./rx-panel";
 import { TestsPanel, type DiagnosticOrder, type DiagnosticType } from "./tests-panel";
 import { withContact } from "@/lib/contacts";
@@ -55,7 +57,7 @@ export default async function VisitPage({ params, searchParams }: PageProps<"/vi
     canSurgery ? supabase.from("surgery_procedures").select("id, name, default_minutes").eq("is_active", true).order("sort_order") : Promise.resolve({ data: [] }),
     supabase.from("admissions").select("id").eq("pet_id", pet.id).eq("status", "admitted").maybeSingle(),
   ]);
-  const [templatesQ, consultQ, vaccinesQ, protocolsQ, historyQ, dueQ, rxQ, dxTypesQ, dxQ, staffQ, weightQ] = await Promise.all([
+  const [templatesQ, consultQ, vaccinesQ, protocolsQ, historyQ, dueQ, rxQ, dxTypesQ, dxQ, staffQ, weightQ, dewormQ, dewormerQ, plans] = await Promise.all([
     supabase.from("clinical_templates").select("key, name, description, sections, exam_prompts").eq("is_active", true).order("sort_order"),
     supabase.from("consultations").select("*, consultation_diagnoses(label, certainty, is_primary, created_at), consultation_revisions(revision, finalized_at, reason)")
       .eq("visit_id", id).order("created_at", { ascending: false }).limit(1).maybeSingle(),
@@ -72,6 +74,10 @@ export default async function VisitPage({ params, searchParams }: PageProps<"/vi
       .eq("visit_id", id).order("created_at", { ascending: false }),
     supabase.from("staff").select("id, full_name"),
     supabase.from("pet_weights").select("weight_kg").eq("pet_id", pet.id).order("measured_at", { ascending: false }).limit(1).maybeSingle(),
+    supabase.from("dewormings").select("id, product, dose, given_at, next_due_date, given_by, voided_at, void_reason").eq("pet_id", pet.id).order("given_at", { ascending: false }),
+    // Dewormers on the price list, offered as suggestions (the doctor can type any product).
+    supabase.from("catalog_items").select("name").eq("is_active", true).or("name.ilike.%deworm%,category.ilike.%deworm%,name.ilike.%drontal%,name.ilike.%prazi%,name.ilike.%febendazole%,name.ilike.%milbemax%").limit(30),
+    reminderPlans(),
   ]);
 
   const names = new Map((staffQ.data ?? []).map((s) => [s.id, s.full_name]));
@@ -192,7 +198,7 @@ export default async function VisitPage({ params, searchParams }: PageProps<"/vi
       <Tabs defaultValue={activeTab} className="gap-6">
         <TabsList className="h-12 w-full justify-start gap-1 overflow-x-auto overflow-y-hidden rounded-2xl bg-muted p-1 [scrollbar-width:none] sm:w-fit">
           <TabsTrigger value="consultation" className="h-10 gap-2 rounded-xl px-4"><Stethoscope /> Consultation</TabsTrigger>
-          <TabsTrigger value="vaccines" className="h-10 gap-2 rounded-xl px-4"><Syringe /> Vaccines</TabsTrigger>
+          <TabsTrigger value="vaccines" className="h-10 gap-2 rounded-xl px-4"><Syringe /> Vaccines &amp; deworming</TabsTrigger>
           <TabsTrigger value="rx" className="h-10 gap-2 rounded-xl px-4"><Pill /> Prescription</TabsTrigger>
           <TabsTrigger value="tests" className="h-10 gap-2 rounded-xl px-4">
             <FlaskConical /> Tests {openTests > 0 && <span className="rounded-full bg-brand px-1.5 text-[11px] font-bold text-white">{openTests}</span>}
@@ -208,7 +214,12 @@ export default async function VisitPage({ params, searchParams }: PageProps<"/vi
           </TabsContent>
           <TabsContent value="vaccines">
             <VaccinesPanel visitId={id} petId={pet.id} vaccines={vaccines} protocols={protocols} history={history}
-              due={dueQ.data ?? []} canRecord={me.can("vaccinations.manage")} />
+              due={dueQ.data ?? []} canRecord={me.can("vaccinations.manage")} plan={plans.vaccine} />
+            <div className="mt-6">
+              <DewormingPanel visitId={id} petId={pet.id} dob={pet.date_of_birth} weight={weight ? Number(weight) : null}
+                history={(dewormQ.data ?? []) as DewormingRow[]} products={(dewormerQ.data ?? []).map((x) => x.name)}
+                plan={plans.deworming} canRecord={me.can("vaccinations.manage")} />
+            </div>
           </TabsContent>
           <TabsContent value="rx">
             <RxPanel visitId={id} petId={pet.id} consultationId={c?.id ?? null} prescriptions={prescriptions} canWrite={me.can("prescriptions.manage")} />

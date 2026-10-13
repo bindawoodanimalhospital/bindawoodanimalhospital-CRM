@@ -48,7 +48,7 @@ export async function loadOwnerHistory(customerId: string, me: CurrentStaff): Pr
   const h = await loadHistory({ petIds: canClinical ? petIds : [], customerId: me.can("billing.view") ? customerId : undefined });
   // Without clinical access, only the bills part of the history is shown.
   const episodes: Episode[] = canClinical ? h.episodes : h.episodes.filter((e) => e.kind === "bill" || e.bills.length > 0)
-    .map((e) => ({ ...e, consultation: null, prescriptions: [], vaccinations: [], tests: [], surgeries: [], ward: [] }));
+    .map((e) => ({ ...e, consultation: null, prescriptions: [], vaccinations: [], dewormings: [], tests: [], surgeries: [], ward: [] }));
 
   const pets: OwnerPet[] = owned.map((l) => {
     const p = l.pets!;
