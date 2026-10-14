@@ -154,4 +154,12 @@ reset role;
 select role_key, probe, perms, expected, actual, detail from results where expected <> actual order by probe, role_key;
 select 'probes run' as t, count(*) as n, count(*) filter (where expected = actual) as matching, count(*) filter (where expected <> actual) as mismatching from results;
 select probe, string_agg(role_key || ':' || case when actual then 'Y' else '-' end, ' ' order by role_key) as by_role from results group by probe order by probe;
+-- The Owner role always has every permission, even one not ticked for it
+reset role;
+insert into public.permissions (key, module, action, label) values ('zz.test_only', 'zz', 'test', 'Test only');
+select pg_temp.act((select uid from r_users where role_key = 'owner'));
+do $$ begin
+  if not private.has_permission('zz.test_only') then raise exception 'FAIL: owner lacks a new permission'; end if;
+  raise notice 'OK owner has every permission, including new ones';
+end $$;
 rollback;

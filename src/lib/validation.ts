@@ -132,7 +132,11 @@ export function formObject(fd: FormData, prefix = ""): Record<string, string> {
 /** Friendlier text for common Postgres errors. */
 export function dbErrorMessage(err: { code?: string; message: string } | null): string {
   if (!err) return "Something went wrong.";
-  if (err.code === "42501") return "You don't have permission to do that.";
+  if (err.code === "42501") {
+    // Generic database refusals → plain sentence; the hospital's own rules explain themselves.
+    if (/^permission denied|row-level security|violates row-level/i.test(err.message)) return "You don't have permission to do that.";
+    return err.message.charAt(0).toUpperCase() + err.message.slice(1);
+  }
   if (err.code === "23505") {
     if (err.message.includes("microchip")) return "Another pet already has this microchip number.";
     return "That record already exists.";

@@ -86,7 +86,7 @@ function ModuleRows({ module, permissions, roles, isOn, editable, onToggle }: {
           </td>
           {roles.map((r) => (
             <td key={r.id} className="px-2 py-2 text-center">
-              <Checkbox checked={isOn(r, p.key)} disabled={!editable || r.key === "owner" || p.key === "customers.contact"}
+              <Checkbox checked={isOn(r, p.key)} disabled={!editable || r.key === "owner"}
                 onCheckedChange={(v) => onToggle(r, p.key, v === true)} aria-label={`${r.name}: ${p.label}`} />
             </td>
           ))}

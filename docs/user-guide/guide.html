@@ -241,7 +241,7 @@
     <tr><td><code>royal canin</code>, a barcode</td><td>A product or service, with stock</td></tr>
     <tr><td>microchip number, colour, breed</td><td>A pet</td></tr>
     <tr><td><code>pet:</code> / <code>owner:</code></td><td>Only pets or only owners</td></tr>
-    <tr><td><code>0300 1234567</code> or <code>4567</code></td><td>An owner by phone — <b>hospital owner only</b>; for other staff a number finds nothing</td></tr>
+    <tr><td><code>0300 1234567</code> or <code>4567</code></td><td>An owner by phone — for the owner and any role he has shared phone numbers with</td></tr>
   </table>
   <div class="box tip"><b class="t">Reading the results</b>Labels warn you at a glance: <b>Alert</b> (allergy / critical warning), <b>Owes Rs. …</b>, <b>Out of stock</b>, <b>Inactive</b>. Use arrow keys + Enter; Tab switches between All / Owners / Pets / Bills / Items. Recent picks show when search opens.</div>
   <h3>The bell</h3>
@@ -506,7 +506,7 @@
     <li><span class="role">Everyone else</span> At the bottom of the pet owner's or pet's page: <i>"Only the owner, Mr. Musab Bin Dawood, can remove…"</i> → <b>Ask Mr. Musab to remove</b> (reason optional). The page then shows the request is waiting; <b>Remind him again</b> sends another reminder.</li>
     <li><span class="role">Owner</span> The bell, Home (<b>Please remove — added by mistake</b>) and <span class="ui">Removal requests</span> list every request. Open the record → <b>Delete</b>, or <b>Keep — decline</b> with a note. Reminders stop once handled.</li>
     <li>Only records <b>never used</b> can be deleted — no visits, appointments, bills, payments, medical records or messages. Deleting a pet owner also deletes their pets that belong to nobody else. A duplicate with history is <b>merged</b> instead.</li>
-    <li>Only the owner can delete; this can't be given to any other role. Every deletion is in the activity log.</li>
+    <li>Only the owner can delete, unless he gives a role the delete permission in <span class="ui">Who can do what</span>. Every deletion is in the activity log.</li>
   </ul>
 </section>
 
@@ -702,7 +702,7 @@
   </ol>
   <p>The owner is shown at the top of Staff in a maroon card; the owner's email is never shown to others.</p>
   <h3>Who can do what</h3>
-  <p>A grid of roles × permissions. Tick or untick to change a role; it applies at once to everyone with that role and is recorded. <b>New custom role</b> creates a role of your own (e.g. "Groomer"). Sensitive permissions are marked with a lock. <b>"See &amp; edit phone numbers and email" is locked to the Owner</b> — it can't be given to any other role.</p>
+  <p>A grid of roles × permissions. Tick or untick to change a role; it applies at once to everyone with that role and is recorded. <b>New custom role</b> creates a role of your own (e.g. "Groomer"). Sensitive permissions are marked with a lock. <b>"See &amp; edit phone numbers and email"</b> and the two <b>Delete … added by mistake</b> permissions are the owner's only by default — tick them for a role to share them. The Owner role always has every permission.</p>
   <h3>Activity log — every action, by every person</h3>
   <div class="cards">
     <div class="card"><h4>Sign-ins &amp; sign-outs</h4><p>With device and IP address, and wrong-password attempts.</p></div>
@@ -739,7 +739,7 @@
 <section class="chapter">
   <div class="chapter-head"><div class="num">24</div><div><h2>Privacy &amp; built-in safety</h2><p>Protections the system enforces on its own — in the database, not just on screen.</p></div></div>
   <h3>Pet owners' phone numbers</h3>
-  <p>Phone numbers, WhatsApp numbers and email are visible <b>only to the hospital owner</b>: not on screens, prints, search, messages or the activity log for anyone else, and other staff can't search by number. The permission can't be given to another role. Addresses are visible to staff so deliveries and home visits work.</p>
+  <p>Phone numbers, WhatsApp numbers and email are visible <b>only to the hospital owner by default</b> — on screens, prints, search, messages and the activity log — and other staff can't search by number. The owner can share them with a role (e.g. reception) by ticking <b>See &amp; edit phone numbers and email</b> in <span class="ui">Who can do what</span>, and untick it any time. Addresses are visible to staff so deliveries and home visits work.</p>
   <table>
     <tr><th style="width:32%">Protection</th><th>What it means for you</th></tr>
     <tr><td><b>Role-based access</b></td><td>Each person only sees and changes what their role allows.</td></tr>

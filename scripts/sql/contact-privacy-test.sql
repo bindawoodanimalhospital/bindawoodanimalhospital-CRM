@@ -77,17 +77,18 @@ with m as (insert into public.messages (customer_id, channel, body, to_phone, cr
   values (pg_temp.g('c'), 'whatsapp', 'hi', '+923001239876', '00000000-0000-0000-0000-0000000ee001') returning id) insert into fx select 'm', id from m;
 select pg_temp.check((select to_phone is null from public.messages where id = pg_temp.g('m')), 'a message never keeps the phone number');
 
--- The permission can never be given to another role, and the Owner role can't be renamed
+-- The owner decides: he can share numbers with a role, and take it back; the Owner role can't be renamed
 reset role;
-do $$ begin
-  insert into public.role_permissions (role_id, permission_key) select id, 'customers.contact' from public.roles where key = 'senior_doctor';
-  raise exception 'FAIL: contact permission given to doctors';
-exception when insufficient_privilege then raise notice 'OK contact details cannot be given to any other role'; end $$;
-do $$ begin
-  update public.role_permissions set role_id = (select id from public.roles where key = 'reception')
-   where permission_key = 'customers.contact';
-  raise exception 'FAIL: contact permission moved to reception';
-exception when insufficient_privilege then raise notice 'OK nor moved to another role'; end $$;
+insert into public.role_permissions (role_id, permission_key) select id, 'customers.contact' from public.roles where key = 'senior_doctor';
+set local role authenticated;
+select pg_temp.as_('00000000-0000-0000-0000-0000000ee003');
+select pg_temp.check((select count(*) from public.customer_contacts where customer_id = pg_temp.g('c')) = 1, 'owner shared numbers with doctors: the doctor sees them');
+reset role;
+delete from public.role_permissions where permission_key = 'customers.contact' and role_id = (select id from public.roles where key = 'senior_doctor');
+set local role authenticated;
+select pg_temp.as_('00000000-0000-0000-0000-0000000ee003');
+select pg_temp.check((select count(*) from public.customer_contacts) = 0, 'taken back: hidden again');
+reset role;
 do $$ begin
   update public.roles set key = 'owner_old' where key = 'owner';
   raise exception 'FAIL: owner role renamed';

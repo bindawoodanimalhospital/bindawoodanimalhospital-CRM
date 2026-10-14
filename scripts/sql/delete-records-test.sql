@@ -99,10 +99,11 @@ reset role;
 select pg_temp.check((select count(*) = 3 from public.audit_logs where action in ('customer.deleted', 'pet.deleted')
   and record_id in (pg_temp.g('cm')::text, pg_temp.g('pm')::text, pg_temp.g('pl')::text)), 'every deletion in the activity log');
 
--- The permissions can't be handed to anyone else
-do $$ begin
-  insert into public.role_permissions (role_id, permission_key) select id, 'customers.delete' from public.roles where key = 'reception';
-  raise exception 'FAIL: delete given to reception';
-exception when insufficient_privilege then raise notice 'OK delete permissions are owner-only'; end $$;
+-- The owner can let another role delete too
+insert into public.role_permissions (role_id, permission_key) select id, 'customers.delete' from public.roles where key = 'reception';
+set local role authenticated;
+select pg_temp.as_('00000000-0000-0000-0000-0000000ff102');
+select pg_temp.check(public.record_delete_blocker('customer', pg_temp.g('cr')) like '%visits%', 'owner gave reception the delete permission: it works for them');
+reset role;
 select 'ALL DELETE-RECORDS CHECKS PASSED' as result;
 rollback;

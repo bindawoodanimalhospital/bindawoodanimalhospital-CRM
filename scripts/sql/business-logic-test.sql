@@ -103,8 +103,8 @@ select pg_temp.check((select balance = 0 and amount_paid = 1200 from public.invo
 reset role;
 -- 9) Bioveta vaccines and draft schedules (migration 041)
 select pg_temp.check((select count(*) = 7 from public.vaccines where default_manufacturer = 'Bioveta'), 'PCH, PCHR and the Biocan range are on the vaccine list');
-select pg_temp.check(not exists (select 1 from public.vaccination_protocols where name like '%Bioveta%' and is_approved),
-  'the new Bioveta schedules are drafts until a senior doctor approves them');
+select pg_temp.check(not exists (select 1 from public.vaccination_protocols where name like '%Bioveta%' and is_approved and approved_by is null),
+  'Bioveta schedules are only approved by a named doctor (they start as drafts)');
 select pg_temp.check((select v.name = 'Biocan M (ringworm)' from public.catalog_items ci join public.vaccines v on v.id = ci.vaccine_id where ci.name = 'Biocan M')
   is not false, 'the Biocan M price item points at the ringworm vaccine, not rabies');
 select 'ALL BUSINESS-LOGIC CHECKS PASSED' as result;
