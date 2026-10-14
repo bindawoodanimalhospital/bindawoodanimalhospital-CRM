@@ -444,8 +444,17 @@
   <h3><span class="role">Inventory</span> B · Quick top-up without a supplier bill</h3>
   <ol class="steps">
     <li>Open the product (Inventory → tap it) → <span class="btn">Add stock</span>.</li>
-    <li>Type <b>how many pieces</b> arrived. Batch and expiry are optional. Save — tracking switches on by itself.</li>
+    <li>Type <b>how many pieces</b> arrived and the <b>expiry date</b> printed on the box (recommended), plus the batch / lot no. if there is one. Save — tracking switches on by itself.</li>
+    <li>Pieces with different expiry dates? Add them separately — one <b>Add stock</b> per date.</li>
   </ol>
+  <h3><span class="role">Inventory</span> B2 · Batches and expiry dates, made simple</h3>
+  <p>A <b>batch</b> is just "pieces of one product with the same expiry date" (and the lot no. from the box). The product page lists them under <b>Stock by expiry date</b> — red = expired, yellow = expires within 60 days. Bills and sales always use the batch expiring first, and expired pieces are never sold.</p>
+  <ul>
+    <li><b>Date missing or wrong?</b> Press <b>Expiry &amp; batch</b> on that line, type the date from the box, Save. Nothing else changes.</li>
+    <li><b>The pieces have different dates?</b> In the same window press <b>Some have a different expiry date — split</b>: e.g. 6 → January, 4 → March. The total must stay the same.</li>
+    <li><b>Expired, damaged or sent back?</b> <b>Remove / correct</b> on that line → choose the reason and how many.</li>
+    <li><b>Inventory → Expiry check</b> lists everything expired, expiring in 3 months, and stock with <b>no date recorded</b> — with the same buttons on every line. Work through the "no date" list once, box by box.</li>
+  </ul>
   <h3><span class="role">Inventory</span> C · Shelf count — make the numbers true</h3>
   <ol class="steps">
     <li><span class="ui">Inventory</span> → <span class="btn">Shelf count</span>. Every product is listed with what the system thinks is there.</li>
@@ -603,12 +612,12 @@
 <section class="chapter">
   <div class="chapter-head"><div class="num">18</div><div><h2>Inventory, sizes &amp; suppliers</h2><p>Reference — know what you have, what is expiring and what to order.</p></div></div>
   <h3>Inventory page</h3>
-  <p>Two tabs: <b>Stock</b> (quantities, batches, expiry) and <b>Price list</b> (every service and product, grouped by product with sizes). Tiles: <b>low / reorder</b>, <b>expiring in 60 days</b>, <b>expired on the shelf</b>, <b>uncounted</b>. Buttons: <span class="btn">New item</span>, <span class="btn">Shelf count</span>, <span class="ui">Sizes</span>.</p>
+  <p>Two tabs: <b>Stock</b> (quantities, batches, expiry) and <b>Price list</b> (every service and product, grouped by product with sizes). Tiles: <b>low / reorder</b>, <b>expiring in 60 days</b>, <b>expired on the shelf</b> (both open the Expiry check), <b>uncounted</b>. Buttons: <span class="btn">New item</span>, <span class="btn">Shelf count</span>, <span class="btn">Expiry check</span>, <span class="ui">Sizes</span>.</p>
   <h3>A product's page</h3>
   <table>
     <tr><th style="width:26%">Card</th><th>What you can do</th></tr>
     <tr><td><b>Stock</b></td><td><span class="btn">Add stock</span> (pieces, optional batch/expiry), <b>Set the count</b> (what's on the shelf now).</td></tr>
-    <tr><td><b>Batches</b></td><td>Each batch with quantity and expiry; <b>Adjust</b> with a reason (damaged, expired, found).</td></tr>
+    <tr><td><b>Stock by expiry date</b></td><td>Each batch with quantity, expiry (red expired / yellow soon) and lot no. <b>Expiry &amp; batch</b> fixes or splits the date; <b>Remove / correct</b> takes pieces out (damaged, expired, returned), fixes the number or moves them.</td></tr>
     <tr><td><b>Sizes</b></td><td><b>Add a size</b>, available / not available switch, <b>Remove this size from the group</b>, <b>Make this a product with sizes</b>.</td></tr>
     <tr><td><b>Stock history</b></td><td>Every movement: received, sold, billed, returned, counted, adjusted, loaned — with who and when.</td></tr>
     <tr><td>Details</td><td>Price, category, unit, barcode/SKU, reorder level, editable price, retail (pet store) or clinic use. Untick <b>Active</b> to hide an item you no longer sell.</td></tr>

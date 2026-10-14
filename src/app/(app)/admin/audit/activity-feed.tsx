@@ -3,8 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Ban, Coffee, Copy, Download, ExternalLink, Eye, FileClock, KeyRound, Loader2, LogIn, LogOut, Mail, MessageCircle, Pencil, Phone, Plus, Printer,
-  Search, ShieldAlert, ShieldX, Sparkles, SquareX, Trash2, Undo2, type LucideIcon,
-} from "lucide-react";
+  Search, ShieldAlert, ShieldX, Sparkles, SquareX, Trash2, Undo2, type LucideIcon, CalendarClock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/app/page-header";
 import { createClient } from "@/lib/supabase/client";
@@ -205,6 +204,14 @@ function makeDescribe(names: Record<string, string>, roleNames: Record<string, s
         return { icon: Ban, tone: "bg-danger-soft text-danger", text: `Cancelled order ${c("number") ?? ""}`.trim(),
           detail: [r.reason, Number(c("refunded") ?? 0) > 0 ? `refunded Rs. ${Number(c("refunded")).toLocaleString("en-PK")}` : null].filter(Boolean).join(" · ") || null,
           href: r.record_id ? `/billing/${r.record_id}` : null };
+      case "batch.edited": {
+        const fmt = (x: { batch_no?: string; expiry?: string | null; qty?: number }) =>
+          `${x.qty ?? ""} ${x.expiry ? `exp ${x.expiry}` : "no expiry"}${x.batch_no ? ` (batch ${x.batch_no})` : ""}`.trim();
+        const before = (r.context?.before ?? {}) as { batch_no?: string; expiry?: string | null; qty?: number };
+        const after = (r.context?.after ?? []) as { batch_no?: string; expiry?: string | null; qty?: number }[];
+        return { icon: CalendarClock, tone: "bg-muted text-muted-foreground", text: `Changed expiry / batch of ${c("item") ?? "a product"}`,
+          detail: [`${fmt(before)} → ${after.map(fmt).join(" + ")}`, r.reason].filter(Boolean).join(" · ") };
+      }
       case "customer.deleted":
         return { icon: Trash2, tone: "bg-danger-soft text-danger", text: `Deleted pet owner “${c("name") ?? ""}”${c("code") ? ` (${c("code")})` : ""}`,
           detail: [r.reason, Number(c("pets_deleted") ?? 0) > 0 ? `with ${c("pets_deleted")} pet(s)` : null].filter(Boolean).join(" · ") || null };

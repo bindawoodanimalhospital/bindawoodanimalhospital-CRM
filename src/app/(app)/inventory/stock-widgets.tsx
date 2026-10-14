@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { ArrowRightLeft, Loader2, PackagePlus, SlidersHorizontal } from "lucide-react";
+import { ArrowRightLeft, CalendarClock, Loader2, PackagePlus, Plus, SlidersHorizontal, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,7 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { FormField } from "@/components/app/form-field";
 import type { FormState } from "@/lib/validation";
-import { addStock, addStockCount, adjustBatch, saveCounts, transferBatch } from "./actions";
+import { todayPK } from "@/lib/format";
+import { addStock, addStockCount, adjustBatch, saveCounts, setBatchDetails, transferBatch } from "./actions";
 
 type Loc = { id: string; name: string };
 
@@ -62,9 +63,9 @@ export function AdjustDialog({ itemId, batch, locations }: { itemId: string; bat
   };
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild><Button variant="ghost" size="sm"><SlidersHorizontal /> Adjust</Button></DialogTrigger>
+      <DialogTrigger asChild><Button variant="ghost" size="sm"><SlidersHorizontal /> Remove / correct</Button></DialogTrigger>
       <DialogContent className="rounded-2xl">
-        <DialogHeader><DialogTitle>Batch {batch.batch_no || "(no batch)"} — {batch.qty} in stock</DialogTitle><DialogDescription>Every change is logged with your name and reason.</DialogDescription></DialogHeader>
+        <DialogHeader><DialogTitle>Batch {batch.batch_no || "(no batch)"} — {batch.qty} in stock</DialogTitle><DialogDescription>Take pieces out (damaged, expired, sent back), fix the number, or move them to another place. Every change is logged with your name and reason. To change the expiry date, use “Expiry &amp; batch”.</DialogDescription></DialogHeader>
         <Select value={mode} onValueChange={(v) => setMode(v as typeof mode)}>
           <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
           <SelectContent>
@@ -112,14 +113,19 @@ export function AddStockDialog({ itemId, itemName, unit, locations, trigger }: {
           <Input autoFocus inputMode="decimal" className="h-14 text-center text-2xl font-bold tabular" value={f.qty}
             onChange={(e) => setF({ ...f, qty: e.target.value.replace(/[^\d.]/g, "") })} placeholder="0" />
         </FormField>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <FormField label="Expiry date" hint="Printed on the box. Recommended — you're warned before it expires and the oldest is sold first.">
+            <Input type="date" min={todayPK()} value={f.expiry_date} onChange={(e) => setF({ ...f, expiry_date: e.target.value })} />
+          </FormField>
+          <FormField label="Batch / lot no." hint="Also on the box — optional"><Input value={f.batch_no} onChange={(e) => setF({ ...f, batch_no: e.target.value })} /></FormField>
+        </div>
+        <p className="text-xs text-muted-foreground">Pieces with different expiry dates? Add them separately — one “Add stock” per date.</p>
         {!more ? (
           <button type="button" className="justify-self-start text-sm font-semibold text-brand hover:underline" onClick={() => setMore(true)}>
-            + Batch number, expiry date or place (optional)
+            + Place or note (optional)
           </button>
         ) : (
           <div className="grid gap-3 sm:grid-cols-2">
-            <FormField label="Batch / lot" hint="On the box — optional"><Input value={f.batch_no} onChange={(e) => setF({ ...f, batch_no: e.target.value })} /></FormField>
-            <FormField label="Expiry date" hint="Optional"><Input type="date" value={f.expiry_date} onChange={(e) => setF({ ...f, expiry_date: e.target.value })} /></FormField>
             <FormField label="Where it's kept" className="sm:col-span-2">
               <Select value={f.location_id || "auto"} onValueChange={(v) => setF({ ...f, location_id: v === "auto" ? "" : v })}>
                 <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
@@ -165,6 +171,68 @@ export function SetCountDialog({ itemId, itemName, unit, current }: { itemId: st
           <Button size="lg" disabled={pending || value === "" || (current != null && n === current)} onClick={() => run(() => saveCounts([{ item_id: itemId, count: n }]), () => setOpen(false))}>
             {pending && <Loader2 className="animate-spin" />} Save count
           </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+type Part = { qty: string; expiry: string; batch_no: string };
+
+/**
+ * "Expiry & batch" on one batch: correct its expiry date or batch number, or — when the pieces on
+ * the shelf have different dates — split them ("6 expire in Jan, 4 in Mar"). The total stays the same.
+ */
+export function BatchDetailsDialog({ itemId, unit, batch, trigger }: {
+  itemId: string; unit: string; batch: { id: string; batch_no: string; expiry_date: string | null; qty: number }; trigger?: React.ReactNode;
+}) {
+  const fresh = (): Part[] => [{ qty: String(batch.qty), expiry: batch.expiry_date ?? "", batch_no: batch.batch_no }];
+  const [open, setOpen] = useState(false);
+  const [parts, setParts] = useState<Part[]>(fresh);
+  const [reason, setReason] = useState("");
+  const { pending, run } = useRun();
+  const total = parts.reduce((s, p) => s + (Number(p.qty) || 0), 0);
+  const split = parts.length > 1;
+  const left = Math.round((batch.qty - total) * 1000) / 1000;
+  const set = (i: number, patch: Partial<Part>) => setParts((ps) => ps.map((p, j) => (j === i ? { ...p, ...patch } : p)));
+  const ok = parts.every((p) => Number(p.qty) > 0) && left === 0;
+  const today = todayPK();
+  return (
+    <Dialog open={open} onOpenChange={(o) => { setOpen(o); if (o) { setParts(fresh()); setReason(""); } }}>
+      <DialogTrigger asChild>{trigger ?? <Button variant="ghost" size="sm"><CalendarClock /> Expiry &amp; batch</Button>}</DialogTrigger>
+      <DialogContent className="rounded-2xl sm:max-w-xl">
+        <DialogHeader>
+          <DialogTitle>Expiry date &amp; batch — {batch.qty} {unit}</DialogTitle>
+          <DialogDescription>
+            Type the expiry date printed on the box (and the batch / lot number if there is one). If these {batch.qty} {unit} don&apos;t all
+            have the same date, split them — e.g. 6 expiring in January and 4 in March. The total stays {batch.qty}.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-2">
+          {parts.map((p, i) => (
+            <div key={i} className="grid grid-cols-[5rem_1fr_1fr_auto] items-end gap-2">
+              <FormField label={i === 0 ? "How many" : ""}><Input inputMode="decimal" value={p.qty} className="tabular" onChange={(e) => set(i, { qty: e.target.value.replace(/[^\d.]/g, "") })} /></FormField>
+              <FormField label={i === 0 ? "Expiry date" : ""}><Input type="date" value={p.expiry} onChange={(e) => set(i, { expiry: e.target.value })} /></FormField>
+              <FormField label={i === 0 ? "Batch / lot no." : ""}><Input value={p.batch_no} placeholder="optional" onChange={(e) => set(i, { batch_no: e.target.value })} /></FormField>
+              {split ? <Button variant="ghost" size="icon" aria-label="Remove line" onClick={() => setParts((ps) => ps.filter((_, j) => j !== i))}><Trash2 /></Button> : <span className="w-9" />}
+            </div>
+          ))}
+          <button type="button" className="justify-self-start text-sm font-semibold text-brand hover:underline"
+            onClick={() => setParts((ps) => [...ps, { qty: left > 0 ? String(left) : "", expiry: "", batch_no: "" }])}>
+            <Plus className="inline size-4" /> Some have a different expiry date — split
+          </button>
+          {split && <p className={left === 0 ? "text-sm text-success" : "text-sm text-danger"}>
+            {left === 0 ? `Adds up to ${batch.qty} ✓` : left > 0 ? `${left} ${unit} still to place` : `${-left} ${unit} too many`}</p>}
+          {parts.some((p) => p.expiry && p.expiry < today) && (
+            <p className="rounded-xl bg-danger-soft px-3 py-2 text-sm text-danger">A date is in the past — that stock will count as <b>expired</b> and can&apos;t be sold. Remove it with “Remove / correct” → Expired.</p>
+          )}
+          <Input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Note (optional) — e.g. read from the boxes" />
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)}>Cancel</Button>
+          <Button disabled={pending || !ok} onClick={() => run(() => setBatchDetails(itemId, batch.id,
+            parts.map((p) => ({ qty: Number(p.qty), expiry: p.expiry, batch_no: p.batch_no })), reason), () => setOpen(false))}>
+            {pending && <Loader2 className="animate-spin" />} Save</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

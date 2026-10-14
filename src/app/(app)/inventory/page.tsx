@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { AlertTriangle, ArrowLeftRight, Boxes, ClipboardList, Layers, PackagePlus, Plus, Truck } from "lucide-react";
+import { AlertTriangle, ArrowLeftRight, Boxes, ClipboardList, Layers, PackagePlus, Plus, Truck, CalendarClock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -44,6 +44,7 @@ export default async function InventoryPage({ searchParams }: PageProps<"/invent
         <>
           {me.can("inventory.view") && <Button asChild variant="outline"><Link href="/inventory/loans"><ArrowLeftRight /> Borrowed & lent</Link></Button>}
           {me.can("inventory.adjust") && <Button asChild variant="outline"><Link href="/inventory/count"><ClipboardList /> Shelf count</Link></Button>}
+          <Button asChild variant="outline"><Link href="/inventory/expiry"><CalendarClock /> Expiry check</Link></Button>
           {me.can("suppliers.manage") && <Button asChild variant="outline"><Link href="/suppliers"><Truck /> Receive stock</Link></Button>}
           {canEdit && <Button asChild><Link href="/inventory/new"><Plus /> New item</Link></Button>}
         </>
@@ -132,8 +133,12 @@ export default async function InventoryPage({ searchParams }: PageProps<"/invent
       <Suspense><NoticeToast /></Suspense>{header}
       <div className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Alert tone={low.length ? "warning" : "ok"} label="Low / reorder" value={low.length} />
-        <Alert tone={expiring.length ? "warning" : "ok"} label="Expiring in 60 days" value={expiring.length} />
-        <Alert tone={expired.length ? "danger" : "ok"} label="Expired on the shelf" value={expired.length} hint="Remove and write off" />
+        <Link href="/inventory/expiry" className="block rounded-2xl transition hover:ring-2 hover:ring-brand-muted">
+          <Alert tone={expiring.length ? "warning" : "ok"} label="Expiring in 60 days" value={expiring.length} hint="Tap for the expiry check" />
+        </Link>
+        <Link href="/inventory/expiry" className="block rounded-2xl transition hover:ring-2 hover:ring-brand-muted">
+          <Alert tone={expired.length ? "danger" : "ok"} label="Expired on the shelf" value={expired.length} hint={expired.length ? "Tap to remove them" : "None"} />
+        </Link>
         <Link href="/inventory/count?show=uncounted" className="block rounded-2xl transition hover:ring-2 hover:ring-brand-muted">
           <Alert tone={untrackedCount ? "warning" : "ok"} label="Products not counted yet" value={untrackedCount ?? 0} hint={untrackedCount ? "Tap to count them now" : "Every product is counted"} />
         </Link>

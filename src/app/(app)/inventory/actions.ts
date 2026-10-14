@@ -152,3 +152,17 @@ export async function deleteItem(id: string, reason: string): Promise<FormState>
   revalidatePath("/pos");
   return { ok: true, message: `${item?.name ?? "Item"} deleted.` };
 }
+
+/** Correct a batch's expiry date / batch no., or split its quantity across several expiry dates. */
+export async function setBatchDetails(itemId: string, batchId: string, parts: { qty: number; expiry: string; batch_no: string }[], reason: string): Promise<FormState> {
+  await assertCan("inventory.adjust");
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("set_batch_details", {
+    p_batch: batchId, p_parts: parts.map((p) => ({ qty: p.qty, expiry: p.expiry || null, batch_no: p.batch_no.trim() })), p_reason: reason.trim() || null,
+  });
+  if (error) return { message: error.message };
+  refresh(itemId);
+  revalidatePath("/inventory/expiry");
+  revalidatePath("/pos");
+  return { ok: true, message: parts.length > 1 ? `Split into ${parts.length} expiry dates.` : "Saved." };
+}

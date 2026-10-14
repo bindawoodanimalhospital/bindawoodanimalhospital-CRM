@@ -10,7 +10,7 @@ import { formatDate, formatDateTime, formatPKR, todayPK } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { saveItem } from "../actions";
 import { ItemForm } from "../item-form";
-import { AddStockDialog, AdjustDialog, SetCountDialog } from "../stock-widgets";
+import { AddStockDialog, AdjustDialog, BatchDetailsDialog, SetCountDialog } from "../stock-widgets";
 import { AvailabilityToggle, SizesPanel } from "../size-widgets";
 import { DeleteItemButton } from "./delete-item";
 import { bySize } from "@/lib/sizes";
@@ -97,19 +97,37 @@ export default async function ItemPage({ params }: PageProps<"/inventory/[id]">)
               </CardContent>
             </Card>
             <Card>
-              <CardHeader><CardTitle>Batches</CardTitle></CardHeader>
-              <CardContent>
-                {!batches?.length ? <p className="text-sm text-muted-foreground">No stock recorded.</p> : (
+              <CardHeader><CardTitle>Stock by expiry date</CardTitle></CardHeader>
+              <CardContent className="grid gap-3">
+                <p className="text-xs text-muted-foreground">
+                  Each line is a <b>batch</b>: pieces with the same expiry date (and lot no. from the box). Sales and bills always use the one
+                  expiring first; expired pieces are never sold. Wrong or missing date? Press <b>Expiry &amp; batch</b>.
+                </p>
+                {!batches?.some((b) => Number(b.qty_on_hand) > 0) ? <p className="text-sm text-muted-foreground">No stock on the shelf.</p> : (
                   <ul className="grid gap-2">
-                    {batches.filter((b) => Number(b.qty_on_hand) > 0).map((b) => {
-                      const expired = b.expiry_date && b.expiry_date < today;
+                    {(batches ?? []).filter((b) => Number(b.qty_on_hand) > 0).map((b) => {
+                      const days = b.expiry_date ? Math.round((new Date(`${b.expiry_date}T00:00:00Z`).getTime() - new Date(`${today}T00:00:00Z`).getTime()) / 86400000) : null;
+                      const tone = days == null ? "none" : days < 0 ? "expired" : days <= 60 ? "soon" : "ok";
                       return (
-                        <li key={b.id} className={cn("flex flex-wrap items-center gap-2 rounded-xl px-3 py-2 text-sm ring-1", expired ? "bg-danger-soft ring-danger/30" : "bg-surface ring-border")}>
-                          <span className="font-semibold">{b.batch_no || "No batch"}</span>
-                          <span className="text-muted-foreground">{(b.inventory_locations as unknown as { name: string }).name}</span>
-                          <span className={cn(expired && "font-semibold text-danger")}>{b.expiry_date ? `exp ${formatDate(b.expiry_date)}` : "no expiry"}</span>
-                          <span className="ml-auto font-bold tabular">{Number(b.qty_on_hand)}</span>
-                          {me.can("inventory.adjust") && <AdjustDialog itemId={id} batch={{ id: b.id, batch_no: b.batch_no, qty: Number(b.qty_on_hand), location_id: b.location_id }} locations={locations ?? []} />}
+                        <li key={b.id} className={cn("grid gap-1 rounded-xl px-3 py-2 text-sm ring-1",
+                          tone === "expired" ? "bg-danger-soft ring-danger/30" : tone === "soon" ? "bg-warning-soft ring-warning/30" : "bg-surface ring-border")}>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-bold tabular">{Number(b.qty_on_hand)} {item.unit}</span>
+                            <span className={cn("font-semibold", tone === "expired" && "text-danger", tone === "soon" && "text-warning", tone === "none" && "text-muted-foreground")}>
+                              {b.expiry_date ? `${tone === "expired" ? "Expired" : "Expires"} ${formatDate(b.expiry_date)}` : "No expiry date recorded"}
+                            </span>
+                            {days != null && days >= 0 && days <= 60 && <StatusPill tone="warning">{days === 0 ? "today" : `in ${days} day${days === 1 ? "" : "s"}`}</StatusPill>}
+                          </div>
+                          <div className="flex flex-wrap items-center gap-x-3 text-xs text-muted-foreground">
+                            <span>{b.batch_no ? `Batch ${b.batch_no}` : "No batch no."}</span>
+                            <span>{(b.inventory_locations as unknown as { name: string }).name}</span>
+                            {me.can("inventory.adjust") && (
+                              <span className="ml-auto flex flex-wrap gap-1">
+                                <BatchDetailsDialog itemId={id} unit={item.unit} batch={{ id: b.id, batch_no: b.batch_no, expiry_date: b.expiry_date, qty: Number(b.qty_on_hand) }} />
+                                <AdjustDialog itemId={id} batch={{ id: b.id, batch_no: b.batch_no, qty: Number(b.qty_on_hand), location_id: b.location_id }} locations={locations ?? []} />
+                              </span>
+                            )}
+                          </div>
                         </li>
                       );
                     })}
