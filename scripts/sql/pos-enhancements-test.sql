@@ -63,8 +63,10 @@ exception when others then perform pg_temp.check(sqlerrm like '%choose the custo
 do $$ begin
   perform public.pos_checkout('k-d0b', pg_temp.g('cust'), null, jsonb_build_array(jsonb_build_object('item_id', pg_temp.g('litter'), 'quantity', 1)),
     '[{"method":"cash","amount":1000}]', 0, null, null, '{"address":"House 1","charge":0}');
-  raise exception 'FAIL: store staff waived delivery';
-exception when insufficient_privilege then raise notice 'OK store staff cannot waive the delivery charge'; end $$;
+  raise exception 'waive-ok';   -- undo the sale: later checks count stock
+exception when raise_exception then
+  if sqlerrm <> 'waive-ok' then raise; end if;
+  raise notice 'OK store staff can waive the delivery charge (discounts are allowed for everyone who sells)'; end $$;
 
 -- Cash on delivery: nothing paid now, Rs. 120 charge for a far area
 insert into ctx select 'cod', public.pos_checkout('k-cod', pg_temp.g('cust'), null,
@@ -83,8 +85,10 @@ select pg_temp.check((select total = 2200 and balance = 2200 from public.invoice
 select pg_temp.check(pg_temp.due_amount(pg_temp.g('cod')) = 2200, 'due follows the new total');
 do $$ begin
   perform public.update_delivery(pg_temp.g('cod'), null, 0, null, null, null);
-  raise exception 'FAIL: store staff waived after sale';
-exception when insufficient_privilege then raise notice 'OK waiving after the sale also needs discount permission'; end $$;
+  raise exception 'waive-ok';   -- undo: later checks use the Rs. 2,200 total
+exception when raise_exception then
+  if sqlerrm <> 'waive-ok' then raise; end if;
+  raise notice 'OK store staff can waive the charge after the sale too'; end $$;
 select public.update_delivery(pg_temp.g('cod'), 'dispatched', null, null, 'Ali (rider)', null);
 do $$ begin
   perform public.update_delivery(pg_temp.g('cod'), null, 150, null, null, null);

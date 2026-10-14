@@ -248,7 +248,7 @@ function Checkout({ invoiceId, totals, methods, canDiscount, hasLines, credit, c
                 const r = await setInvoiceDiscount(invoiceId, Number(discount || 0), discReason);
                 if (r.ok) toast.success(r.message); else toast.error(r.message);
               })}>Apply</Button>
-              <p className="text-xs text-muted-foreground">Large discounts need a manager to issue the bill.</p>
+              <p className="text-xs text-muted-foreground">Any amount — just give the reason. Who gave it is recorded on the bill.</p>
             </div>
           </details>
         )}

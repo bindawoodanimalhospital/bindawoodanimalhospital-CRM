@@ -65,8 +65,10 @@ select 'draft total (price list enforced)' as t, subtotal, total from public.inv
 
 do $$ begin
   update public.invoice_items set discount_amount = 500 where invoice_id = pg_temp.g('inv') and kind = 'service';
-  raise exception 'FAIL: reception gave a discount';
-exception when insufficient_privilege then raise notice 'OK reception cannot give discounts';
+  raise exception 'discount-ok';   -- undo it: the rest of this test expects no discount
+exception when raise_exception then
+  if sqlerrm <> 'discount-ok' then raise; end if;
+  raise notice 'OK reception can give a discount (any staff who bills can)';
 end $$;
 do $$ begin
   update public.invoices set status = 'issued', amount_paid = 4000 where id = pg_temp.g('inv');
@@ -154,8 +156,10 @@ exception when others then raise notice 'OK walk-in sale must be paid in full';
 end $$;
 do $$ begin
   perform public.pos_checkout('k-pos-4', null, null, jsonb_build_array(jsonb_build_object('item_id', pg_temp.g('food'), 'quantity', 1, 'discount_amount', 200)), '[{"method":"cash","amount":1300}]');
-  raise exception 'FAIL: store staff discounted';
-exception when insufficient_privilege then raise notice 'OK store staff cannot discount';
+  raise exception 'discount-ok';   -- undo the sale: later checks count stock
+exception when raise_exception then
+  if sqlerrm <> 'discount-ok' then raise; end if;
+  raise notice 'OK store staff can give a discount';
 end $$;
 with s as (select public.pos_checkout('k-pos-5', null, null, jsonb_build_array(jsonb_build_object('item_id', pg_temp.g('food'), 'quantity', 1)), '[{"method":"cash","amount":1500}]') id)
 insert into ctx select 'sale', id from s;
