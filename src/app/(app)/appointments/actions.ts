@@ -93,3 +93,38 @@ export async function checkInAppointment(id: string, petId?: string): Promise<Fo
   revalidatePath("/queue");
   return { ok: true, message: "Checked in — now in today's queue.", visitId: data as string };
 }
+
+/** Species for the quick "new / stray animal" form (Dog, Cat, … in the clinic's order). */
+export async function speciesChoices(): Promise<{ id: string; name: string }[]> {
+  const supabase = await createClient();
+  const { data } = await supabase.from("species").select("id, name").eq("is_active", true).order("sort_order");
+  return data ?? [];
+}
+
+/**
+ * Register a pet in one step for an appointment — a new pet or a stray someone brought in.
+ * The name is optional ("Stray dog" / "Stray cat" when left empty); details can be added later on the pet page.
+ */
+export async function quickAddPet(customerId: string, name: string, speciesId: string): Promise<FormState & { petId?: string; petName?: string }> {
+  await assertCan("pets.create");
+  if (!speciesId) return { message: "Choose dog, cat or other." };
+  const supabase = await createClient();
+  const { data: sp } = await supabase.from("species").select("name").eq("id", speciesId).maybeSingle();
+  const petName = name.trim() || `Stray ${(sp?.name ?? "animal").toLowerCase()}`;
+  const { data: pet, error } = await supabase.from("pets").insert({ name: petName, species_id: speciesId }).select("id").single();
+  if (error) return { message: dbErrorMessage(error) };
+  const { error: linkErr } = await supabase.from("pet_owners").insert({ pet_id: pet.id, customer_id: customerId, is_primary: true });
+  if (linkErr) return { message: dbErrorMessage(linkErr) };
+  revalidatePath(`/customers/${customerId}`);
+  return { ok: true, petId: pet.id, petName, message: `${petName} registered.` };
+}
+
+/** Attach / change the pet on an appointment (e.g. it was booked before the pet was registered). */
+export async function setAppointmentPet(appointmentId: string, petId: string): Promise<FormState> {
+  await assertCan("appointments.manage");
+  const supabase = await createClient();
+  const { error } = await supabase.from("appointments").update({ pet_id: petId }).eq("id", appointmentId);
+  if (error) return { message: dbErrorMessage(error) };
+  revalidatePath("/appointments");
+  return { ok: true };
+}

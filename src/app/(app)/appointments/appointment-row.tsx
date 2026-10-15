@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Check, CircleCheck, EllipsisVertical, House, Loader2, LogIn, MessageCircle, Pencil, Phone, UserX, X } from "lucide-react";
+import { Check, CircleCheck, EllipsisVertical, House, MessageCircle, Pencil, Phone, UserX, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -18,7 +18,8 @@ import { formatPhone, whatsappLink } from "@/lib/phone";
 import { cn } from "@/lib/utils";
 import type { AppointmentTypeOption, DoctorOption } from "@/lib/queries";
 import { BookingDialog, type EditableAppointment } from "./booking-dialog";
-import { cancelAppointment, checkInAppointment, setAppointmentStatus } from "./actions";
+import { cancelAppointment, setAppointmentStatus } from "./actions";
+import { CheckInButton } from "./pet-picker";
 
 export type AgendaItem = EditableAppointment & {
   starts_at: string; ends_at: string; status: string; visit_id: string | null;
@@ -65,10 +66,7 @@ export function AppointmentRow({ a, doctors, types, canManage, canCheckIn }: {
         {a.is_urgent && open && <StatusPill tone="warning">Urgent</StatusPill>}
         <StatusPill tone={status.tone}>{status.label}</StatusPill>
         {canCheckIn && open && (
-          <Button disabled={pending || !a.pet_id} title={!a.pet_id ? "Register the pet first" : undefined}
-            onClick={() => run(() => checkInAppointment(a.id), true)}>
-            {pending ? <Loader2 className="animate-spin" /> : <LogIn />} Arrived — check in
-          </Button>
+          <CheckInButton appointmentId={a.id} customerId={a.customer.id} petId={a.pet_id} onDone={() => router.push("/queue")} />
         )}
         {a.status === "arrived" && a.visit_id && (
           <Button asChild variant="outline"><Link href={`/visits/${a.visit_id}`}><CircleCheck /> Open visit</Link></Button>

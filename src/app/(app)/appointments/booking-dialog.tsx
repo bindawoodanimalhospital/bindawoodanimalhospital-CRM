@@ -19,6 +19,7 @@ import { formatTime, todayPK } from "@/lib/format";
 import type { AppointmentTypeOption, DoctorOption } from "@/lib/queries";
 import { customerAddress, searchCustomers, type CustomerOption } from "../customers/actions";
 import { findConflicts, getCustomerPets, saveAppointment } from "./actions";
+import { QuickPetForm } from "./pet-picker";
 
 export type EditableAppointment = {
   id: string; customer: { id: string; title: string; subtitle: string }; pet_id: string | null; appointment_type_id: string;
@@ -85,7 +86,7 @@ export function BookingDialog({ doctors, types, defaultDate, appointment, trigge
   const submit = () => start(async () => {
     if (!customer) return;
     const r = await saveAppointment({
-      id: a?.id, customer_id: customer.id, pet_id: petId, appointment_type_id: typeId, doctor_id: doctorId, date, time,
+      id: a?.id, customer_id: customer.id, pet_id: petId === "new" ? "none" : petId, appointment_type_id: typeId, doctor_id: doctorId, date, time,
       minutes, source: source as "phone", is_urgent: urgent, reason, pre_visit_instructions: instructions,
       service_location: location, service_address: address,
     });
@@ -131,8 +132,9 @@ export function BookingDialog({ doctors, types, defaultDate, appointment, trigge
                   <Select value={petId} onValueChange={setPetId}>
                     <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="none">Not registered yet</SelectItem>
                       {pets.map((p) => <SelectItem key={p.id} value={p.id}>{p.name}{p.species ? ` (${p.species})` : ""}</SelectItem>)}
+                      <SelectItem value="none">Decide when they arrive</SelectItem>
+                      <SelectItem value="new">+ New pet / stray animal</SelectItem>
                     </SelectContent>
                   </Select>
                 </FormField>
@@ -173,6 +175,11 @@ export function BookingDialog({ doctors, types, defaultDate, appointment, trigge
                 </FormField>
                 <Label className="mt-6 font-normal"><Checkbox checked={urgent} onCheckedChange={(v) => setUrgent(v === true)} /> Urgent</Label>
               </div>
+              {petId === "new" && (
+                <QuickPetForm customerId={customer.id} compact onCreated={(p) => {
+                  setPets((ps) => [...ps, { id: p.id, name: p.name, species: null }]); setPetId(p.id);
+                }} />
+              )}
 
               {conflicts.length > 0 && (
                 <div className="flex gap-2 rounded-xl bg-warning-soft p-3 text-sm text-warning ring-1 ring-warning/30">
