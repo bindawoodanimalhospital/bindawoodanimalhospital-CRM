@@ -72,10 +72,13 @@ export function Register({ initial, popular = [], methods, canDiscount, defaultD
 
   const onScan = async (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key !== "Enter") return;
-    const code = e.currentTarget.value.trim();
+    // Keep the input itself: React clears e.currentTarget once we await below.
+    const input = e.currentTarget;
+    const code = input.value.trim();
     if (!code) return;
+    input.value = "";                                   // ready for the next scan straight away
     const hit = await findByCode(code);
-    if (hit) { addAndClear(hit); e.currentTarget.value = ""; } else { setQ(code); e.currentTarget.value = ""; }
+    if (hit) addAndClear(hit); else setQ(code);
   };
 
   const subtotal = cart.reduce((s, l) => s + l.price * l.qty - l.discount, 0);
