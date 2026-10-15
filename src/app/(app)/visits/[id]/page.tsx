@@ -126,7 +126,9 @@ export default async function VisitPage({ params, searchParams }: PageProps<"/vi
   const wa = whatsappLink(owner.whatsapp);
   const weight = weightQ.data?.weight_kg;
   const openTests = orders.filter((o) => ["ordered", "in_progress", "resulted"].includes(o.status)).length;
-  const activeTab = typeof tab === "string" ? tab : "consultation";
+  // Vaccination / deworming visits open straight on the vaccines & deworming tab.
+  const visitType = ((visit.appointment_types as unknown as { name: string } | null)?.name ?? "").toLowerCase();
+  const activeTab = typeof tab === "string" ? tab : ["vaccination", "deworming"].includes(visitType) ? "vaccines" : "consultation";
 
   return (
     <>
