@@ -59,7 +59,7 @@ export default function DesignPage() {
 
   return (
     <SidebarProvider>
-      <AppSidebar permissions={perms} user={{ name: "Dr. Musab Bin Dawood", email: "owner@example.com", roles: ["Owner / Admin"] }} />
+      <AppSidebar permissions={perms} user={{ name: "Dr. Musab Bin Dawood", email: "owner@example.com", subtitle: "Owner / Admin" }} />
       <SidebarInset className="min-w-0">
         <header className="sticky top-0 z-20 flex h-16 items-center gap-3 rounded-t-2xl border-b bg-card/85 px-4 backdrop-blur-md md:px-6">
           <SidebarTrigger className="-ml-1 size-9" />

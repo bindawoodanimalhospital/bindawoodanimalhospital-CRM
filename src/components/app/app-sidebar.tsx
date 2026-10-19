@@ -18,7 +18,7 @@ import { NAV } from "./nav";
 
 type Props = {
   permissions: string[];
-  user: { name: string; email: string | null; roles: string[] };
+  user: { name: string; email: string | null; subtitle: string | null };
 };
 
 export function AppSidebar({ permissions, user }: Props) {
@@ -71,7 +71,7 @@ export function AppSidebar({ permissions, user }: Props) {
                   </Avatar>
                   <div className="grid flex-1 text-left leading-tight">
                     <span className="truncate text-sm font-semibold">{user.name}</span>
-                    <span className="truncate text-xs text-muted-foreground">{user.roles.join(" + ") || "No role"}</span>
+                    {user.subtitle && <span className="truncate text-xs text-muted-foreground">{user.subtitle}</span>}
                   </div>
                   <ChevronsUpDown className="text-muted-foreground" />
                 </SidebarMenuButton>

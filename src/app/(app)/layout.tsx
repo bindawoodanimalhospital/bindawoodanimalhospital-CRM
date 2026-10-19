@@ -31,7 +31,9 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
     <SidebarProvider defaultOpen={sidebarOpen}>
       <AppSidebar
         permissions={[...me.permissions]}
-        user={{ name: me.fullName, email: me.email, roles: me.roles.map((r) => r.name) }}
+        user={{ name: me.fullName, email: me.email,
+          // Roles are private to the owner: everyone else sees only their job title (if one is set).
+          subtitle: (me.can("roles.view") ? me.roles.map((r) => r.name).join(" + ") : me.title) || null }}
       />
       <SidebarInset className="min-w-0">
         <header className="no-print sticky top-0 z-20 flex h-16 items-center gap-3 rounded-t-2xl border-b bg-card/85 px-4 backdrop-blur-md md:px-6">
