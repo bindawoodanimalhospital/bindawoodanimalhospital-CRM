@@ -7,7 +7,7 @@ import { NewRoleDialog, PermissionMatrix } from "./matrix";
 export const metadata: Metadata = { title: "Roles & permissions" };
 
 export default async function RolesPage() {
-  const me = await requireStaff("staff.view");
+  const me = await requireStaff("roles.view");
   const supabase = await createClient();
   const [{ data: roles }, { data: permissions }, { data: grants }, { data: members }] = await Promise.all([
     supabase.from("roles").select("id, key, name, is_system").order("is_system", { ascending: false }).order("created_at"),

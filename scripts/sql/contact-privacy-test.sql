@@ -8,6 +8,9 @@ update public.staff set is_active = true where email like '%@cp.t.local';
 insert into public.staff_roles (staff_id, role_id) select '00000000-0000-0000-0000-0000000ee001', id from public.roles where key = 'owner';
 insert into public.staff_roles (staff_id, role_id) select '00000000-0000-0000-0000-0000000ee002', id from public.roles where key = 'reception';
 insert into public.staff_roles (staff_id, role_id) select '00000000-0000-0000-0000-0000000ee003', id from public.roles where key = 'senior_doctor';
+-- Test the default: contacts owner-only. (The owner may have shared them on the live system; rolled back.)
+delete from public.role_permissions rp using public.roles r
+ where rp.role_id = r.id and r.key in ('reception', 'senior_doctor') and rp.permission_key = 'customers.contact';
 create temp table fx (k text primary key, v uuid) on commit drop;
 grant all on fx to authenticated;
 create or replace function pg_temp.g(key text) returns uuid language sql as $$ select v from fx where k = key $$;

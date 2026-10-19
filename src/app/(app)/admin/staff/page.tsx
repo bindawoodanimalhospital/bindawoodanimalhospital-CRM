@@ -25,7 +25,11 @@ export default async function StaffPage() {
   const currentRoles = (s: Row) => ((s.staff_roles ?? []) as unknown as RoleLink[])
     .filter((r) => !r.valid_until || new Date(r.valid_until) > new Date());
   // The clinic owner is shown on top in a card of their own; everyone else in the table below.
-  const isOwner = (s: Row) => currentRoles(s).some((r) => r.roles.key === "owner");
+  // Roles are private to the owner (roles.view); without it the table shows no roles and no owner card.
+  const seeRoles = me.can("roles.view") || me.can("staff.manage");
+  const isOwner = (s: Row) => seeRoles && currentRoles(s).some((r) => r.roles.key === "owner");
+  // Staff emails: only the person themself, or whoever manages staff.
+  const seeEmail = (s: Row) => s.id === me.id || me.can("staff.manage");
   const owners = (staff ?? []).filter(isOwner);
   const team = (staff ?? []).filter((s) => !isOwner(s));
 
@@ -33,7 +37,7 @@ export default async function StaffPage() {
     <>
       <PageHeader
         title="Staff"
-        description="One login per person. A person can hold several roles (e.g. Intern + Store Staff)."
+        description={seeRoles ? "One login per person. A person can hold several roles (e.g. Intern + Store Staff)." : "Everyone with a login at the hospital."}
         actions={me.can("staff.manage") && (
           <Button asChild><Link href="/admin/staff/new"><UserPlus /> Add staff</Link></Button>
         )}
@@ -59,7 +63,7 @@ export default async function StaffPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
-              <TableHead>Roles</TableHead>
+              {seeRoles && <TableHead>Roles</TableHead>}
               <TableHead className="hidden md:table-cell">Contact</TableHead>
               <TableHead className="hidden sm:table-cell">Since</TableHead>
               <TableHead className="text-right">Status</TableHead>
@@ -72,11 +76,11 @@ export default async function StaffPage() {
                 <TableRow key={s.id} className="relative">
                   <TableCell>
                     <Link href={`/admin/staff/${s.id}`} className="font-medium after:absolute after:inset-0">
-                      {s.full_name || s.email}
+                      {s.full_name || (seeEmail(s) ? s.email : "Staff member")}
                     </Link>
                     {s.title && <p className="text-xs text-muted-foreground">{s.title}</p>}
                   </TableCell>
-                  <TableCell>
+                  {seeRoles && <TableCell>
                     <div className="flex flex-wrap gap-1">
                       {current.length ? current.map((r) => (
                         <StatusPill key={r.roles.name} tone={r.valid_until ? "info" : "neutral"}>
@@ -84,9 +88,9 @@ export default async function StaffPage() {
                         </StatusPill>
                       )) : <span className="text-xs text-muted-foreground">No role</span>}
                     </div>
-                  </TableCell>
+                  </TableCell>}
                   <TableCell className="hidden text-sm text-muted-foreground md:table-cell">
-                    {s.email}{s.phone ? <><br />{formatPhone(s.phone)}</> : null}
+                    {seeEmail(s) && s.email}{seeEmail(s) && s.email && s.phone ? <br /> : null}{s.phone ? formatPhone(s.phone) : null}
                   </TableCell>
                   <TableCell className="hidden text-muted-foreground sm:table-cell">{formatDate(s.created_at)}</TableCell>
                   <TableCell className="text-right">

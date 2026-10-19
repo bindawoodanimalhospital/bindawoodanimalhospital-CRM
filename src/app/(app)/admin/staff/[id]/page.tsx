@@ -32,8 +32,9 @@ export default async function StaffMemberPage({ params }: PageProps<"/admin/staf
   const now = new Date();
   // Expired temporary roles can be granted again.
   // The owner's email is private: only the owner themself sees it.
-  const isOwner = grants.some((g) => g.roles?.key === "owner" && (!g.valid_until || new Date(g.valid_until) > now));
-  const email = isOwner && s.id !== me.id ? null : s.email;
+  // Roles are private to the owner (roles.view). Staff emails: only the person themself or whoever manages staff.
+  const seeRoles = me.can("roles.view") || manage;
+  const email = s.id === me.id || manage ? s.email : null;
   const held = new Set(grants.filter((g) => !g.valid_until || new Date(g.valid_until) > now).map((g) => g.role_id));
 
   return (
@@ -53,7 +54,7 @@ export default async function StaffMemberPage({ params }: PageProps<"/admin/staf
       />
 
       <div className="grid gap-6 lg:grid-cols-5">
-        <Card className="lg:col-span-3">
+        <Card className={seeRoles ? "lg:col-span-3" : "lg:col-span-5"}>
           <CardHeader><CardTitle>Profile</CardTitle></CardHeader>
           <CardContent>
             {manage ? (
@@ -69,7 +70,7 @@ export default async function StaffMemberPage({ params }: PageProps<"/admin/staf
           </CardContent>
         </Card>
 
-        <Card className="lg:col-span-2">
+        {seeRoles && <Card className="lg:col-span-2">
           <CardHeader><CardTitle>Roles</CardTitle></CardHeader>
           <CardContent className="grid gap-4">
             <ul className="grid gap-2">
@@ -91,7 +92,7 @@ export default async function StaffMemberPage({ params }: PageProps<"/admin/staf
             </ul>
             {manage && <GrantRoleForm staffId={s.id} roles={(allRoles ?? []).filter((r) => !held.has(r.id))} />}
           </CardContent>
-        </Card>
+        </Card>}
       </div>
     </>
   );

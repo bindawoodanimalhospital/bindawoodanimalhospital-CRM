@@ -13,4 +13,4 @@ export type Permission =
   | "expenses.view" | "expenses.manage" | "finance.view"
   | "crm.view" | "crm.manage" | "crm.campaigns" | "tasks.view_all" | "tasks.manage"
   | "reports.view" | "reports.financial" | "data.export"
-  | "staff.view" | "staff.manage" | "settings.manage" | "audit.view";
+  | "staff.view" | "staff.manage" | "roles.view" | "settings.manage" | "audit.view";

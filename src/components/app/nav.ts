@@ -62,7 +62,7 @@ export const NAV: NavGroup[] = [
     label: "Admin",
     items: [
       { title: "Staff", href: "/admin/staff", icon: UserCog, anyOf: ["staff.view"] },
-      { title: "Who can do what", href: "/admin/roles", icon: ShieldCheck, anyOf: ["staff.view"] },
+      { title: "Who can do what", href: "/admin/roles", icon: ShieldCheck, anyOf: ["roles.view"] },
       { title: "Activity log", href: "/admin/audit", icon: FileClock, anyOf: ["audit.view"] },
       { title: "Removal requests", href: "/removals", icon: Trash2, anyOf: ["customers.delete", "pets.delete"] },
       { title: "Vaccines & schedules", href: "/settings/vaccines", icon: Syringe, anyOf: ["clinical.reopen", "settings.manage"] },
