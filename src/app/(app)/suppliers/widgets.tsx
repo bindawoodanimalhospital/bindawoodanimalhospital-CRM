@@ -11,7 +11,7 @@ import { FormField } from "@/components/app/form-field";
 import { formatPKR, todayPK } from "@/lib/format";
 import type { FormState } from "@/lib/validation";
 import { searchCatalog, type CatalogHit } from "../billing/actions";
-import { addPurchaseLine, cancelPurchase, paySupplier, receivePurchase, removePurchaseLine, saveSupplier, startPurchase } from "./actions";
+import { addPurchaseLine, cancelPurchase, paySupplier, receivePurchase, removePurchaseLine, saveSupplier, startPurchase, usualLocation } from "./actions";
 
 function useRun() {
   const [pending, start] = useTransition();
@@ -105,7 +105,7 @@ export function GrnEditor({ purchaseId, lines, locations, total }: { purchaseId:
             <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Item received — type a name" />
             {hits.length > 0 && (
               <ul className="absolute z-20 mt-1 max-h-60 w-full overflow-auto rounded-xl bg-popover p-1 shadow-float ring-1 ring-border">
-                {hits.map((h) => <li key={h.id}><button type="button" onClick={() => { setItem(h); setHits([]); }} className="w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-muted">
+                {hits.map((h) => <li key={h.id}><button type="button" onClick={() => { setItem(h); setHits([]); usualLocation(h.id).then((loc) => loc && setF((x) => ({ ...x, location_id: loc }))); }} className="w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-muted">
                   <b>{h.name}</b> <span className="text-muted-foreground">{h.track_stock ? "" : "· stock tracking is off"}</span></button></li>)}
               </ul>
             )}

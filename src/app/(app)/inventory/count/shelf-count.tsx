@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { saveCounts } from "../actions";
 
-export type CountRow = { id: string; name: string; category: string | null; unit: string; current: number | null };
+export type CountRow = { id: string; name: string; category: string | null; unit: string; current: number | null; places?: string | null };
 
 /**
  * Shelf count: walk the shelf, type how many of each product you see, press Save.
@@ -57,6 +57,7 @@ export function ShelfCount({ rows, onlyUncounted }: { rows: CountRow[]; onlyUnco
                     {r.category ?? "Other"} · {r.current == null ? "not counted yet" : `system has ${r.current} ${r.unit}`}
                     {diff != null && diff !== 0 && <b className={cn("ml-1", diff > 0 ? "text-success" : "text-warning")}>({diff > 0 ? "+" : ""}{diff})</b>}
                   </span>
+                  {r.places && <span className="block text-xs font-medium text-info">Kept in two places — count both: {r.places}</span>}
                 </span>
                 <Input inputMode="decimal" aria-label={`Count for ${r.name}`} placeholder={r.current == null ? "count" : String(r.current)}
                   className="h-11 w-24 text-center text-lg font-semibold tabular" value={v}

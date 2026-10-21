@@ -105,3 +105,18 @@ export async function paySupplier(supplierId: string, input: { amount: number; m
   refresh();
   return { ok: true, message: "Payment to supplier recorded." };
 }
+
+/**
+ * Where a product is normally kept — the same rule the shelf count and "Add stock" use:
+ * vaccines → the fridge, pet-store products → the pet store, everything else → the first place.
+ */
+export async function usualLocation(itemId: string): Promise<string | null> {
+  const supabase = await createClient();
+  const [{ data: item }, { data: locs }] = await Promise.all([
+    supabase.from("catalog_items").select("is_retail, vaccine_id").eq("id", itemId).maybeSingle(),
+    supabase.from("inventory_locations").select("id, name").eq("is_active", true).order("sort_order"),
+  ]);
+  if (!locs?.length) return null;
+  const want = item?.vaccine_id ? /fridge/i : item?.is_retail ? /store/i : null;
+  return (want && locs.find((l) => want.test(l.name))?.id) || locs[0].id;
+}

@@ -79,5 +79,19 @@ do $$ begin
   exception when insufficient_privilege then raise notice 'OK staff without stock permission cannot do a shelf count'; end;
 end $$;
 reset role;
+-- Stock kept in two places (Pet store + Pharmacy): a shelf count is for the total
+set local role authenticated;
+select pg_temp.as_('00000000-0000-0000-0000-0000000aa101');
+with i as (insert into public.catalog_items (kind, name, unit, sale_price, is_retail) values ('product', 'ST Two Places Food', 'bag', 900, true) returning id) insert into fx select 'two', id from i;
+select public.add_stock(pg_temp.g('two'), 9);                                                                   -- usual place (Pet store)
+select public.add_stock(pg_temp.g('two'), 19, (select id from public.inventory_locations where name = 'Pharmacy'));
+select pg_temp.check(pg_temp.qty(pg_temp.g('two')) = 28, 'two places hold 9 + 19 = 28');
+select public.set_stock_counts(jsonb_build_array(jsonb_build_object('item_id', pg_temp.g('two'), 'count', 28)));
+select pg_temp.check(pg_temp.qty(pg_temp.g('two')) = 28, 'counting 28 when there are 28 changes nothing (it used to add 19)');
+select public.set_stock_counts(jsonb_build_array(jsonb_build_object('item_id', pg_temp.g('two'), 'count', 20)));
+select pg_temp.check(pg_temp.qty(pg_temp.g('two')) = 20, 'counting 20 brings the total down to 20 (it used to say nothing changed)');
+select public.set_stock_counts(jsonb_build_array(jsonb_build_object('item_id', pg_temp.g('two'), 'count', 25)));
+select pg_temp.check(pg_temp.qty(pg_temp.g('two')) = 25, 'counting 25 adds the 5 found');
+reset role;
 select 'ALL STOCK CHECKS PASSED' as result;
 rollback;

@@ -18,6 +18,8 @@ import { RemovalPanel } from "@/components/app/removal-panel";
 import { removalState } from "@/lib/removals";
 import { DewormingPanel, type DewormingRow } from "../../visits/[id]/deworming-panel";
 import { reminderPlans } from "@/lib/queries";
+import { VaccinesPanel } from "../../visits/[id]/vaccines-panel";
+import { petVaccineData } from "@/lib/vaccine-data";
 
 export async function generateMetadata({ params }: PageProps<"/pets/[id]">): Promise<Metadata> {
   const { id } = await params;
@@ -61,6 +63,7 @@ export default async function PetPage({ params }: PageProps<"/pets/[id]">) {
     supabase.from("catalog_items").select("name").eq("is_active", true).or("name.ilike.%deworm%,category.ilike.%deworm%,name.ilike.%drontal%,name.ilike.%prazi%,name.ilike.%febendazole%,name.ilike.%milbemax%").limit(30),
     reminderPlans(),
   ]) : [null, null, null];
+  const vacc = showDeworming ? await petVaccineData(p.id, p.species_id) : null;
 
   return (
     <>
@@ -197,6 +200,15 @@ export default async function PetPage({ params }: PageProps<"/pets/[id]">) {
           </CardContent>
         </Card>
 
+        {vacc && plans && (
+          <Card>
+            <CardHeader><CardTitle>Vaccinations</CardTitle></CardHeader>
+            <CardContent>
+              <VaccinesPanel visitId={null} petId={p.id} vaccines={vacc.vaccines} protocols={vacc.protocols} history={vacc.history}
+                due={vacc.due} canRecord={me.can("vaccinations.manage")} plan={plans.vaccine} billed={vacc.billed} />
+            </CardContent>
+          </Card>
+        )}
         {showDeworming && plans && (
           <DewormingPanel visitId={null} petId={p.id} dob={p.date_of_birth} weight={latest ? Number(latest.weight_kg) : null}
             history={(dewormQ?.data ?? []) as DewormingRow[]} products={(dewormerQ?.data ?? []).map((x) => x.name)}

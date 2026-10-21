@@ -54,7 +54,10 @@ select pg_temp.s((select code from public.pets where id = pg_temp.g('snowy')));
 select pg_temp.s((select code from public.customers where id = pg_temp.g('fatima')));
 select pg_temp.s('tiger', 'pet');
 
-select pg_temp.expect('ahmed', 'customer', 'Ahmed Raza');
+do $$ begin   -- real clients may also be called Ahmed: just make sure ours is found
+  if not exists (select 1 from public.smart_search('ahmed') where kind = 'customer' and title = 'Ahmed Raza') then raise exception 'FAIL: "ahmed" did not find Ahmed Raza'; end if;
+  raise notice 'OK "ahmed" finds Ahmed Raza';
+end $$;
 select pg_temp.expect('ahmad raza', 'customer', 'Ahmed Raza');
 select pg_temp.expect('احمد', 'customer', 'Ahmed Raza');
 select pg_temp.expect('0300-1234567', 'customer', 'Ahmed Raza');

@@ -95,7 +95,7 @@ export async function reopenConsultation(visitId: string, id: string, reason: st
 // ---------------------------------------------------------------------------- Vaccinations
 
 const vaccinationSchema = z.object({
-  visit_id: z.uuid(),
+  visit_id: z.uuid().nullable(),
   pet_id: z.uuid(),
   vaccine_id: z.uuid("Choose the vaccine"),
   manufacturer: text, batch_no: text,
@@ -106,6 +106,8 @@ const vaccinationSchema = z.object({
   next_due_date: z.string().nullable().optional().transform((v) => v || null),
   next_due_label: text,
   adverse_reaction: text, notes: text,
+  /** Given earlier (before the CRM or elsewhere): the date. Not part of a visit. */
+  given_on: z.string().optional().transform((v) => v || null),
 });
 export type VaccinationInput = z.input<typeof vaccinationSchema>;
 
@@ -113,29 +115,39 @@ export async function recordVaccination(input: VaccinationInput): Promise<FormSt
   await assertCan("vaccinations.manage");
   const parsed = vaccinationSchema.safeParse(input);
   if (!parsed.success) return { message: parsed.error.issues[0]?.message };
-  if (!parsed.data.batch_no) return { message: "Enter the batch / lot number from the vial." };
-  if (!parsed.data.expiry_date) return { message: "Enter the vial's expiry date." };
+  // Batch and vial expiry are recommended, not required — a missing label must never stop the record.
+  const { given_on, ...row } = parsed.data;
+  if (given_on && (!/^\d{4}-\d{2}-\d{2}$/.test(given_on) || given_on > todayPK())) return { message: "Enter the date it was given (today or earlier)." };
+  if (given_on && row.next_due_date && row.next_due_date <= given_on) return { message: "The next dose must be after the date it was given." };
+  if (!given_on && !row.visit_id) return { message: "Enter the date it was given." };
   const supabase = await createClient();
-  const { data: vaccine } = await supabase.from("vaccines").select("name").eq("id", parsed.data.vaccine_id).single();
+  const { data: vaccine } = await supabase.from("vaccines").select("name").eq("id", row.vaccine_id).single();
   if (!vaccine) return { message: "Vaccine not found." };
-  const { error } = await supabase.from("vaccinations").insert({ ...parsed.data, vaccine_name: vaccine.name });
+  const { error } = await supabase.from("vaccinations").insert({
+    ...row, vaccine_name: vaccine.name,
+    ...(given_on ? { visit_id: null, administered_at: `${given_on}T12:00:00+05:00`, administered_by: null, batch_no: null, expiry_date: null,
+      notes: row.notes ?? "Given earlier (before the CRM or elsewhere)" } : {}),
+  });
   if (error) {
     if (error.code === "23514" && error.message.includes("expiry")) return { message: "This batch is expired — don't use it." };
-    if (error.code === "23514" && error.message.includes("next_due")) return { message: "Next due date must be after today." };
+    if (error.code === "23514" && error.message.includes("next_due")) return { message: "The next dose must be after the date it was given." };
     return { message: dbErrorMessage(error) };
   }
-  refresh(parsed.data.visit_id);
-  return { ok: true, message: `${vaccine.name} recorded.` };
+  if (row.visit_id) refresh(row.visit_id);
+  revalidatePath(`/pets/${row.pet_id}`);
+  revalidatePath("/due");
+  return { ok: true, message: given_on ? `${vaccine.name} added to the history.` : `${vaccine.name} recorded.` };
 }
 
-export async function voidVaccination(visitId: string, id: string, reason: string): Promise<FormState> {
+export async function voidVaccination(visitId: string | null, id: string, reason: string, petId?: string): Promise<FormState> {
   await assertCan("vaccinations.manage");
   if (reason.trim().length < 3) return { message: "Give a reason." };
   const supabase = await createClient();
   const { error } = await supabase.from("vaccinations")
     .update({ voided_at: new Date().toISOString(), void_reason: reason.trim() }).eq("id", id);
   if (error) return { message: dbErrorMessage(error) };
-  refresh(visitId);
+  if (visitId) refresh(visitId);
+  if (petId) revalidatePath(`/pets/${petId}`);
   return { ok: true, message: "Marked as entered by mistake." };
 }
 
