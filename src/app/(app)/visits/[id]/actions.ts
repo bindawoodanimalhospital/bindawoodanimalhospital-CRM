@@ -297,6 +297,8 @@ export async function signedFileUrl(path: string): Promise<string | null> {
 
 export async function recordDeworming(input: {
   visit_id: string | null; pet_id: string; product: string; dose?: string; weight_kg?: number | null; next_due_date?: string; notes?: string;
+  /** From the clinic's dewormer list (sets the type: internal worms / fleas & ticks). */
+  dewormer_id?: string | null; tracks?: string[];
   /** Given earlier (before the CRM or elsewhere): the date it was given. Not part of a visit, not billed. */
   given_on?: string;
 }): Promise<FormState> {
@@ -306,9 +308,18 @@ export async function recordDeworming(input: {
   if (earlier && (!/^\d{4}-\d{2}-\d{2}$/.test(input.given_on!) || input.given_on! > todayPK())) return { message: "Enter the date it was given (today or earlier)." };
   if (earlier && input.next_due_date && input.next_due_date <= input.given_on!) return { message: "The next due date must be after the date it was given." };
   const supabase = await createClient();
+  let tracks = (input.tracks ?? ["internal"]).filter((t) => t === "internal" || t === "external");
+  let product = input.product.trim();
+  if (input.dewormer_id) {
+    const { data: dw } = await supabase.from("dewormers").select("name, tracks").eq("id", input.dewormer_id).maybeSingle();
+    if (!dw) return { message: "Dewormer not found." };
+    tracks = dw.tracks; product = dw.name;
+  }
+  if (!tracks.length) return { message: "Choose internal worms, fleas & ticks, or both." };
   const { error } = await supabase.from("dewormings").insert({
+    dewormer_id: input.dewormer_id ?? null, tracks,
     visit_id: earlier ? null : input.visit_id, pet_id: input.pet_id,
-    ...(earlier ? { given_at: `${input.given_on}T12:00:00+05:00` } : {}), product: input.product.trim(), dose: input.dose?.trim() || null,
+    ...(earlier ? { given_at: `${input.given_on}T12:00:00+05:00` } : {}), product, dose: input.dose?.trim() || null,
     weight_kg: input.weight_kg || null, next_due_date: input.next_due_date || null, notes: input.notes?.trim() || null,
   });
   if (error) {
@@ -331,4 +342,26 @@ export async function voidDeworming(visitId: string | null, id: string, reason: 
   if (visitId) refresh(visitId);
   if (petId) revalidatePath(`/pets/${petId}`);
   return { ok: true, message: "Marked as entered by mistake." };
+}
+
+// ---------------------------------------------------------------------------- Billed treatments: confirm
+
+/** A deworming / vaccine recorded from a bill: the doctor confirms it was given as billed. */
+export async function confirmTreatment(kind: "deworming" | "vaccination", id: string, petId: string, visitId: string | null): Promise<FormState> {
+  await assertCan("vaccinations.manage");
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("confirm_treatment", { p_kind: kind, p_id: id });
+  if (error) return { message: dbErrorMessage(error) };
+  revalidatePath(`/pets/${petId}`); if (visitId) refresh(visitId); revalidatePath("/due"); revalidatePath("/dashboard");
+  return { ok: true, message: "Confirmed." };
+}
+
+/** Not given (or a different product was given): removed from the history, its reminder cancelled. */
+export async function treatmentNotGiven(kind: "deworming" | "vaccination", id: string, note: string | null, petId: string, visitId: string | null): Promise<FormState> {
+  await assertCan("vaccinations.manage");
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("treatment_not_given", { p_kind: kind, p_id: id, p_note: note?.trim() || null });
+  if (error) return { message: dbErrorMessage(error) };
+  revalidatePath(`/pets/${petId}`); if (visitId) refresh(visitId); revalidatePath("/due"); revalidatePath("/dashboard");
+  return { ok: true, message: note?.includes("different product") ? "Removed — now record the product that was actually given." : "Marked as not given." };
 }

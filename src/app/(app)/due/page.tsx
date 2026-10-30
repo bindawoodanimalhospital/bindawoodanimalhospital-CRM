@@ -12,6 +12,7 @@ import { DueRow, type DueEntry } from "./due-row";
 import { withContact } from "@/lib/contacts";
 import { HowRemindersWork } from "@/components/app/reminder-plan";
 import { reminderPlans } from "@/lib/queries";
+import { ToConfirm } from "./to-confirm";
 
 export const metadata: Metadata = { title: "Due & follow-ups" };
 
@@ -58,6 +59,7 @@ export default async function DuePage({ searchParams }: PageProps<"/due">) {
   return (
     <>
       <PageHeader title="Due & follow-ups" description="Vaccine doses, deworming and follow-up visits. Items stay here until the pet comes in or someone closes them with a reason." />
+      {(me.can("vaccinations.manage") || me.can("clinical.view")) && <ToConfirm />}
       <HowRemindersWork vaccine={plans.vaccine} deworming={plans.deworming} />
       <div className="mb-6 flex flex-wrap gap-2">
         {VIEWS.map((x) => (

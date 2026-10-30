@@ -12,6 +12,7 @@ import { FormField } from "@/components/app/form-field";
 import { StatusPill } from "@/components/app/page-header";
 import { addDaysPK as addDays, formatDate, todayPK } from "@/lib/format";
 import { recordVaccination, voidVaccination } from "./actions";
+import { ConfirmButtons } from "./deworming-panel";
 import { cn } from "@/lib/utils";
 import { ReminderPlan, type RulePlan } from "@/components/app/reminder-plan";
 
@@ -23,6 +24,7 @@ export type ProtocolOption = {
 export type VaccinationRow = {
   id: string; vaccine_name: string; administered_at: string; batch_no: string | null; next_due_date: string | null;
   administered_by_name: string | null; voided_at: string | null; void_reason: string | null; visit_id: string | null;
+  confirmed?: boolean; vaccine_id?: string;
 };
 export type DueRow = { id: string; title: string; due_on: string; kind: string };
 /** A vaccine on one of the pet's bills that was never written into its history. */
@@ -106,6 +108,12 @@ export function VaccinesPanel({ visitId, petId, vaccines, protocols, history, du
   });
 
   const expired = when === "now" && expiry && expiry < today;
+  const toConfirm = history.filter((h) => h.confirmed === false && !h.voided_at);
+  const correct = (h: VaccinationRow) => {
+    setWhen("earlier"); setGivenOn(new Date(h.administered_at).toLocaleDateString("en-CA", { timeZone: "Asia/Karachi" })); setVaccineId("");
+    setNextDue(""); setNextLabel("");
+    document.getElementById(`vaccine-form-${petId}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
   const fromBill = (b: BilledVaccine) => {
     setWhen("earlier"); setGivenOn(b.date); pickVaccine(b.vaccine_id); setNextDue(""); setNextLabel("");
     document.getElementById(`vaccine-form-${petId}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -121,6 +129,18 @@ export function VaccinesPanel({ visitId, petId, vaccines, protocols, history, du
               <li key={d.id}>{d.title} — <b>{formatDate(d.due_on)}</b>{d.due_on < today && <span className="ml-2 text-danger">overdue</span>}</li>
             ))}
           </ul>
+        </div>
+      )}
+
+      {toConfirm.length > 0 && (
+        <div className="grid gap-2 rounded-2xl bg-warning-soft p-4 ring-1 ring-warning/30">
+          <p className="flex items-center gap-2 font-semibold text-warning"><Receipt className="size-4" /> From a bill — confirm what was given</p>
+          {toConfirm.map((h) => (
+            <div key={h.id} className="flex flex-wrap items-center gap-2 text-sm">
+              <b>{h.vaccine_name}</b><span className="text-muted-foreground">{formatDate(h.administered_at)}{h.next_due_date ? ` · next ${formatDate(h.next_due_date)}` : ""}</span>
+              {canRecord && <ConfirmButtons kind="vaccination" id={h.id} petId={petId} visitId={visitId} onCorrect={() => correct(h)} />}
+            </div>
+          ))}
         </div>
       )}
 
@@ -245,9 +265,12 @@ export function VaccinesPanel({ visitId, petId, vaccines, protocols, history, du
                 <span className={h.voided_at ? "font-semibold text-muted-foreground line-through" : "font-semibold"}>{h.vaccine_name}</span>
                 <span className="text-sm text-muted-foreground">{formatDate(h.administered_at)}{h.visit_id === null ? " · given earlier" : h.administered_by_name ? ` · ${h.administered_by_name}` : ""}</span>
                 {h.batch_no && <span className="font-mono text-xs text-muted-foreground">Batch {h.batch_no}</span>}
-                {h.voided_at ? <StatusPill>Entered by mistake: {h.void_reason}</StatusPill>
-                  : h.next_due_date && <StatusPill tone="info">Next: {formatDate(h.next_due_date)}</StatusPill>}
-                {canRecord && !h.voided_at && (h.visit_id === visitId || (!visitId && h.visit_id === null)) && <VoidButton visitId={visitId} petId={petId} id={h.id} />}
+                {h.voided_at ? <StatusPill>{h.void_reason?.startsWith("Not given") || h.void_reason?.startsWith("Duplicate") ? h.void_reason : `Entered by mistake: ${h.void_reason}`}</StatusPill>
+                  : <>
+                      {h.confirmed === false && <StatusPill tone="warning">From bill — to confirm</StatusPill>}
+                      {h.next_due_date && <StatusPill tone="info">Next: {formatDate(h.next_due_date)}</StatusPill>}
+                    </>}
+                {canRecord && !h.voided_at && h.confirmed !== false && (h.visit_id === visitId || (!visitId && h.visit_id === null)) && <VoidButton visitId={visitId} petId={petId} id={h.id} />}
               </li>
             ))}
           </ul>

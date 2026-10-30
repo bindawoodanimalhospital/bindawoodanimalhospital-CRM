@@ -13,7 +13,7 @@ export async function petVaccineData(petId: string, speciesId: string) {
     supabase.from("vaccines").select("id, name, protects_against, default_route, default_manufacturer, species_ids").eq("is_active", true).order("name"),
     supabase.from("vaccination_protocols").select("id, name, species_id, booster_interval_days, vaccination_protocol_steps(step_no, label, vaccine_id, days_after_previous)")
       .eq("is_approved", true).eq("is_active", true),
-    supabase.from("vaccinations").select("id, vaccine_id, vaccine_name, administered_at, batch_no, next_due_date, administered_by, voided_at, void_reason, visit_id")
+    supabase.from("vaccinations").select("id, vaccine_id, vaccine_name, administered_at, batch_no, next_due_date, administered_by, voided_at, void_reason, visit_id, confirmed")
       .eq("pet_id", petId).order("administered_at", { ascending: false }),
     supabase.from("due_items").select("id, title, due_on, kind").eq("pet_id", petId).eq("status", "pending").order("due_on"),
     supabase.from("staff").select("id, full_name"),

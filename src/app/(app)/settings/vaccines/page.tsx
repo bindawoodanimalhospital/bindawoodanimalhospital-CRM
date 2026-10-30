@@ -5,20 +5,24 @@ import { requireStaff } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { ProtocolCard, type Protocol } from "./protocol-card";
 import { VaccineList, type Vaccine } from "./vaccine-list";
+import { DewormerList, type Dewormer } from "./dewormer-list";
 
 export const metadata: Metadata = { title: "Vaccines & schedules" };
 
 export default async function VaccineSchedulesPage() {
   const me = await requireStaff("clinical.view");
   const supabase = await createClient();
-  const [{ data: protocols }, { data: vaccines }, { data: staff }, { data: allVaccines }, { data: species }] = await Promise.all([
+  const [{ data: protocols }, { data: vaccines }, { data: staff }, { data: allVaccines }, { data: species }, { data: dewormers }, { data: items }] = await Promise.all([
     supabase.from("vaccination_protocols")
       .select("id, name, description, species_id, booster_interval_days, is_approved, approved_by, approved_at, is_active, species(name), vaccination_protocol_steps(step_no, label, vaccine_id, min_age_weeks, days_after_previous)")
       .order("name"),
     supabase.from("vaccines").select("id, name").eq("is_active", true).order("name"),
     supabase.from("staff").select("id, full_name"),
-    supabase.from("vaccines").select("id, name, protects_against, species_ids, default_manufacturer, default_route, default_dose, is_active").order("is_active", { ascending: false }).order("name"),
+    supabase.from("vaccines").select("id, name, protects_against, species_ids, default_manufacturer, default_route, default_dose, is_active, covers").order("is_active", { ascending: false }).order("name"),
     supabase.from("species").select("id, name").order("name"),
+    supabase.from("dewormers").select("id, name, species_ids, tracks, covers, dose_text, adult_interval_days, catalog_item_id, notes, is_active")
+      .order("is_active", { ascending: false }).order("sort_order").order("name"),
+    supabase.from("catalog_items").select("id, name").eq("is_active", true).or("is_deworming.eq.true,category.ilike.%deworm%,category.ilike.%flea%,category.ilike.%tick%").order("name"),
   ]);
   const names = new Map((staff ?? []).map((s) => [s.id, s.full_name]));
   const list: Protocol[] = (protocols ?? []).map((p) => ({
@@ -35,10 +39,11 @@ export default async function VaccineSchedulesPage() {
     <>
       <PageHeader
         back={{ href: "/settings", label: "Settings" }}
-        title="Vaccines & schedules"
+        title="Vaccines, deworming & schedules"
         description="The vaccines doctors can record, and the multi-dose schedules (Dose 1 → Dose 2 after N days → yearly booster) used to suggest the next date."
       />
       <div className="mb-6"><VaccineList vaccines={(allVaccines ?? []) as Vaccine[]} species={species ?? []} canEdit={canEditVaccines} /></div>
+      <div className="mb-6"><DewormerList dewormers={(dewormers ?? []) as Dewormer[]} species={species ?? []} items={items ?? []} canEdit={canEditVaccines} /></div>
       <h2 className="mb-3 text-lg font-semibold">Schedules</h2>
       <div className="mb-6 flex gap-3 rounded-2xl bg-brand-wash p-4 ring-1 ring-brand-muted">
         <ShieldCheck className="mt-0.5 size-5 shrink-0 text-brand" />

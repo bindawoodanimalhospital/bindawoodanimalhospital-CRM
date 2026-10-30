@@ -18,7 +18,7 @@ import { ServiceLocationControl } from "@/components/app/service-location";
 import { setVisitServiceLocation } from "../../queue/actions";
 import { ConsultationPanel, type Consultation, type Template } from "./consultation-panel";
 import { VaccinesPanel, type ProtocolOption, type VaccinationRow, type VaccineOption } from "./vaccines-panel";
-import { DewormingPanel, type DewormingRow } from "./deworming-panel";
+import { DewormingPanel, type DewormerOption, type DewormingRow } from "./deworming-panel";
 import { reminderPlans } from "@/lib/queries";
 import { RxPanel, type Rx } from "./rx-panel";
 import { TestsPanel, type DiagnosticOrder, type DiagnosticType } from "./tests-panel";
@@ -64,7 +64,7 @@ export default async function VisitPage({ params, searchParams }: PageProps<"/vi
     supabase.from("vaccines").select("id, name, protects_against, default_route, default_manufacturer, species_ids").eq("is_active", true).order("name"),
     supabase.from("vaccination_protocols").select("id, name, species_id, booster_interval_days, vaccination_protocol_steps(step_no, label, vaccine_id, days_after_previous)")
       .eq("is_approved", true).eq("is_active", true),
-    supabase.from("vaccinations").select("id, vaccine_name, administered_at, batch_no, next_due_date, administered_by, voided_at, void_reason, visit_id")
+    supabase.from("vaccinations").select("id, vaccine_id, vaccine_name, administered_at, batch_no, next_due_date, administered_by, voided_at, void_reason, visit_id, confirmed")
       .eq("pet_id", pet.id).order("administered_at", { ascending: false }),
     supabase.from("due_items").select("id, title, due_on, kind").eq("pet_id", pet.id).eq("status", "pending").order("due_on"),
     supabase.from("prescriptions").select("id, code, status, notes, issued_at, cancel_reason, doctor_id, prescription_items(id, medicine_name, strength, form, dose, frequency, duration, route, quantity, instructions, sort_order)")
@@ -74,9 +74,9 @@ export default async function VisitPage({ params, searchParams }: PageProps<"/vi
       .eq("visit_id", id).order("created_at", { ascending: false }),
     supabase.from("staff").select("id, full_name"),
     supabase.from("pet_weights").select("weight_kg").eq("pet_id", pet.id).order("measured_at", { ascending: false }).limit(1).maybeSingle(),
-    supabase.from("dewormings").select("id, visit_id, product, dose, given_at, next_due_date, given_by, voided_at, void_reason").eq("pet_id", pet.id).order("given_at", { ascending: false }),
+    supabase.from("dewormings").select("id, visit_id, product, dose, given_at, next_due_date, given_by, voided_at, void_reason, confirmed, tracks").eq("pet_id", pet.id).order("given_at", { ascending: false }),
     // Dewormers on the price list, offered as suggestions (the doctor can type any product).
-    supabase.from("catalog_items").select("name").eq("is_active", true).or("name.ilike.%deworm%,category.ilike.%deworm%,name.ilike.%drontal%,name.ilike.%prazi%,name.ilike.%febendazole%,name.ilike.%milbemax%").limit(30),
+    supabase.from("dewormers").select("id, name, tracks, covers, dose_text, adult_interval_days, species_ids").eq("is_active", true).order("sort_order").order("name"),
     reminderPlans(),
   ]);
 
@@ -219,7 +219,7 @@ export default async function VisitPage({ params, searchParams }: PageProps<"/vi
               due={dueQ.data ?? []} canRecord={me.can("vaccinations.manage")} plan={plans.vaccine} />
             <div className="mt-6">
               <DewormingPanel visitId={id} petId={pet.id} dob={pet.date_of_birth} weight={weight ? Number(weight) : null}
-                history={(dewormQ.data ?? []) as DewormingRow[]} products={(dewormerQ.data ?? []).map((x) => x.name)}
+                history={(dewormQ.data ?? []) as DewormingRow[]} dewormers={((dewormerQ.data ?? []) as (DewormerOption & { species_ids: string[] })[]).filter((d) => !d.species_ids.length || d.species_ids.includes(pet.species_id))}
                 plan={plans.deworming} canRecord={me.can("vaccinations.manage")} />
             </div>
           </TabsContent>

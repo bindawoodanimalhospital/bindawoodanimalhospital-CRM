@@ -13,9 +13,10 @@ import { FormField } from "@/components/app/form-field";
 import { StatusPill } from "@/components/app/page-header";
 import { cn } from "@/lib/utils";
 import { saveVaccine } from "./actions";
+import { VACCINE_GROUPS, vaccineGroupLabel } from "@/lib/treatments";
 
 export type Vaccine = {
-  id: string; name: string; protects_against: string | null; species_ids: string[]; default_manufacturer: string | null;
+  id: string; name: string; protects_against: string | null; species_ids: string[]; default_manufacturer: string | null; covers: string[];
   default_route: string | null; default_dose: string | null; is_active: boolean;
 };
 type Species = { id: string; name: string };
@@ -37,6 +38,7 @@ export function VaccineList({ vaccines, species, canEdit }: { vaccines: Vaccine[
             <span className="min-w-0 flex-1">
               <span className="flex flex-wrap items-center gap-2 font-semibold">{v.name}{!v.is_active && <StatusPill>Not in use</StatusPill>}</span>
               <span className="block text-sm text-muted-foreground">{v.protects_against}</span>
+              <span className="mt-0.5 flex flex-wrap gap-1">{v.covers.map((c) => <span key={c} className="rounded-md bg-info-soft px-1.5 py-0.5 text-[11px] font-semibold text-info">{vaccineGroupLabel(c)}</span>)}</span>
               <span className="block text-xs text-muted-foreground">
                 {[v.species_ids.map((id) => name.get(id)).filter(Boolean).join(", "), v.default_manufacturer, v.default_route, v.default_dose].filter(Boolean).join(" · ")}
               </span>
@@ -53,11 +55,12 @@ function VaccineDialog({ species, vaccine }: { species: Species[]; vaccine?: Vac
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pending, start] = useTransition();
-  const blank = { name: "", protects_against: "", species_ids: [] as string[], default_manufacturer: "", default_route: "SC", default_dose: "1 ml", is_active: true };
+  const blank = { name: "", protects_against: "", species_ids: [] as string[], default_manufacturer: "", default_route: "SC", default_dose: "1 ml", is_active: true, covers: [] as string[] };
   const [f, setF] = useState(vaccine ? {
     ...vaccine, protects_against: vaccine.protects_against ?? "", default_manufacturer: vaccine.default_manufacturer ?? "",
     default_route: vaccine.default_route ?? "", default_dose: vaccine.default_dose ?? "",
   } : blank);
+  const toggleGroup = (c: string) => setF((x) => ({ ...x, covers: x.covers.includes(c) ? x.covers.filter((g) => g !== c) : [...x.covers, c] }));
   const toggle = (id: string) => setF((x) => ({ ...x, species_ids: x.species_ids.includes(id) ? x.species_ids.filter((s) => s !== id) : [...x.species_ids, id] }));
   const save = () => start(async () => {
     const r = await saveVaccine(vaccine?.id ?? null, f);
@@ -78,6 +81,15 @@ function VaccineDialog({ species, vaccine }: { species: Species[]; vaccine?: Vac
           <FormField label="Protects against" className="sm:col-span-2" required>
             <Input value={f.protects_against} onChange={(e) => setF({ ...f, protects_against: e.target.value })} placeholder="e.g. Distemper, parvovirus, rabies" />
           </FormField>
+          <div className="grid gap-1.5 rounded-xl bg-surface p-3 ring-1 ring-border sm:col-span-2">
+            <span className="text-sm font-medium">Reminder groups it covers</span>
+            <span className="text-xs text-muted-foreground">Giving this vaccine closes the pet&apos;s reminder for each ticked group — e.g. PCHR covers Cat core and Rabies. Leave empty for other animals&apos; vaccines.</span>
+            <div className="flex flex-wrap gap-x-4 gap-y-2">
+              {VACCINE_GROUPS.map((g) => (
+                <Label key={g.code} className="font-normal" title={g.hint}><Checkbox checked={f.covers.includes(g.code)} onCheckedChange={() => toggleGroup(g.code)} /> {g.label}</Label>
+              ))}
+            </div>
+          </div>
           <div className="grid gap-1.5 sm:col-span-2">
             <span className="text-sm font-medium">For which animals</span>
             <div className="flex flex-wrap gap-x-4 gap-y-2">

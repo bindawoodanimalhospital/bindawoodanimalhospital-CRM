@@ -59,7 +59,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
 
   const seeMoney = me.can("finance.view") || me.can("billing.create");
   const canDeliveries = me.can("pos.use") || me.can("billing.create");
-  const [customers, pets, newCustomers, newPets, recent, queue, appts, dueToday, overdue, inWard, theatre, payToday, openDues, stock, toSend, myTasks, deliveries, loansDue, removals] = await Promise.all([
+  const [customers, pets, newCustomers, newPets, recent, queue, appts, dueToday, overdue, inWard, theatre, payToday, openDues, stock, toSend, myTasks, deliveries, loansDue, removals, unconfDew, unconfVac] = await Promise.all([
     canCustomers ? supabase.from("customers").select("id", { count: "exact", head: true }).neq("status", "merged") : null,
     canPets ? supabase.from("pets").select("id", { count: "exact", head: true }).eq("status", "active") : null,
     canCustomers ? supabase.from("customers").select("id", { count: "exact", head: true }).gte("created_at", today) : null,
@@ -85,7 +85,10 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
     me.can("inventory.view") ? supabase.from("stock_loans").select("id", { count: "exact", head: true })
       .in("status", ["pending_return", "partially_returned"]).lt("expected_return_date", ymd) : null,
     supabase.from("removal_requests").select("id", { count: "exact", head: true }).eq("status", "open"),
+    me.can("vaccinations.manage") ? supabase.from("dewormings").select("id", { count: "exact", head: true }).eq("confirmed", false).is("voided_at", null) : null,
+    me.can("vaccinations.manage") ? supabase.from("vaccinations").select("id", { count: "exact", head: true }).eq("confirmed", false).is("voided_at", null) : null,
   ]);
+  const toConfirm = (unconfDew?.count ?? 0) + (unconfVac?.count ?? 0);
   const queueRows = (queue?.data ?? []) as unknown as QueueRow[];
   const waitingCount = queueRows.filter((v) => v.status === "waiting").length;
   const inClinicCount = queueRows.length - waitingCount;
@@ -138,6 +141,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
     canDeliveries && toDispatch + outForDelivery > 0 && { label: "Home deliveries", sub: `${toDispatch} to dispatch · ${outForDelivery} on the way`, count: String(toDispatch + outForDelivery), icon: PackageCheck, href: "/pos/deliveries", tone: "warning" },
     me.can("inventory.view") && stockAlerts > 0 && { label: "Stock to check", sub: "low or expired items", count: String(stockAlerts), icon: Boxes, href: "/inventory", tone: "warning" },
     (me.can("customers.delete") || me.can("pets.delete")) && (removals?.count ?? 0) > 0 && { label: "Please remove — added by mistake", sub: "staff asked you to remove pet owners / pets", count: String(removals?.count), icon: Trash2, href: "/removals", tone: "danger" },
+    toConfirm > 0 && { label: "Confirm what was given", sub: "dewormings / vaccines billed but not recorded on the visit", count: String(toConfirm), icon: Syringe, href: "/due#confirm", tone: "warning" },
     me.can("inventory.view") && (loansDue?.count ?? 0) > 0 && { label: "Stock loans overdue", sub: "borrowed / lent items not returned", count: String(loansDue?.count), icon: ArrowLeftRight, href: "/inventory/loans", tone: "danger" },
   ].filter(Boolean) as Todo[]);
 

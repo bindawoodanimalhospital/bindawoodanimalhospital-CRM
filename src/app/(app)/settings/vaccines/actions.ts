@@ -74,6 +74,7 @@ const vaccineSchema = z.object({
   default_route: z.string().trim().optional().transform((v) => v || null),
   default_dose: z.string().trim().optional().transform((v) => v || null),
   is_active: z.boolean().default(true),
+  covers: z.array(z.string().regex(/^[a-z0-9_]+$/)).default([]),
 });
 
 /** Add or edit a vaccine on the clinic's list (owner / senior doctor). */
@@ -88,4 +89,30 @@ export async function saveVaccine(id: string | null, input: z.input<typeof vacci
     : await supabase.from("vaccines").insert(parsed.data);
   if (error) return { message: error.code === "23505" ? "A vaccine with this name already exists." : dbErrorMessage(error) };
   return done(id ? "Vaccine saved." : `${parsed.data.name} added — doctors can record it now.`);
+}
+
+const dewormerSchema = z.object({
+  name: z.string().trim().min(2, "Give the dewormer a name"),
+  species_ids: z.array(z.uuid()).default([]),
+  tracks: z.array(z.enum(["internal", "external"])).min(1, "Choose internal worms, fleas & ticks, or both"),
+  covers: z.array(z.string()).default([]),
+  dose_text: z.string().trim().optional().transform((v) => v || null),
+  adult_interval_days: z.coerce.number().int().min(7, "At least 7 days").max(730),
+  catalog_item_id: z.string().optional().transform((v) => (v && v !== "none" ? v : null)),
+  notes: z.string().trim().optional().transform((v) => v || null),
+  is_active: z.boolean().default(true),
+});
+
+/** Add or edit a dewormer / flea-tick product (owner / senior doctor). */
+export async function saveDewormer(id: string | null, input: z.input<typeof dewormerSchema>): Promise<FormState> {
+  const me = await getCurrentStaff();
+  if (!me?.can("clinical.reopen") && !me?.can("settings.manage")) return { message: "Only the owner or a senior doctor can change the dewormer list." };
+  const parsed = dewormerSchema.safeParse(input);
+  if (!parsed.success) return { message: parsed.error.issues[0]?.message };
+  const supabase = await createClient();
+  const { error } = id
+    ? await supabase.from("dewormers").update(parsed.data).eq("id", id)
+    : await supabase.from("dewormers").insert(parsed.data);
+  if (error) return { message: error.code === "23505" ? (error.message.includes("catalog") ? "That price-list item is already linked to another dewormer." : "A dewormer with this name already exists.") : dbErrorMessage(error) };
+  return done(id ? "Dewormer saved." : `${parsed.data.name} added — doctors can choose it now.`);
 }

@@ -97,7 +97,7 @@ do $$ begin
      and (select rank from public.smart_search('tiger fatima') where id = pg_temp.g('tiger_dog')) >= (select rank from public.smart_search('tiger fatima') where id = pg_temp.g('tiger_cat'))
   then raise exception 'FAIL: "tiger fatima" should rank Fatima''s cat above Ahmed''s dog'; end if;
   raise notice 'OK "tiger fatima" ranks Fatima''s Tiger first';
-  if (select first_badge from res where q = 'snowy') is distinct from 'Alert' then raise exception 'FAIL: Snowy should carry an Alert badge'; end if;
+  if (select badge from public.smart_search('snowy') where id = pg_temp.g('snowy')) is distinct from 'Alert' then raise exception 'FAIL: Snowy should carry an Alert badge'; end if;
   raise notice 'OK Snowy shows the allergy Alert badge';
   if (select first_badge from res where q = (select number from public.invoices where id = pg_temp.g('bill'))) not like 'Owes Rs. 1,500' then raise exception 'FAIL: bill badge'; end if;
   raise notice 'OK bill shows "Owes Rs. 1,500"';

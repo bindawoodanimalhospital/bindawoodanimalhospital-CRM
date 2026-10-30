@@ -16,7 +16,7 @@ import { PetDueCard, PetTimeline } from "./timeline";
 import { withContact } from "@/lib/contacts";
 import { RemovalPanel } from "@/components/app/removal-panel";
 import { removalState } from "@/lib/removals";
-import { DewormingPanel, type DewormingRow } from "../../visits/[id]/deworming-panel";
+import { DewormingPanel, type DewormerOption, type DewormingRow } from "../../visits/[id]/deworming-panel";
 import { reminderPlans } from "@/lib/queries";
 import { VaccinesPanel } from "../../visits/[id]/vaccines-panel";
 import { petVaccineData } from "@/lib/vaccine-data";
@@ -59,8 +59,8 @@ export default async function PetPage({ params }: PageProps<"/pets/[id]">) {
   // Deworming history — and earlier dewormings (before the CRM) can be added here so reminders continue.
   const showDeworming = me.can("clinical.view") || me.can("vaccinations.manage");
   const [dewormQ, dewormerQ, plans] = showDeworming ? await Promise.all([
-    supabase.from("dewormings").select("id, visit_id, product, dose, given_at, next_due_date, given_by, voided_at, void_reason").eq("pet_id", p.id).order("given_at", { ascending: false }),
-    supabase.from("catalog_items").select("name").eq("is_active", true).or("name.ilike.%deworm%,category.ilike.%deworm%,name.ilike.%drontal%,name.ilike.%prazi%,name.ilike.%febendazole%,name.ilike.%milbemax%").limit(30),
+    supabase.from("dewormings").select("id, visit_id, product, dose, given_at, next_due_date, given_by, voided_at, void_reason, confirmed, tracks").eq("pet_id", p.id).order("given_at", { ascending: false }),
+    supabase.from("dewormers").select("id, name, tracks, covers, dose_text, adult_interval_days, species_ids").eq("is_active", true).order("sort_order").order("name"),
     reminderPlans(),
   ]) : [null, null, null];
   const vacc = showDeworming ? await petVaccineData(p.id, p.species_id) : null;
@@ -211,7 +211,7 @@ export default async function PetPage({ params }: PageProps<"/pets/[id]">) {
         )}
         {showDeworming && plans && (
           <DewormingPanel visitId={null} petId={p.id} dob={p.date_of_birth} weight={latest ? Number(latest.weight_kg) : null}
-            history={(dewormQ?.data ?? []) as DewormingRow[]} products={(dewormerQ?.data ?? []).map((x) => x.name)}
+            history={(dewormQ?.data ?? []) as DewormingRow[]} dewormers={((dewormerQ?.data ?? []) as (DewormerOption & { species_ids: string[] })[]).filter((d) => !d.species_ids.length || d.species_ids.includes(p.species_id))}
             plan={plans.deworming} canRecord={me.can("vaccinations.manage")} />
         )}
         {me.can("clinical.view") && <PetTimeline petId={p.id} />}

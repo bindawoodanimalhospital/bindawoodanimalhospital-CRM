@@ -34,7 +34,7 @@ export function DueRow({ d, canWork, clinicName }: { d: DueEntry; canWork: boole
   const message = d.kind === "vaccination"
     ? `Assalam o Alaikum ${d.owner?.full_name ?? ""}, ${d.pet.name}'s ${d.title} is due on ${formatDate(d.due_on)}. Please reply to book a time. — ${clinicName}`
     : d.kind === "deworming"
-    ? `Assalam o Alaikum ${d.owner?.full_name ?? ""}, ${d.pet.name}'s deworming is due on ${formatDate(d.due_on)}. Please reply to book a time. — ${clinicName}`
+    ? `Assalam o Alaikum ${d.owner?.full_name ?? ""}, ${d.pet.name}'s ${d.title.toLowerCase()} is due on ${formatDate(d.due_on)}. Please reply to book a time. — ${clinicName}`
     : `Assalam o Alaikum ${d.owner?.full_name ?? ""}, ${d.pet.name} is due for a follow-up (${d.title}) on ${formatDate(d.due_on)}. Please reply to book a time. — ${clinicName}`;
   const wa = whatsappLink(d.owner?.whatsapp, message);
 
