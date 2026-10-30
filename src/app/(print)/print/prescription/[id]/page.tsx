@@ -43,7 +43,7 @@ export default async function PrescriptionPrint({ params }: PageProps<"/print/pr
 
   return (
     <PrintShell clinic={clinic ?? {}} title="Prescription"
-      footer="This prescription is valid only with the doctor's signature. Do not change doses without asking the doctor.">
+      footer={<>This prescription is valid only with the doctor&apos;s signature. Do not change doses without asking the doctor.<span className="mt-1 block text-[9px] text-muted-foreground">AI softwares by OBD · +92 337 8624781</span></>}>
       {cancelled && (
         <p className="mb-4 rounded-lg border-2 border-danger p-2 text-center font-bold text-danger uppercase">Cancelled — do not dispense</p>
       )}
