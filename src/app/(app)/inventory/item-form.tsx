@@ -15,7 +15,7 @@ import type { FormState } from "@/lib/validation";
 export type ItemDefaults = Partial<{
   kind: "service" | "product"; name: string; category: string | null; brand: string | null; sku: string | null; barcode: string | null;
   unit: string; sale_price: number; price_is_editable: boolean; tax_rate: number; track_stock: boolean; reorder_level: number | null;
-  is_retail: boolean; is_active: boolean; vaccine_id: string | null; medicine_id: string | null; notes: string | null;
+  is_retail: boolean; is_active: boolean; vaccine_id: string | null; medicine_id: string | null; notes: string | null; is_deworming: boolean;
 }>;
 
 const CATEGORIES = ["Consultation", "Diagnostics", "Surgery", "Ward", "Vaccines", "Medicines", "Consumables", "Food", "Treats", "Grooming", "Accessories", "Toys", "Other"];
@@ -75,6 +75,10 @@ export function ItemForm({ action, defaults = {}, hasStock, vaccines, submitLabe
         </FormSection>
       )}
 
+      <Label className="font-normal">
+        <Checkbox name="is_deworming" defaultChecked={defaults.is_deworming ?? false} />
+        This is a deworming — billing it records the deworming on the pet with its next-due reminder
+      </Label>
       <FormSection title="Notes"><Textarea name="notes" rows={2} defaultValue={defaults.notes ?? ""} className="sm:col-span-2" /></FormSection>
       {defaults.name && (
         <Label className="font-normal">

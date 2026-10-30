@@ -21,6 +21,7 @@ const itemSchema = z.object({
   track_stock: z.preprocess((v) => v === "on" || v === true, z.boolean()),
   reorder_level: z.union([z.literal(""), z.coerce.number().min(0)]).optional().transform((v) => (v === "" || v == null ? null : v)),
   is_retail: z.preprocess((v) => v === "on" || v === true, z.boolean()),
+  is_deworming: z.preprocess((v) => v === "on" || v === true, z.boolean()),
   is_active: z.preprocess((v) => v !== "off" && v !== false, z.boolean()).default(true),
   vaccine_id: opt, medicine_id: opt, notes: opt,
 });

@@ -69,7 +69,10 @@ select pg_temp.expect('ahmed@example.com', 'customer', 'Ahmed Raza');
 select pg_temp.expect('tiger ahmed', 'pet', 'Tiger');
 select pg_temp.expect('tigr ahmad', 'pet', 'Tiger');
 select pg_temp.expect('snowy', 'pet', 'Snowy');
-select pg_temp.expect('snowi', 'pet', 'Snowy');
+do $$ begin   -- real pets may be called Snow: just make sure ours is found despite the typo
+  if not exists (select 1 from public.smart_search('snowi') where kind = 'pet' and title = 'Snowy') then raise exception 'FAIL: "snowi" did not find Snowy'; end if;
+  raise notice 'OK "snowi" finds Snowy';
+end $$;
 select pg_temp.expect('985112003344556', 'pet', 'Tiger');
 select pg_temp.expect('golden', 'pet', 'Tiger');
 select pg_temp.expect((select number from public.invoices where id = pg_temp.g('bill')), 'bill', 'Fatima Malik');

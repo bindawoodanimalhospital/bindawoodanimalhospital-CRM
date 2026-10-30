@@ -14,11 +14,10 @@ select '00000000-0000-0000-0000-00000000000d'::uuid, id from public.roles where 
 set local role authenticated;
 -- reception creates a customer + pet
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-00000000000b","role":"authenticated"}', true);
-insert into public.customers (full_name, area) values ('Ahmed Raza', 'Johar Town');
-insert into public.pets (name, species_id) select 'Tiger', id from public.species where name = 'Dog';
-insert into public.pet_owners (pet_id, customer_id, is_primary)
-  select p.id, c.id, true from public.pets p, public.customers c
-   where p.name = 'Tiger' and c.full_name = 'Ahmed Raza';
+-- (real clients may also be called Ahmed Raza / have a pet Tiger — link only the ones made here)
+with c as (insert into public.customers (full_name, area) values ('Ahmed Raza', 'Johar Town') returning id),
+     p as (insert into public.pets (name, species_id) select 'Tiger', id from public.species where name = 'Dog' returning id)
+insert into public.pet_owners (pet_id, customer_id, is_primary) select p.id, c.id, true from p, c;
 select 'reception sees customers' as t, count(*) from public.customers;
 select 'search by name' as t, kind, title, subtitle from public.smart_search('ahmed raza');
 select 'search fuzzy name' as t, kind, title from public.smart_search('ahmad');
