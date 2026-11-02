@@ -175,7 +175,7 @@ export default async function InvoicePrint({ params, searchParams }: PageProps<"
             {cfg?.invoice_footer && <p className="mt-1">{cfg.invoice_footer}</p>}
           </div>
 
-          <p className="mt-2 text-center font-sans text-[9px] font-medium [word-spacing:-0.06em]">AI softwares by OBD · +92 337 8624781</p>
+          <p className="mt-2 text-center font-sans text-[10px] font-medium">AI softwares by OBD · +92 337 8624781</p>
         </article>
       </div>
     );
