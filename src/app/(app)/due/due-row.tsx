@@ -44,7 +44,7 @@ export function DueRow({ d, canWork, clinicName }: { d: DueEntry; canWork: boole
   });
 
   return (
-    <li className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl bg-card p-4 shadow-card ring-1 ring-border">
+    <li className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl bg-card p-4 shadow-card ring-1 ring-border">
       <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand"><Icon className="size-5" /></span>
       <div className="min-w-0 flex-1">
         <p className="font-semibold">

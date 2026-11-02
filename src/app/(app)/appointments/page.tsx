@@ -121,7 +121,7 @@ export default async function AppointmentsPage({ searchParams }: PageProps<"/app
       {items.length === 0 ? (
         <EmptyState icon={CalendarDays} title="No appointments" description="Walk-ins are checked in from Today's queue." />
       ) : (
-        <ul className="grid gap-3">
+        <ul className="grid grid-cols-1 gap-3">
           {items.map((a) => (
             <AppointmentRow key={a.id} a={a} doctors={doctors} types={types}
               canManage={me.can("appointments.manage")} canCheckIn={me.can("queue.manage") && a.date === today} />

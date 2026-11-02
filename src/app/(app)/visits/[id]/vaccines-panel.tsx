@@ -120,7 +120,7 @@ export function VaccinesPanel({ visitId, petId, vaccines, protocols, history, du
   };
 
   return (
-    <div className="grid gap-8">
+    <div className="grid grid-cols-1 gap-8">
       {vaccineDue.length > 0 && (
         <div className="rounded-2xl bg-warning-soft p-4 ring-1 ring-warning/30">
           <p className="flex items-center gap-2 font-semibold text-warning"><CalendarClock className="size-4" /> Due for this pet</p>
@@ -265,7 +265,7 @@ export function VaccinesPanel({ visitId, petId, vaccines, protocols, history, du
                 <span className={h.voided_at ? "font-semibold text-muted-foreground line-through" : "font-semibold"}>{h.vaccine_name}</span>
                 <span className="text-sm text-muted-foreground">{formatDate(h.administered_at)}{h.visit_id === null ? " · given earlier" : h.administered_by_name ? ` · ${h.administered_by_name}` : ""}</span>
                 {h.batch_no && <span className="font-mono text-xs text-muted-foreground">Batch {h.batch_no}</span>}
-                {h.voided_at ? <StatusPill>{h.void_reason?.startsWith("Not given") || h.void_reason?.startsWith("Duplicate") ? h.void_reason : `Entered by mistake: ${h.void_reason}`}</StatusPill>
+                {h.voided_at ? <VoidNote reason={h.void_reason} />
                   : <>
                       {h.confirmed === false && <StatusPill tone="warning">From bill — to confirm</StatusPill>}
                       {h.next_due_date && <StatusPill tone="info">Next: {formatDate(h.next_due_date)}</StatusPill>}
@@ -291,5 +291,18 @@ function VoidButton({ visitId, petId, id }: { visitId: string | null; petId: str
       }}>
       <Undo2 /> Entered by mistake
     </Button>
+  );
+}
+
+/** "Not given" / "Duplicate" / "Entered by mistake" as a short tag, with the reason as wrapping text. */
+export function VoidNote({ reason }: { reason: string | null }) {
+  const r = reason ?? "";
+  const [tag, rest] = r.startsWith("Not given") ? ["Not given", r.replace(/^Not given\s*(—\s*)?/, "")]
+    : r.startsWith("Duplicate") ? ["Duplicate", r.replace(/^Duplicate\s*(of\s*)?/, "")] : ["Entered by mistake", r];
+  return (
+    <span className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
+      <StatusPill>{tag}</StatusPill>
+      {rest && <span className="min-w-0 text-xs break-words text-muted-foreground">{rest}</span>}
+    </span>
   );
 }

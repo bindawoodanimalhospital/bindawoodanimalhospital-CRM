@@ -29,7 +29,7 @@ export async function ToConfirm() {
       <p className="mt-1 text-xs text-warning">
         These were billed but not recorded on the visit. Open the pet and press Confirm, Wrong product or Not given. Reminders are already set meanwhile.
       </p>
-      <ul className="mt-3 grid gap-1.5">
+      <ul className="mt-3 grid grid-cols-1 gap-1.5">
         {rows.map((r) => (
           <li key={`${r.kind}-${r.id}`} className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl bg-card px-3 py-2 text-sm ring-1 ring-border">
             <Link href={`/pets/${r.pet_id}`} className="font-semibold hover:underline">{r.pet}</Link>

@@ -128,7 +128,7 @@ export default async function PetPage({ params }: PageProps<"/pets/[id]">) {
             <CardTitle>Owners</CardTitle>
             {canEdit && <CardAction><AddOwnerDialog petId={p.id} existing={owners.map((o) => o.customers.id)} /></CardAction>}
           </CardHeader>
-          <CardContent className="grid gap-3">
+          <CardContent className="grid grid-cols-1 gap-3">
             {owners.map((o) => {
               const wa = whatsappLink(o.customers.whatsapp);
               return (
@@ -155,7 +155,7 @@ export default async function PetPage({ params }: PageProps<"/pets/[id]">) {
           </CardHeader>
           <CardContent>
             {alerts?.length ? (
-              <ul className="grid gap-2">
+              <ul className="grid grid-cols-1 gap-2">
                 {alerts.map((a) => (
                   <li key={a.id} className="flex items-start gap-2 text-sm">
                     <StatusPill tone={a.severity === "critical" ? "danger" : a.severity === "warning" ? "warning" : "info"}>
@@ -175,7 +175,7 @@ export default async function PetPage({ params }: PageProps<"/pets/[id]">) {
 
         <Card>
           <CardHeader><CardTitle>Weight</CardTitle></CardHeader>
-          <CardContent className="grid gap-4">
+          <CardContent className="grid grid-cols-1 gap-4">
             {(canEdit || me.can("clinical.create")) && <WeightForm petId={p.id} />}
             {weights?.length ? (
               <ul className="divide-y text-sm">

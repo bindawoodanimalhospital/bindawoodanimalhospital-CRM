@@ -46,7 +46,7 @@ export function AppointmentRow({ a, doctors, types, canManage, canCheckIn }: {
     });
 
   return (
-    <li className={cn("flex flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl bg-card p-4 shadow-card ring-1 ring-border",
+    <li className={cn("flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2 rounded-2xl bg-card p-4 shadow-card ring-1 ring-border",
       (a.status === "cancelled" || a.status === "no_show") && "opacity-60", a.is_urgent && open && "ring-2 ring-warning/50")}>
       <div className="w-24 shrink-0">
         <p className="text-lg font-bold whitespace-nowrap tabular">{formatTime(a.starts_at)}</p>

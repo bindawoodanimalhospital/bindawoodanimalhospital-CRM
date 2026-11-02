@@ -87,7 +87,7 @@ export async function PetTimeline({ petId }: { petId: string }) {
       </CardHeader>
       <CardContent>
         {entries.length === 0 ? <p className="text-sm text-muted-foreground">No visits yet.</p> : (
-          <ol className="relative grid gap-1 before:absolute before:top-2 before:bottom-2 before:left-[19px] before:w-px before:bg-border">
+          <ol className="relative grid grid-cols-1 gap-1 before:absolute before:top-2 before:bottom-2 before:left-[19px] before:w-px before:bg-border">
             {entries.map((e, i) => {
               const Icon = ICONS[e.kind];
               const body = (
@@ -130,7 +130,7 @@ export async function PetDueCard({ petId, className }: { petId: string; classNam
       <CardHeader><CardTitle className="flex items-center gap-2"><CalendarClock className="size-4" /> Due</CardTitle></CardHeader>
       <CardContent>
         {!data?.length ? <p className="text-sm text-muted-foreground">Nothing due.</p> : (
-          <ul className="grid gap-2">
+          <ul className="grid grid-cols-1 gap-2">
             {data.map((d) => {
               const overdue = d.due_on < today;
               const isToday = d.due_on === today;

@@ -74,7 +74,7 @@ export default async function DuePage({ searchParams }: PageProps<"/due">) {
       {entries.length === 0 ? (
         <EmptyState icon={CalendarCheck} title="All clear" description="Nothing in this list right now." />
       ) : (
-        <ul className="grid gap-3">
+        <ul className="grid grid-cols-1 gap-3">
           {entries.map((d) => <DueRow key={d.id} d={d} canWork={canWork} clinicName={clinic?.name || "Bin Dawood Animal Hospital"} />)}
         </ul>
       )}

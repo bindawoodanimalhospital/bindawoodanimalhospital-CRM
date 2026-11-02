@@ -192,7 +192,7 @@ export function EpisodeCard({ e, print, showMoney, showPrivate, open, showPet }:
     return <section className="break-inside-avoid border-b py-3">{header}{body}</section>;
   }
   return (
-    <details open={open} className="group rounded-2xl bg-card p-4 shadow-card ring-1 ring-border open:ring-brand-muted">
+    <details open={open} className="group min-w-0 rounded-2xl bg-card p-4 shadow-card ring-1 ring-border open:ring-brand-muted">
       <summary className="cursor-pointer list-none">{header}</summary>
       {body}
       {e.visitId && (
@@ -204,7 +204,7 @@ export function EpisodeCard({ e, print, showMoney, showPrivate, open, showPet }:
 
 function Section({ title, icon: Icon, aside, link, children }: { title: string; icon?: LucideIcon; aside?: string | null; link?: { href: string; label: string }; children: React.ReactNode }) {
   return (
-    <div className="rounded-xl bg-surface p-3 ring-1 ring-border print:rounded-none print:bg-transparent print:p-0 print:ring-0">
+    <div className="min-w-0 rounded-xl bg-surface p-3 ring-1 ring-border print:rounded-none print:bg-transparent print:p-0 print:ring-0">
       <div className="mb-1.5 flex flex-wrap items-center gap-x-2">
         {Icon && <Icon className="size-4 text-brand print:hidden" />}
         <b className="text-sm">{title}</b>

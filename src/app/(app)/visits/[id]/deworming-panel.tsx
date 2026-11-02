@@ -12,6 +12,7 @@ import { ReminderPlan, type RulePlan } from "@/components/app/reminder-plan";
 import { addDaysPK, formatDate, formatDateTime, todayPK } from "@/lib/format";
 import { TRACKS, trackLabel } from "@/lib/treatments";
 import { confirmTreatment, recordDeworming, treatmentNotGiven, voidDeworming } from "./actions";
+import { VoidNote } from "./vaccines-panel";
 import { cn } from "@/lib/utils";
 
 export type DewormingRow = {
@@ -86,7 +87,7 @@ export function DewormingPanel({ visitId, petId, dob, weight, history, dewormers
   return (
     <Card className={className}>
       <CardHeader><CardTitle className="flex items-center gap-2"><Bug className="size-4" /> Deworming &amp; flea / tick</CardTitle></CardHeader>
-      <CardContent className="grid gap-4">
+      <CardContent className="grid grid-cols-1 gap-4">
         {toConfirm.length > 0 && (
           <div className="grid gap-2 rounded-2xl bg-warning-soft p-3 ring-1 ring-warning/30">
             <p className="flex items-center gap-2 text-sm font-semibold text-warning"><CircleHelp className="size-4" /> From a bill — confirm what was given</p>
@@ -171,7 +172,7 @@ export function DewormingPanel({ visitId, petId, dob, weight, history, dewormers
                   {h.tracks?.includes("external") && <StatusPill tone="neutral">{(h.tracks ?? []).map(trackLabel).join(" + ")}</StatusPill>}
                   {h.dose && <span className="text-muted-foreground">{h.dose}</span>}
                   <span className="text-xs text-muted-foreground">{h.visit_id === null ? `${formatDate(h.given_at)} · earlier` : formatDateTime(h.given_at)}</span>
-                  {h.voided_at ? <StatusPill tone="neutral">{h.void_reason?.startsWith("Not given") ? h.void_reason : `Mistake: ${h.void_reason}`}</StatusPill>
+                  {h.voided_at ? <VoidNote reason={h.void_reason} />
                     : <>
                         {h.confirmed === false && <StatusPill tone="warning">From bill — to confirm</StatusPill>}
                         {h.next_due_date && <StatusPill tone="info">Next: {formatDate(h.next_due_date)}</StatusPill>}

@@ -32,7 +32,7 @@ export function VaccineList({ vaccines, species, canEdit }: { vaccines: Vaccine[
         {canEdit && <span className="ml-auto"><VaccineDialog species={species} /></span>}
       </div>
       <p className="mb-3 text-sm text-muted-foreground">These are the vaccines doctors can record. Add a new brand when the clinic starts using it — then add it to a schedule below if it needs more doses.</p>
-      <ul className="grid gap-2 md:grid-cols-2">
+      <ul className="grid grid-cols-1 gap-2 md:grid-cols-2">
         {vaccines.map((v) => (
           <li key={v.id} className={cn("flex items-start gap-3 rounded-xl bg-surface p-3 ring-1 ring-border", !v.is_active && "opacity-60")}>
             <span className="min-w-0 flex-1">

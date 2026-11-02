@@ -40,7 +40,7 @@ export function DewormerList({ dewormers, species, items, canEdit }: { dewormers
         Doctors choose from this list when recording a deworming. <b>Internal worms</b> and <b>fleas &amp; ticks</b> have separate reminders;
         a product that does both resets both. Link each to its price-list item so a bill shows which product was billed.
       </p>
-      <ul className="grid gap-2">
+      <ul className="grid grid-cols-1 gap-2">
         {dewormers.map((d) => (
           <li key={d.id} className={cn("flex flex-wrap items-start gap-x-3 gap-y-1 rounded-xl bg-surface px-3 py-2 text-sm ring-1 ring-border", !d.is_active && "opacity-60")}>
             <span className="min-w-0 flex-1">
