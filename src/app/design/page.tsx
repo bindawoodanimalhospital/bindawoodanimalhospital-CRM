@@ -212,8 +212,9 @@ export default function DesignPage() {
               <CardContent>
                 <VaccinesPanel visitId={null} petId="demo-pet" canRecord plan={{ customer: [-3, 0, 3, 7], staff: [0, 3] }}
                   vaccines={[{ id: "v1", name: "PCHR (Biofel PCHR)", protects_against: "PCH + rabies", default_route: "SC", default_manufacturer: "Bioveta" },
-                    { id: "v2", name: "Rabies", protects_against: "Rabies", default_route: "SC", default_manufacturer: null }]}
-                  protocols={[]} due={[{ id: "d1", title: "Rabies booster", due_on: "2027-10-18", kind: "vaccination" }]}
+                    { id: "v2", name: "Rabies", protects_against: "Rabies", default_route: "SC", default_manufacturer: null },
+                    { id: "v3", name: "Biocan Novel DHPPi/L4R", protects_against: "Distemper, hepatitis, parvovirus, parainfluenza, leptospirosis (4 strains) and rabies", default_route: "SC", default_manufacturer: "Bioveta" }]}
+                  protocols={[{ id: "pr1", name: "Puppy — Biocan (Bioveta)", booster_interval_days: 365, steps: [{ step_no: 1, label: "Biocan Puppy", vaccine_id: "v3", days_after_previous: null }, { step_no: 2, label: "Biocan Puppy — dose 2", vaccine_id: "v3", days_after_previous: 21 }] }]} due={[{ id: "d1", title: "Rabies booster", due_on: "2027-10-18", kind: "vaccination" }]}
                   history={[
                     { id: "h1", vaccine_name: "PCHR (Biofel PCHR)", administered_at: "2026-10-18T07:00:00Z", batch_no: null, next_due_date: "2027-10-18", administered_by_name: "Dr. Musab Bin Dawood", voided_at: null, void_reason: null, visit_id: "x", confirmed: false },
                     { id: "h2", vaccine_name: "Rabies", administered_at: "2025-10-01T07:00:00Z", batch_no: "R-2231", next_due_date: null, administered_by_name: null, voided_at: null, void_reason: null, visit_id: null, confirmed: true },

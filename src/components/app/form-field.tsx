@@ -13,7 +13,7 @@ export function FormField({
   children: React.ReactNode;
 }) {
   return (
-    <div className={cn("grid content-start gap-1.5", className)}>
+    <div className={cn("grid min-w-0 content-start gap-1.5", className)}>
       <Label htmlFor={htmlFor}>
         {label}
         {required && <span className="text-danger">*</span>}
