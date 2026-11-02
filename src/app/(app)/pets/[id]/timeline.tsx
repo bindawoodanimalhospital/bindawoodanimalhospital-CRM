@@ -78,7 +78,7 @@ export async function PetTimeline({ petId }: { petId: string }) {
   ].sort((a, b) => b.at.localeCompare(a.at));
 
   return (
-    <Card className="lg:col-span-2">
+    <Card className="lg:col-span-3">
       <CardHeader>
         <CardTitle className="flex items-center gap-2"><History className="size-4" /> Medical history</CardTitle>
         <CardAction>
@@ -121,12 +121,12 @@ export async function PetTimeline({ petId }: { petId: string }) {
 }
 
 /** Pending vaccinations & follow-ups for this pet. */
-export async function PetDueCard({ petId }: { petId: string }) {
+export async function PetDueCard({ petId, className }: { petId: string; className?: string }) {
   const supabase = await createClient();
   const { data } = await supabase.from("due_items").select("id, title, due_on, kind").eq("pet_id", petId).eq("status", "pending").order("due_on");
   const today = todayPK();
   return (
-    <Card>
+    <Card className={className}>
       <CardHeader><CardTitle className="flex items-center gap-2"><CalendarClock className="size-4" /> Due</CardTitle></CardHeader>
       <CardContent>
         {!data?.length ? <p className="text-sm text-muted-foreground">Nothing due.</p> : (

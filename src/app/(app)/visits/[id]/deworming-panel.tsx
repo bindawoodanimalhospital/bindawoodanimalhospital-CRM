@@ -43,9 +43,9 @@ function suggestDays(dob: string | null, adult: number): { days: number; why: st
  * dewormings (before the CRM / elsewhere) so the schedule continues. Records made from a bill wait for the
  * doctor to confirm what was actually given.
  */
-export function DewormingPanel({ visitId, petId, dob, weight, history, dewormers, plan, canRecord }: {
+export function DewormingPanel({ visitId, petId, dob, weight, history, dewormers, plan, canRecord, className }: {
   visitId: string | null; petId: string; dob: string | null; weight: number | null; history: DewormingRow[];
-  dewormers: DewormerOption[]; plan: RulePlan; canRecord: boolean;
+  dewormers: DewormerOption[]; plan: RulePlan; canRecord: boolean; className?: string;
 }) {
   const [when, setWhen] = useState<"now" | "earlier">(visitId ? "now" : "earlier");
   const [givenOn, setGivenOn] = useState("");
@@ -84,7 +84,7 @@ export function DewormingPanel({ visitId, petId, dob, weight, history, dewormers
   const toConfirm = history.filter((h) => h.confirmed === false && !h.voided_at);
 
   return (
-    <Card>
+    <Card className={className}>
       <CardHeader><CardTitle className="flex items-center gap-2"><Bug className="size-4" /> Deworming &amp; flea / tick</CardTitle></CardHeader>
       <CardContent className="grid gap-4">
         {toConfirm.length > 0 && (

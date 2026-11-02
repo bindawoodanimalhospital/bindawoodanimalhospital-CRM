@@ -200,8 +200,9 @@ export default async function PetPage({ params }: PageProps<"/pets/[id]">) {
           </CardContent>
         </Card>
 
+        {(me.can("clinical.view") || me.can("crm.view")) && <PetDueCard petId={p.id} className="lg:col-span-2" />}
         {vacc && plans && (
-          <Card>
+          <Card className="lg:col-span-3">
             <CardHeader><CardTitle>Vaccinations</CardTitle></CardHeader>
             <CardContent>
               <VaccinesPanel visitId={null} petId={p.id} vaccines={vacc.vaccines} protocols={vacc.protocols} history={vacc.history}
@@ -210,12 +211,11 @@ export default async function PetPage({ params }: PageProps<"/pets/[id]">) {
           </Card>
         )}
         {showDeworming && plans && (
-          <DewormingPanel visitId={null} petId={p.id} dob={p.date_of_birth} weight={latest ? Number(latest.weight_kg) : null}
+          <DewormingPanel className="lg:col-span-3" visitId={null} petId={p.id} dob={p.date_of_birth} weight={latest ? Number(latest.weight_kg) : null}
             history={(dewormQ?.data ?? []) as DewormingRow[]} dewormers={((dewormerQ?.data ?? []) as (DewormerOption & { species_ids: string[] })[]).filter((d) => !d.species_ids.length || d.species_ids.includes(p.species_id))}
             plan={plans.deworming} canRecord={me.can("vaccinations.manage")} />
         )}
         {me.can("clinical.view") && <PetTimeline petId={p.id} />}
-        {(me.can("clinical.view") || me.can("crm.view")) && <PetDueCard petId={p.id} />}
       </div>
       <RemovalPanel state={removal} />
       <p className="mt-6 text-xs text-muted-foreground">Last updated {formatDateTime(p.updated_at)}</p>

@@ -17,6 +17,8 @@ import { MessageQueue } from "@/app/(app)/messages/queue";
 import { MoneyReport } from "@/app/(app)/reports/money";
 import { ClinicReport } from "@/app/(app)/reports/clinic";
 import { SAMPLE_FIN, SAMPLE_OPS } from "./report-samples";
+import { VaccinesPanel } from "@/app/(app)/visits/[id]/vaccines-panel";
+import { DewormingPanel } from "@/app/(app)/visits/[id]/deworming-panel";
 
 export const metadata: Metadata = { title: "Design system" };
 
@@ -196,6 +198,37 @@ export default function DesignPage() {
             <FormField label="Mobile number" hint="e.g. 0300 1234567" required><Input /></FormField>
             <FormField label="Email" error="Invalid email"><Input aria-invalid defaultValue="ahmed@" /></FormField>
           </FormSection>
+
+          {/* Pet page health sections (same layout as /pets/[id]) */}
+          <h2 className="text-lg font-semibold">Pet page — health records</h2>
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+            <Card><CardHeader><CardTitle>Identity</CardTitle></CardHeader><CardContent><dl className="grid grid-cols-2 gap-4"><Field label="Species">Cat</Field><Field label="Sex">Female</Field></dl></CardContent></Card>
+            <Card><CardHeader><CardTitle>Owners</CardTitle></CardHeader><CardContent className="text-sm">Sana Tariq · C-00087</CardContent></Card>
+            <Card><CardHeader><CardTitle>Alerts</CardTitle></CardHeader><CardContent className="text-sm text-muted-foreground">No alerts.</CardContent></Card>
+            <Card><CardHeader><CardTitle>Weight</CardTitle></CardHeader><CardContent className="text-sm">4.2 kg</CardContent></Card>
+            <Card className="lg:col-span-2"><CardHeader><CardTitle>Due</CardTitle></CardHeader><CardContent className="text-sm">Rabies booster — 18 Oct 2027</CardContent></Card>
+            <Card className="lg:col-span-3">
+              <CardHeader><CardTitle>Vaccinations</CardTitle></CardHeader>
+              <CardContent>
+                <VaccinesPanel visitId={null} petId="demo-pet" canRecord plan={{ customer: [-3, 0, 3, 7], staff: [0, 3] }}
+                  vaccines={[{ id: "v1", name: "PCHR (Biofel PCHR)", protects_against: "PCH + rabies", default_route: "SC", default_manufacturer: "Bioveta" },
+                    { id: "v2", name: "Rabies", protects_against: "Rabies", default_route: "SC", default_manufacturer: null }]}
+                  protocols={[]} due={[{ id: "d1", title: "Rabies booster", due_on: "2027-10-18", kind: "vaccination" }]}
+                  history={[
+                    { id: "h1", vaccine_name: "PCHR (Biofel PCHR)", administered_at: "2026-10-18T07:00:00Z", batch_no: null, next_due_date: "2027-10-18", administered_by_name: "Dr. Musab Bin Dawood", voided_at: null, void_reason: null, visit_id: "x", confirmed: false },
+                    { id: "h2", vaccine_name: "Rabies", administered_at: "2025-10-01T07:00:00Z", batch_no: "R-2231", next_due_date: null, administered_by_name: null, voided_at: null, void_reason: null, visit_id: null, confirmed: true },
+                  ]}
+                  billed={[{ key: "b1", vaccine_id: "v1", name: "Cat Vaccination PCH+Rabies", date: "2026-09-02", bill_no: "BD-26-000093" }]} />
+              </CardContent>
+            </Card>
+            <DewormingPanel className="lg:col-span-3" visitId={null} petId="demo-pet" dob="2025-04-21" weight={4.2} canRecord plan={{ customer: [-3, 0, 3, 7], staff: [0, 3] }}
+              dewormers={[{ id: "w1", name: "Drontal Cat", tracks: ["internal"], covers: ["roundworm", "tapeworm", "hookworm"], dose_text: "1 tablet per 4 kg", adult_interval_days: 90 },
+                { id: "w2", name: "Spot-on (fleas & ticks)", tracks: ["external"], covers: ["fleas", "ticks"], dose_text: null, adult_interval_days: 30 }]}
+              history={[
+                { id: "g1", product: "Praferan", dose: null, given_at: "2026-10-23T07:00:00Z", next_due_date: "2027-01-21", given_by: null, voided_at: null, void_reason: null, visit_id: "x", confirmed: false, tracks: ["internal"] },
+                { id: "g2", product: "Drontal Cat", dose: "1 tablet", given_at: "2026-07-10T07:00:00Z", next_due_date: null, given_by: null, voided_at: null, void_reason: null, visit_id: null, confirmed: true, tracks: ["internal"] },
+              ]} />
+          </div>
 
           <EmptyState icon={PawPrint} title="No pets yet" description="Pets are registered from the owner's profile." action={<Button><Plus /> Add pet</Button>} />
         </main>
