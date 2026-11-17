@@ -1,12 +1,13 @@
 import type { Metadata, Viewport } from "next";
-import { Geist_Mono, Plus_Jakarta_Sans } from "next/font/google";
+import localFont from "next/font/local";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import "./globals.css";
 
 // Plus Jakarta Sans: friendly geometric sans that matches the logo wordmark and stays readable at small sizes.
-const sans = Plus_Jakarta_Sans({ variable: "--font-sans", subsets: ["latin"], weight: ["400", "500", "600", "700", "800"] });
-const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"] });
+// Font files ship with the app (./fonts, SIL Open Font License) so it never needs the internet to fetch them.
+const sans = localFont({ src: "./fonts/plus-jakarta-sans.woff2", variable: "--font-sans", weight: "200 800", display: "swap" });
+const geistMono = localFont({ src: "./fonts/geist-mono.woff2", variable: "--font-geist-mono", weight: "100 900", display: "swap" });
 
 export const metadata: Metadata = {
   title: { default: "Bin Dawood Animal Hospital", template: "%s · Bin Dawood Animal Hospital" },
