@@ -70,6 +70,12 @@ and schema never drift apart. When a staging environment is added, a `develop` b
 Light theme only — black & white with a pinch of burgundy. See [docs/DESIGN.md](docs/DESIGN.md) and the live
 style guide at `/design` (dev only).
 
+## Running it on the clinic computer
+
+Open the **`Run CRM`** folder and double-click **`Run CRM.bat`**. It frees port 3000 (closing whatever else
+was using it), builds the app the first time, starts the production server and opens http://localhost:3000.
+**`Update CRM.bat`** pulls the latest version and rebuilds it. `Run CRM/Read me.txt` has the staff steps.
+
 ## Getting started
 
 ```bash
@@ -95,8 +101,11 @@ Add all other staff from **Staff → Add staff** inside the app.
 ## Project layout
 
 ```
+Run CRM/                 one-click start / update for the clinic computer
 supabase/migrations/     SQL migrations — schema, RLS, functions, seed data
-scripts/                 migrate, create-owner, SQL test runner
+scripts/                 migrate, create-owner, SQL runner, test-all
+scripts/sql/tests/       database safety tests (each rolls itself back), run by `npm run db:test`
+docs/                    design notes, plans, brand references, user guide (HTML + PDF)
 src/proxy.ts             session refresh + redirect to /login (Next 16 "proxy", formerly middleware)
 src/lib/                 auth (current staff + permissions), supabase clients, phone/PKR/date helpers, validation
 src/components/ui/       shadcn/ui components

@@ -1,0 +1,18 @@
+BIN DAWOOD ANIMAL HOSPITAL CRM - HOW TO RUN IT ON THIS COMPUTER
+
+Every morning
+  1. Double-click "Run CRM".
+  2. A black window opens and the browser opens the CRM at http://localhost:3000
+  3. Keep the black window open all day. Closing it stops the CRM.
+
+  If another program was using port 3000, "Run CRM" closes it so the CRM can use it.
+
+When OBD tells you there is a new version
+  1. Close the "Run CRM" black window.
+  2. Double-click "Update CRM" and wait until it says "Update finished".
+  3. Double-click "Run CRM".
+
+Something went wrong?
+  Take a photo of the black window and send it to OBD: +92 337 8624781
+
+Tip: right-click "Run CRM" > Send to > Desktop (create shortcut) to start it from the desktop.
