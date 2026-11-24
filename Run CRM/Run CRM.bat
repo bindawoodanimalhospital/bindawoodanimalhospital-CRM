@@ -16,6 +16,8 @@ if not exist node_modules (
 
 if not exist .next\BUILD_ID (
   echo Preparing the CRM, this takes a few minutes the first time...
+  rem The developer cache (.next\dev) is not needed here and can break the build if left half-written.
+  if exist .next\dev rmdir /s /q .next\dev
   call npm run build || (echo Preparing failed. Send a photo of this window to OBD. & pause & exit /b 1)
 )
 

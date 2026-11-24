@@ -11,6 +11,8 @@ echo Installing...
 call npm install || (echo Install failed. Check the internet and try again. & pause & exit /b 1)
 
 echo Preparing the CRM, this takes a few minutes...
+rem Start from a clean build folder, so no leftover or half-written files can break the build.
+if exist .next rmdir /s /q .next
 call npm run build || (echo Preparing failed. Send a photo of this window to OBD. & pause & exit /b 1)
 
 echo.
