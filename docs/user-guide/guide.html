@@ -103,7 +103,7 @@
     <div class="sub">Every feature of the CRM, the full flow of every job from the front desk to the ward, the pet store, stock and the owner's reports — with step-by-step walkthroughs of real clinic situations.</div>
     <div class="meta">
       <div><b>Open the CRM</b><a href="https://bdah-crm.bindawoodanimalhospital.workers.dev">bdah-crm.bindawoodanimalhospital.workers.dev</a></div>
-      <div><b>Edition</b>November 2026 · 3rd edition</div>
+      <div><b>Edition</b>November 2026 · 4th edition</div>
       <div><b>Prepared by</b><a href="https://omerbindawood.github.io/Portfolio-Website/">OBD</a></div>
     </div>
     <div class="obd">AI softwares by <a href="https://omerbindawood.github.io/Portfolio-Website/">OBD</a> · +92 337 8624781 · <a href="https://omerbindawood.github.io/Portfolio-Website/">omerbindawood.github.io/Portfolio-Website</a></div>
@@ -288,8 +288,9 @@
   <h3><span class="role">Doctor</span> 4 · Examine and treat</h3>
   <ol class="steps">
     <li>On the queue press <b>Call in</b> on Moti's card (it moves to <b>With doctor</b>), then <b>Open visit</b>. Red alerts (allergies) show at the top.</li>
-    <li><span class="ui">Consultation</span> tab: complaint, history, vitals (temperature, heart rate, breathing, weight, mucous membranes, CRT, hydration, body condition, pain), examination, diagnosis (mark one <i>primary</i>), treatment and medicines given in the clinic. It saves as you type.</li>
-    <li>Tests needed? <span class="ui">Tests</span> tab → order blood work / X-ray; press <b>Tests</b> on the queue card to move it to <b>In treatment</b> while waiting, and <b>Treatment done</b> when finished. Enter the results later.</li>
+    <li>Is this part of an ongoing illness? Under the pet's name, <b>Problem</b> → pick it, or <b>New problem…</b> (e.g. <i>Diarrhea</i>). All visits for the same illness are then kept together and can be printed or shared as one record.</li>
+    <li><span class="ui">Consultation</span> tab: complaint, history, vitals (temperature in <b>°C or °F</b> — the other is shown beside it, heart rate, breathing, weight, mucous membranes, CRT, hydration, body condition, pain, pulse, mentation), examination, diagnosis (mark one <i>primary</i>; others stay <i>provisional</i> until confirmed), prognosis, treatment and medicines given in the clinic. It saves as you type.</li>
+    <li>Tests needed? <span class="ui">Tests</span> tab → order blood work / X-ray; press <b>Tests</b> on the queue card to move it to <b>In treatment</b> while waiting, and <b>Treatment done</b> when finished. Enter the results later — normal ranges for dogs and cats are already filled in, and high or low values are flagged as you type.</li>
     <li><span class="ui">Prescriptions</span> tab: each medicine with strength, dose, frequency, days, route, quantity and instructions → <span class="btn">Issue prescription</span> → print it for the owner.</li>
     <li>Follow-up needed? Set the follow-up date in the consultation — a reminder is created automatically.</li>
     <li>Press <span class="btn">Finalize</span> on the consultation, then <b>Done with doctor</b> on the queue card — it moves to <b>Ready to pay</b>.</li>
@@ -514,6 +515,7 @@
     <li><b>Weight</b> — add weights; the change since last time is shown.</li>
     <li><b>Owners</b> — <b>Add another owner</b>, or make someone primary (the primary owner gets reminders and bills).</li>
     <li><b>Timeline &amp; due</b> — a summary of visits and what is due; <span class="btn">Full medical history</span> shows everything (chapter 20).</li>
+    <li><b>Owner's medical record</b> (clinical staff) — <b>Print / PDF</b> or <span class="btn">Share link</span> for the owner, the pet's <b>Problems</b> with their own Print and Share, <b>Mark resolved</b> / <b>Reopen</b>, and the links that still open (chapter 20).</li>
   </ul>
   <h3>Duplicates and merging</h3>
   <p>If the same person was registered twice, the owner opens the record to remove → <b>Merge</b> → searches the record to keep → confirms with a reason. Pets, visits, bills, payments, messages and tasks all move to the kept record; nothing is lost.</p>
@@ -555,11 +557,22 @@
   <p>The top shows pet, owner, token, status, service location (clinic / home visit with <b>Change</b>) and any <b>allergy alert</b>. Buttons: <span class="btn">Bill this visit</span>, <b>Plan surgery</b>, <span class="btn">Admit to ward</span>, <b>Full history</b>. Tabs:</p>
   <table>
     <tr><th style="width:24%">Tab</th><th>Contents and rules</th></tr>
-    <tr><td><b>Consultation</b></td><td>Complaint, history, vitals, examination, diagnoses (one primary), treatment, medicines given in clinic, follow-up date, doctor's private notes (never printed). Saves as you type. <b>Finalize</b> locks it; to correct, a senior doctor uses <b>Reopen to correct</b> with a reason — every version is kept.</td></tr>
-    <tr><td><b>Prescriptions</b></td><td>Medicines with strength, dose, frequency, duration, route, quantity, instructions and advice → <span class="btn">Issue prescription</span> → print. Issued = locked; to change, cancel and issue a new one.</td></tr>
+    <tr><td><b>Consultation</b></td><td>Complaint, history, vitals (temperature in °C or °F — the choice is remembered on that device; pulse quality; mentation), examination, diagnoses (one primary; provisional or confirmed), prognosis, treatment, medicines given in clinic, follow-up date, doctor's private notes (never printed or shared). Saves as you type. <b>Finalize</b> locks it; to correct, a senior doctor uses <b>Reopen to correct</b> with a reason — every version is kept.</td></tr>
+    <tr><td><b>Prescriptions</b></td><td>Medicines with strength, dose, frequency, duration, route, quantity, instructions and advice → <span class="btn">Issue prescription</span> → print. Short forms are spelled out for the owner: <b>OD</b> once a day, <b>BD</b> twice a day, <b>TDS</b> three times a day, <b>QID</b> four times a day, <b>EOD</b> every other day, <b>SOS</b> when needed. Issued = locked; to change, cancel and issue a new one.</td></tr>
     <tr><td><b>Vaccines &amp; deworming</b></td><td>Vaccine with batch, dose, route, site and next dose (from the approved schedule) with the <b>What happens next</b> plan; void with a reason if wrong; <b>Vaccination card</b> print. Deworming with product, dose, weight and next date (age-based suggestion); <b>Entered by mistake</b> to undo.</td></tr>
-    <tr><td><b>Tests</b></td><td>Order with reason and urgency → enter results (findings, values, impression) → <b>Save result</b> → senior doctor reviews. Pending and unreviewed tests appear in the Alert centre.</td></tr>
+    <tr><td><b>Tests</b></td><td>Order with reason and urgency → enter results (findings, values, impression) → <b>Save result</b> → <b>Mark reviewed</b>, which locks the result. Pending and unreviewed tests appear in the Alert centre.</td></tr>
   </table>
+  <h3>Problems — one illness, many visits</h3>
+  <p>A <b>problem</b> is a case file for one illness, e.g. <i>Diarrhea</i> or <i>Skin allergy</i>. On the visit, <b>Problem</b> (under the pet's name) links the visit to an open problem, starts a <b>New problem…</b>, or sets it back to <b>Not linked to a problem</b>. On the pet page each problem shows its visits and can be printed or shared on its own; <b>Mark resolved</b> when the pet is better (a resolved problem can be <b>Reopen</b>ed if it comes back).</p>
+  <h3>Lab results with normal ranges</h3>
+  <ol class="steps">
+    <li><span class="ui">Tests</span> tab → order <b>CBC</b> or <b>Blood chemistry (LFT / RFT)</b>. The result table is grouped (red cells, white cells, platelets; liver, kidney, electrolytes…) with units.</li>
+    <li>The <b>Normal range</b> column is filled in for dogs or cats. If the lab's report gives a different range, type it over (e.g. <code>14 - 18</code>, <code>&lt; 1</code>).</li>
+    <li>Type each value. A red <b>H</b> (high) or <b>L</b> (low) appears straight away. Words such as <i>clumped</i> are fine — they are shown without a flag. Add a short <b>comment</b> on any line (e.g. <i>Mild anaemia</i>).</li>
+    <li>Sent to an outside lab? Fill <b>Outside lab</b> and the <b>Lab case / report no.</b>, and attach the lab's report or images.</li>
+    <li><b>Save result</b>, then <b>Mark reviewed</b>. Reviewed results are locked — nobody can change them afterwards.</li>
+  </ol>
+  <div class="box tip"><b class="t">Trends for the owner</b>When the same test was done before, the owner's record shows the earlier value and whether it went up or down.</div>
   <h3>Vaccines available</h3>
   <p>Includes the <b>Bioveta range</b>: Biofel PCH, Biofel PCHR (cats), Biocan Puppy, Biocan Novel DHPPi/L4, DHPPi/L4R, Biocan R (rabies), Biocan M (ringworm), plus the clinic's existing vaccines. Owner / senior doctor add more in <span class="ui">Vaccines &amp; schedules</span>.</p>
 </section>
@@ -685,6 +698,16 @@
   <p>Pet page → <span class="btn">Full medical history</span>. Every episode newest first — visits, vaccinations, dewormings, surgeries, ward stays and bills. Opening one shows who brought the pet, doctor, check-in, timeline; consultation; prescriptions (who prescribed); vaccines and deworming (batch, who gave, next due); tests (ordered/entered/reviewed by); surgery team; every ward dose and by whom; and the bill. The summary on top: visits, first/last seen, vaccinations, surgeries, stays, billed and owed, doctors and every medicine ever given. Filter by type, doctor or year, or search inside.</p>
   <h3>An owner's full history — all pets</h3>
   <p>Owner page → <b>Full history — all pets</b>: one family timeline with every pet's visits in full, appointments (including missed), payments and refunds (who received them), and every call or message with its outcome.</p>
+  <h3>The owner's medical record — print it or share a link</h3>
+  <p>A clean, branded record written for the pet's owner: the pet's details and alerts, problems, and every finalized visit with vitals, history, examination, diagnosis, prognosis, the doctor's advice, prescriptions, tests advised and lab reports (with normal ranges, H/L flags and trends), plus vaccinations, deworming and weight. <b>Never included:</b> bills and money, doctors' private notes, phone numbers, cancelled items, and notes that are still drafts.</p>
+  <ol class="steps">
+    <li>Pet page → <b>Owner's medical record</b>. For the whole record use <b>Print / PDF</b> or <span class="btn">Share link</span> at the top; for one illness use <b>Print</b> or <b>Share</b> on that problem.</li>
+    <li><b>Print / PDF</b> opens the record on A4 → <b>Print</b> → choose the printer, or <i>Save as PDF</i> to send the file.</li>
+    <li><span class="btn">Share link</span> → <b>Make the link</b> → <span class="btn">Send on WhatsApp</span> (opens WhatsApp with a ready message — pick the owner) or <b>Copy</b>. The owner opens it on their phone: no app, no sign-in.</li>
+    <li>The link is shown <b>only once</b>. It works for <b>30 days</b>. Under <b>Links that still open</b> you see when each was made, until when it opens, and how many times the owner opened it.</li>
+    <li>Sent to the wrong number, or no longer wanted? <b>Cancel link</b> — it stops opening immediately and the owner sees "This link was cancelled by the clinic".</li>
+  </ol>
+  <div class="box note"><b class="t">Finalize first</b>Only finalized consultations appear. If a visit is still a draft, the record card warns you — finalize it before sharing.</div>
   <h3>Everything you can print</h3>
   <table>
     <tr><th style="width:32%">Print</th><th>From</th></tr>
@@ -695,8 +718,9 @@
     <tr><td>Discharge sheet (surgery / ward)</td><td>Surgery or ward stay → discharge</td></tr>
     <tr><td>Account statement</td><td>Owner → Account &amp; statement</td></tr>
     <tr><td>Full pet / owner history</td><td>The history pages → Print full history</td></tr>
+    <tr><td>Owner's medical record (whole, or one problem)</td><td>Pet page → Owner's medical record → Print / PDF</td></tr>
   </table>
-  <p class="muted">Prints use the clinic letterhead from Settings. Doctors' private notes are never printed. Phone numbers appear on prints only when the owner prints them.</p>
+  <p class="muted">Every A4 print carries the clinic logo and colours, the address and number from Settings, and the document title on a coloured bar. Doctors' private notes are never printed. Phone numbers appear on prints only when the owner prints them.</p>
 </section>
 
 <!-- ============================== 21 ============================== -->
@@ -777,6 +801,8 @@
     <tr><td><b>Stock never goes wrong silently</b></td><td>Every movement is recorded; cancellations and returns put stock back automatically.</td></tr>
     <tr><td><b>One visit per pet per day</b></td><td>No duplicate tokens or bills.</td></tr>
     <tr><td><b>Pakistan time everywhere</b></td><td>Dates, tokens and "today" follow Pakistan time whatever the device clock says.</td></tr>
+    <tr><td><b>Private record links</b></td><td>Each shared link is a long random code that can't be guessed; the clinic stores only a scrambled copy. Links expire after 30 days, can be cancelled any time, are hidden from search engines, and never show bills, private notes or phone numbers. Only staff allowed to see medical records can make them.</td></tr>
+    <tr><td><b>Locked lab results</b></td><td>Once a result is marked reviewed, its values, ranges and lab details can't be changed.</td></tr>
     <tr><td><b>Permanent activity log</b></td><td>Everything recorded, nothing editable.</td></tr>
     <tr><td><b>Secure hosting</b></td><td>Encrypted (https) on Cloudflare; data in Supabase with database-level security rules.</td></tr>
   </table>
@@ -800,6 +826,10 @@
     <tr><td>How do I delete an item?</td><td>Never used → <b>Delete</b> on its page. Already used → Edit → untick <b>Active</b> (hidden from billing and the pet store, history kept). Damaged or expired stock → <b>Adjust</b> the batch.</td></tr>
     <tr><td>The stock number is wrong.</td><td><b>Shelf count</b> or <b>Set the count</b> on the product.</td></tr>
     <tr><td>The client wants everything on paper.</td><td>Full medical history → Print, or Account &amp; statement → Statement.</td></tr>
+    <tr><td>The owner wants the reports on their phone.</td><td>Pet page → Owner's medical record → <b>Share link</b> → Send on WhatsApp.</td></tr>
+    <tr><td>The owner lost the link, or it expired.</td><td>Make a new one — the old link can't be shown again.</td></tr>
+    <tr><td>I sent the link to the wrong person.</td><td>Pet page → Links that still open → <b>Cancel link</b>, then make a new one.</td></tr>
+    <tr><td>A visit is missing from the shared record.</td><td>Its consultation is still a draft — finalize it. Or it is linked to a different problem.</td></tr>
     <tr><td>"Error 1102" from Cloudflare.</td><td>The free hosting limit was hit on a heavy page. Refresh once; if it repeats, tell the owner (the $5/month Workers plan removes it).</td></tr>
     <tr><td>"Your account isn't active yet".</td><td>The owner hasn't activated your account in Staff.</td></tr>
     <tr><td>Someone left the clinic.</td><td>Staff → their profile → <b>Deactivate</b>.</td></tr>
@@ -811,6 +841,9 @@
     <tr><td>Token</td><td>Today's number for a pet in the queue; restarts daily.</td></tr>
     <tr><td>Visit</td><td>One pet's attendance on one day, holding all clinical work.</td></tr>
     <tr><td>Finalize</td><td>Lock a consultation as complete.</td></tr>
+    <tr><td>Problem</td><td>A case file for one illness, holding all its visits.</td></tr>
+    <tr><td>Share link</td><td>A private 30-day web link to the owner's medical record.</td></tr>
+    <tr><td>H / L</td><td>A lab value higher / lower than the normal range.</td></tr>
     <tr><td>Due item</td><td>A vaccine, deworming or follow-up the pet should come back for.</td></tr>
     <tr><td>Schedule (protocol)</td><td>A vaccine course: which doses and the gaps between them.</td></tr>
     <tr><td>Pay later / unpaid bill</td><td>Money still owed on an issued bill, with a promised date.</td></tr>
