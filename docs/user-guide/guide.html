@@ -5,7 +5,11 @@
 <title>Bin Dawood Animal Hospital CRM — User Guide</title>
 <style>
   @page { size: A4; margin: 16mm 15mm 18mm; }
-  @page :first { margin: 0; }
+  @page :first { margin: 0; @bottom-left { content: none; } @bottom-right { content: none; } }
+  @page { @bottom-left { content: "AI softwares by OBD  ·  +92 337 8624781  ·  omerbindawood.github.io/Portfolio-Website"; font-family: "Segoe UI", Arial, sans-serif; font-size: 7.5pt; color: #8a8183; }
+          @bottom-right { content: "Page " counter(page) " of " counter(pages); font-family: "Segoe UI", Arial, sans-serif; font-size: 7.5pt; color: #8a8183; } }
+  .cover .obd { margin-top: 6mm; font-size: 9.5pt; color: #e9d3d8; letter-spacing: .02em; }
+  .cover .obd a { color: #fff; font-weight: 600; }
   :root { --brand:#8a1f35; --brand2:#5a1222; --soft:#f8eef0; --ink:#1f1a1b; --muted:#6b6264; --line:#eadfe1; --ok:#1f7a4d; --okbg:#e8f5ee; --warn:#9a5b00; --warnbg:#fff4e0; --info:#1d5fa0; --infobg:#e8f1fb; }
   * { box-sizing: border-box; }
   html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -99,9 +103,10 @@
     <div class="sub">Every feature of the CRM, the full flow of every job from the front desk to the ward, the pet store, stock and the owner's reports — with step-by-step walkthroughs of real clinic situations.</div>
     <div class="meta">
       <div><b>Open the CRM</b><a href="https://bdah-crm.bindawoodanimalhospital.workers.dev">bdah-crm.bindawoodanimalhospital.workers.dev</a></div>
-      <div><b>Edition</b>October 2026 · 2nd edition</div>
+      <div><b>Edition</b>November 2026 · 3rd edition</div>
       <div><b>Prepared by</b><a href="https://omerbindawood.github.io/Portfolio-Website/">OBD</a></div>
     </div>
+    <div class="obd">AI softwares by <a href="https://omerbindawood.github.io/Portfolio-Website/">OBD</a> · +92 337 8624781 · <a href="https://omerbindawood.github.io/Portfolio-Website/">omerbindawood.github.io/Portfolio-Website</a></div>
   </div>
 </section>
 
@@ -152,6 +157,14 @@
   <p>The CRM is a website. Open it in Chrome, Edge or Safari on any computer, tablet or phone:</p>
   <p style="font-size:13pt"><a href="https://bdah-crm.bindawoodanimalhospital.workers.dev"><b>bdah-crm.bindawoodanimalhospital.workers.dev</b></a></p>
   <div class="box tip"><b class="t">Make it one tap away</b>On the reception computer, bookmark the address. On a phone, open it and choose <i>Add to Home screen</i>; it then opens like an app. Everything works on a phone, including the queue, the pet store and the ward chart.</div>
+  <h3>Running it on the clinic computer</h3>
+  <p>The clinic laptop can also run its own copy of the CRM, using the same data. Open the project folder → <b>Run CRM</b> folder:</p>
+  <table>
+    <tr><th style="width:26%">File</th><th>What it does</th></tr>
+    <tr><td><b>Run CRM</b></td><td>Double-click every morning. A black window opens and the browser opens the CRM at <b>localhost:3000</b>. If another program was using that address, it is closed first so the CRM always gets it. <b>Keep the black window open all day</b> — closing it stops the CRM.</td></tr>
+    <tr><td><b>Update CRM</b></td><td>When OBD tells you there is a new version: close the Run CRM window, double-click Update CRM, wait for <i>Update finished</i>, then Run CRM again.</td></tr>
+  </table>
+  <div class="box note"><b class="t">Website or clinic computer — same records</b>Both read and save to the same database, so a bill made on the laptop shows on a phone straight away. If something goes wrong, take a photo of the black window and send it to <a href="https://omerbindawood.github.io/Portfolio-Website/"><b>OBD</b></a> on WhatsApp: <b>+92 337 8624781</b>.</div>
   <h3>Signing in and out</h3>
   <ol class="steps">
     <li>Type the email and password the owner gave you, then press <span class="btn">Sign in</span>.</li>
@@ -211,6 +224,7 @@
 <!-- ============================== 3 ============================== -->
 <section class="chapter">
   <div class="chapter-head"><div class="num">3</div><div><h2>Finding your way around</h2><p>The menu, the Home page, the smart search and the bell.</p></div></div>
+  <div class="box tip"><b class="t">The grey placeholder is normal</b>When you open a page, the menu stays put and a grey outline of the page shows for a moment while its records load. You can already click elsewhere if you change your mind.</div>
   <h3>The menu (left side; ☰ on a phone)</h3>
   <table>
     <tr><th style="width:24%">Section</th><th>Pages</th></tr>
@@ -578,6 +592,15 @@
     <li><b>Checkout</b> — one or several payment methods; pay later for the rest. A double tap or lost internet never records a payment twice.</li>
     <li><b>Issued</b> — locked. Print the bill or receipt. <span class="btn">Receive payment</span> for later payments.</li>
   </ul>
+  <h3>What the receipt shows</h3>
+  <p>The small (80 mm) pet store and payment receipt is laid out for the customer:</p>
+  <ul>
+    <li><b>Header</b> — clinic logo, name, address and the one clinic number; then <b>RECEIPT</b> with the bill number, date and time.</li>
+    <li><b>Customer box</b> — customer name and code (or the walk-in name), the pet and its species, and who served them.</li>
+    <li><b>Items and total</b> — each line with quantity and price, the subtotal and a large <b>TOTAL</b>; then each payment with its method, and any balance, promised date or previous balance.</li>
+    <li><b>Next for the pet</b> — the pet's next vaccine or deworming date, so the customer knows when to come back.</li>
+    <li><b>Thank-you</b> — a short thank-you with the pet's name, and a small "AI softwares by OBD" line at the bottom.</li>
+  </ul>
   <h3>Corrections — never delete, always explain</h3>
   <table>
     <tr><th style="width:22%">Action</th><th>When</th><th>What happens</th></tr>
@@ -809,8 +832,8 @@
     <h2>Bin Dawood Animal Hospital</h2>
     <p class="muted">By Dr. Musab Bin Dawood · Lahore · Tel / WhatsApp 0333 1606689</p>
     <p style="margin-top:6mm"><a href="https://bdah-crm.bindawoodanimalhospital.workers.dev"><b>bdah-crm.bindawoodanimalhospital.workers.dev</b></a></p>
-    <p class="footer-credit">Designed, developed and documented by <a href="https://omerbindawood.github.io/Portfolio-Website/"><b>OBD</b></a><br>
-      <a href="https://omerbindawood.github.io/Portfolio-Website/">omerbindawood.github.io/Portfolio-Website</a></p>
+    <p class="footer-credit">AI softwares by <a href="https://omerbindawood.github.io/Portfolio-Website/"><b>OBD</b></a> — designed, developed and documented by OBD<br>
+      <a href="https://omerbindawood.github.io/Portfolio-Website/">omerbindawood.github.io/Portfolio-Website</a> · WhatsApp / call +92 337 8624781</p>
   </div>
 </section>
 
