@@ -37,6 +37,7 @@ const consultationPatch = z.object({
   temperature_c: num(25, 45), heart_rate: num(10, 400), resp_rate: num(2, 200), weight_kg: num(0.001, 1999),
   mucous_membranes: text, crt_seconds: num(0, 10), hydration: text,
   body_condition_score: num(1, 9), pain_score: num(0, 10),
+  pulse_quality: text, mentation: text, prognosis: text,
   exam: z.record(z.string().max(100), z.string().max(2000)).optional(),
   observations: text, assessment: text, treatment: text, medicines_administered: text,
   follow_up_plan: text,
@@ -45,6 +46,18 @@ const consultationPatch = z.object({
 }).partial();
 
 export type ConsultationPatch = z.input<typeof consultationPatch>;
+
+/** Link the visit to a problem (case): an existing one, a new one by title, or none. */
+export async function setVisitProblem(visitId: string, problemId: string | null, newTitle: string | null): Promise<FormState> {
+  await assertCan("clinical.create");
+  const title = newTitle?.trim() || null;
+  if (title && (title.length < 2 || title.length > 120)) return { message: "Give the problem a short name (2–120 letters)." };
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("set_visit_problem", { p_visit: visitId, p_problem: title ? null : problemId, p_new_title: title });
+  if (error) return { message: dbErrorMessage(error) };
+  refresh(visitId);
+  return { ok: true, message: title ? `Problem “${title}” started.` : problemId ? "Visit linked to the problem." : "Visit unlinked." };
+}
 
 /** Autosave for drafts. RLS + the lock trigger reject writes to finalized records. */
 export async function saveConsultation(id: string, patch: ConsultationPatch): Promise<FormState> {
@@ -251,13 +264,21 @@ export async function orderDiagnostic(visitId: string, petId: string, consultati
 
 export async function saveDiagnosticResult(visitId: string, id: string, input: {
   findings: string; impression: string; result_values: Record<string, string>; status: "in_progress" | "resulted" | "reviewed";
+  result_meta?: Record<string, { range?: string; comment?: string }>; external_lab?: string; external_ref?: string;
 }): Promise<FormState> {
   await assertCan("diagnostics.manage");
   const supabase = await createClient();
-  const values = Object.fromEntries(Object.entries(input.result_values).filter(([, v]) => v.trim()).map(([k, v]) => [k, v.trim()]));
+  const clip = (v: string | undefined, max: number) => (v ?? "").trim().slice(0, max);
+  const values = Object.fromEntries(Object.entries(input.result_values).filter(([, v]) => v.trim()).map(([k, v]) => [k, clip(v, 60)]));
+  // Range and comment per value, kept only where there is something to keep.
+  const meta = Object.fromEntries(Object.entries(input.result_meta ?? {}).map(([k, m]) => {
+    const kept = { range: clip(m.range, 40) || undefined, comment: clip(m.comment, 200) || undefined };
+    return [k, kept] as const;
+  }).filter(([, m]) => m.range || m.comment));
   const { error } = await supabase.from("diagnostic_orders").update({
     findings: input.findings.trim() || null, impression: input.impression.trim() || null,
-    result_values: values, status: input.status,
+    result_values: values, result_meta: meta, status: input.status,
+    external_lab: clip(input.external_lab, 120) || null, external_ref: clip(input.external_ref, 60) || null,
   }).eq("id", id);
   if (error) return { message: dbErrorMessage(error) };
   refresh(visitId);

@@ -20,6 +20,7 @@ import { DewormingPanel, type DewormerOption, type DewormingRow } from "../../vi
 import { reminderPlans } from "@/lib/queries";
 import { VaccinesPanel } from "../../visits/[id]/vaccines-panel";
 import { petVaccineData } from "@/lib/vaccine-data";
+import { RecordCard, type ProblemRow, type ShareRow } from "./record-card";
 
 export async function generateMetadata({ params }: PageProps<"/pets/[id]">): Promise<Metadata> {
   const { id } = await params;
@@ -37,7 +38,8 @@ export default async function PetPage({ params }: PageProps<"/pets/[id]">) {
 
   // Everything the page needs in one parallel round of queries (each section used to wait for the one before).
   const showDeworming = me.can("clinical.view") || me.can("vaccinations.manage");
-  const [{ data: p }, { data: weights }, { data: alerts }, removalBase, dewormQ, dewormerQ, plans, vacc] = await Promise.all([
+  const showRecord = me.can("clinical.view");
+  const [{ data: p }, { data: weights }, { data: alerts }, removalBase, dewormQ, dewormerQ, plans, vacc, problemsQ, sharesQ, draftsQ] = await Promise.all([
     supabase.from("pets")
       .select(`*, species(name), breeds(name),
         pet_owners(is_primary, relationship, customers(id, code, full_name, customer_contacts(phone, whatsapp)))`)
@@ -52,6 +54,12 @@ export default async function PetPage({ params }: PageProps<"/pets/[id]">) {
     showDeworming ? supabase.from("dewormers").select("id, name, tracks, covers, dose_text, adult_interval_days, species_ids").eq("is_active", true).order("sort_order").order("name") : null,
     showDeworming ? reminderPlans() : null,
     showDeworming ? petVaccineData(id) : null,
+    // Owner's medical record: problems, links that still open, and how many visits' notes are still drafts.
+    showRecord ? supabase.from("pet_problems").select("id, title, status, opened_at, resolved_at, visits(count)").eq("pet_id", id)
+      .order("status").order("opened_at", { ascending: false }) : null,
+    showRecord ? supabase.from("record_shares").select("id, problem_id, created_at, expires_at, views, last_viewed_at, creator:created_by(full_name)")
+      .eq("pet_id", id).is("revoked_at", null).gt("expires_at", new Date().toISOString()).order("created_at", { ascending: false }) : null,
+    showRecord ? supabase.from("consultations").select("visit_id").eq("pet_id", id).eq("status", "draft") : null,
   ]);
   if (!p) notFound();
 
@@ -214,6 +222,15 @@ export default async function PetPage({ params }: PageProps<"/pets/[id]">) {
           <DewormingPanel className="lg:col-span-3" visitId={null} petId={p.id} dob={p.date_of_birth} weight={latest ? Number(latest.weight_kg) : null}
             history={(dewormQ?.data ?? []) as DewormingRow[]} dewormers={((dewormerQ?.data ?? []) as (DewormerOption & { species_ids: string[] })[]).filter((d) => !d.species_ids.length || d.species_ids.includes(p.species_id))}
             plan={plans.deworming} canRecord={me.can("vaccinations.manage")} />
+        )}
+        {showRecord && (
+          <RecordCard className="lg:col-span-3" petId={p.id} petName={p.name} canEdit={me.can("clinical.create")}
+            ownerWhatsapp={me.can("customers.contact") ? owners[0]?.customers.whatsapp ?? owners[0]?.customers.phone ?? null : null}
+            problems={((problemsQ?.data ?? []) as unknown as (Omit<ProblemRow, "visits"> & { visits: { count: number }[] })[])
+              .map((pr) => ({ ...pr, visits: pr.visits?.[0]?.count ?? 0 }))}
+            shares={((sharesQ?.data ?? []) as unknown as (Omit<ShareRow, "created_by_name"> & { creator: { full_name: string } | null })[])
+              .map(({ creator, ...sh }) => ({ ...sh, created_by_name: creator?.full_name ?? null }))}
+            draftNotes={new Set((draftsQ?.data ?? []).map((d) => d.visit_id)).size} />
         )}
         {me.can("clinical.view") && <PetTimeline petId={p.id} />}
       </div>

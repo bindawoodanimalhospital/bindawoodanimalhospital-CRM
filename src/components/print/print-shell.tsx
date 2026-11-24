@@ -1,36 +1,47 @@
+import { Mail, MapPin, Phone } from "lucide-react";
 import { LogoMark } from "@/components/brand/logo";
 import { formatPhone } from "@/lib/phone";
 import { PrintButton } from "./print-button";
 
 export type ClinicProfile = Partial<Record<"name" | "tagline" | "address" | "city" | "phone" | "whatsapp" | "email" | "website", string>>;
 
-/** A4 page with the clinic letterhead. Screen shows a print button; print hides it. */
-export function PrintShell({ clinic, title, children, footer }: {
-  clinic: ClinicProfile; title: string; children: React.ReactNode; footer?: React.ReactNode;
+/**
+ * A4 page with the clinic letterhead, in the clinic's own logo and burgundy colours: a brand band, the logo on a
+ * tile, name and byline, contact details, and the document title on a brand bar. Screen shows a print button; print
+ * hides it. Colours print as shown (print-color-adjust), so a saved PDF looks like the screen.
+ */
+export function PrintShell({ clinic, title, meta, children, footer }: {
+  clinic: ClinicProfile; title: string; meta?: React.ReactNode; children: React.ReactNode; footer?: React.ReactNode;
 }) {
-  const contact = [clinic.address, clinic.city].filter(Boolean).join(", ");
+  const place = [clinic.address, clinic.city].filter(Boolean).join(", ");
   // One clinic number everywhere: when phone and WhatsApp are the same, show it once.
   const tel = formatPhone(clinic.phone), wa = formatPhone(clinic.whatsapp);
-  const phones = tel && wa && tel === wa ? `Tel / WhatsApp ${tel}`
-    : [tel && `Tel ${tel}`, wa && `WhatsApp ${wa}`].filter(Boolean).join(" · ");
+  const phones = tel && wa && tel === wa ? `${tel} (call / WhatsApp)` : [tel, wa && `WhatsApp ${wa}`].filter(Boolean).join(" · ");
   return (
     <div className="min-h-svh bg-muted py-8 print:bg-white print:py-0">
       <div className="no-print mx-auto mb-4 flex max-w-[210mm] justify-end px-4"><PrintButton /></div>
-      <article className="mx-auto flex min-h-[297mm] max-w-[210mm] flex-col bg-white p-5 sm:p-[14mm] text-[13px] leading-relaxed text-ink shadow-float print:min-h-0 print:p-[10mm] print:shadow-none">
-        <header className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b-2 border-brand pb-4 print:flex-nowrap">
-          <LogoMark tone="ink" className="w-14" priority />
-          <div className="min-w-0 flex-1">
-            <p className="font-heading text-xl leading-tight font-bold tracking-tight">{(clinic.name || "Bin Dawood Animal Hospital").toUpperCase()}</p>
-            <p className="text-xs font-medium tracking-[0.12em] text-brand">BY DR. MUSAB BIN DAWOOD</p>
+      <article className="relative mx-auto flex min-h-[297mm] max-w-[210mm] flex-col overflow-hidden bg-white p-5 pt-7 text-[13px] leading-relaxed text-ink shadow-float [print-color-adjust:exact] sm:p-[14mm] sm:pt-[16mm] print:min-h-0 print:p-[10mm] print:pt-[12mm] print:shadow-none">
+        <div aria-hidden className="absolute inset-x-0 top-0 h-2 bg-brand-gradient" />
+        <header className="flex flex-wrap items-center gap-x-4 gap-y-3 print:flex-nowrap">
+          <div className="flex size-16 shrink-0 items-center justify-center rounded-2xl bg-white shadow-sm ring-1 ring-border">
+            <LogoMark tone="burgundy" className="w-11" />
           </div>
-          <div className="basis-full text-[11px] break-words text-muted-foreground sm:basis-auto sm:text-right print:basis-auto print:text-right">
-            {contact && <p>{contact}</p>}
-            {phones && <p>{phones}</p>}
-            {clinic.email && <p>{clinic.email}</p>}
+          <div className="min-w-0 flex-1">
+            <p className="font-heading text-[22px] leading-tight font-extrabold tracking-tight">{clinic.name || "Bin Dawood Animal Hospital"}</p>
+            <p className="mt-0.5 text-[11px] font-semibold tracking-[0.14em] text-brand uppercase">By Dr. Musab Bin Dawood</p>
+            {clinic.tagline && <p className="text-[11px] text-muted-foreground">{clinic.tagline}</p>}
+          </div>
+          <div className="grid basis-full gap-0.5 text-[11px] break-words text-muted-foreground sm:basis-auto sm:justify-items-end sm:text-right print:basis-auto print:justify-items-end print:text-right">
+            {place && <p className="flex items-center gap-1.5"><MapPin className="size-3 shrink-0 text-brand" />{place}</p>}
+            {phones && <p className="flex items-center gap-1.5"><Phone className="size-3 shrink-0 text-brand" />{phones}</p>}
+            {clinic.email && <p className="flex items-center gap-1.5"><Mail className="size-3 shrink-0 text-brand" />{clinic.email}</p>}
           </div>
         </header>
-        <h1 className="mt-5 text-center text-sm font-bold tracking-[0.2em] text-brand uppercase">{title}</h1>
-        <div className="mt-4 flex-1">{children}</div>
+        <div className="mt-5 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 rounded-xl bg-brand-gradient px-4 py-2.5 text-brand-foreground">
+          <h1 className="text-[13px] font-bold tracking-[0.18em] uppercase">{title}</h1>
+          {meta && <div className="text-[11px] font-medium opacity-90">{meta}</div>}
+        </div>
+        <div className="mt-5 flex-1">{children}</div>
         <footer className="mt-8 border-t pt-3 text-center text-[10px] text-muted-foreground">
           {footer ?? "Generated by the Bin Dawood Animal Hospital system."}
         </footer>
@@ -41,7 +52,7 @@ export function PrintShell({ clinic, title, children, footer }: {
 
 export function InfoGrid({ rows }: { rows: [string, React.ReactNode][] }) {
   return (
-    <dl className="grid grid-cols-1 gap-x-6 gap-y-1.5 rounded-lg bg-surface p-3 sm:grid-cols-2 print:grid-cols-2 print:bg-transparent print:p-0">
+    <dl className="grid grid-cols-1 gap-x-6 gap-y-1.5 rounded-xl bg-surface p-3 ring-1 ring-border sm:grid-cols-2 print:grid-cols-2">
       {rows.filter(([, v]) => v).map(([k, v]) => (
         <div key={k} className="flex gap-2">
           <dt className="w-24 shrink-0 text-muted-foreground">{k}</dt>

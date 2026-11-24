@@ -22,12 +22,13 @@ import { DewormingPanel, type DewormerOption, type DewormingRow } from "./deworm
 import { reminderPlans } from "@/lib/queries";
 import { RxPanel, type Rx } from "./rx-panel";
 import { TestsPanel, type DiagnosticOrder, type DiagnosticType } from "./tests-panel";
+import { ProblemPicker, type ProblemOption } from "./problem-picker";
 import { withContact } from "@/lib/contacts";
 
 export const metadata: Metadata = { title: "Visit" };
 
 const CONSULT_FIELDS = ["chief_complaint", "history", "temperature_c", "heart_rate", "resp_rate", "weight_kg", "mucous_membranes",
-  "crt_seconds", "hydration", "body_condition_score", "pain_score", "observations", "assessment", "treatment",
+  "crt_seconds", "hydration", "body_condition_score", "pain_score", "pulse_quality", "mentation", "prognosis", "observations", "assessment", "treatment",
   "medicines_administered", "follow_up_plan", "follow_up_date", "doctor_notes"] as const;
 
 export default async function VisitPage({ params, searchParams }: PageProps<"/visits/[id]">) {
@@ -57,7 +58,7 @@ export default async function VisitPage({ params, searchParams }: PageProps<"/vi
     supabase.from("prescriptions").select("id, code, status, notes, issued_at, cancel_reason, doctor_id, prescription_items(id, medicine_name, strength, form, dose, frequency, duration, route, quantity, instructions, sort_order)")
       .eq("visit_id", id).order("created_at", { ascending: false }),
     supabase.from("diagnostic_types").select("id, name, category, result_fields").eq("is_active", true).order("sort_order"),
-    supabase.from("diagnostic_orders").select("id, code, status, reason, is_urgent, findings, impression, result_values, created_at, ordered_by, reviewed_at, cancel_reason, diagnostic_types(id, name, category, result_fields)")
+    supabase.from("diagnostic_orders").select("id, code, status, reason, is_urgent, findings, impression, result_values, result_meta, external_lab, external_ref, created_at, ordered_by, reviewed_at, cancel_reason, diagnostic_types(id, name, category, result_fields)")
       .eq("visit_id", id).order("created_at", { ascending: false }),
     supabase.from("staff").select("id, full_name"),
     // Dewormers on the price list, offered as suggestions (the doctor can type any product).
@@ -74,7 +75,7 @@ export default async function VisitPage({ params, searchParams }: PageProps<"/vi
 
   // Round 2: the pet's own history, and files attached to this visit's test orders.
   const orderIds = (dxQ.data ?? []).map((o) => o.id);
-  const [openAdmissionQ, historyQ, dueQ, weightQ, dewormQ, { data: docs }] = await Promise.all([
+  const [openAdmissionQ, historyQ, dueQ, weightQ, dewormQ, { data: docs }, problemsQ] = await Promise.all([
     supabase.from("admissions").select("id").eq("pet_id", pet.id).eq("status", "admitted").maybeSingle(),
     supabase.from("vaccinations").select("id, vaccine_id, vaccine_name, administered_at, batch_no, next_due_date, administered_by, voided_at, void_reason, visit_id, confirmed")
       .eq("pet_id", pet.id).order("administered_at", { ascending: false }),
@@ -84,6 +85,7 @@ export default async function VisitPage({ params, searchParams }: PageProps<"/vi
     orderIds.length
       ? supabase.from("documents").select("id, file_name, path, mime_type, entity_id").eq("entity_type", "diagnostic_order").in("entity_id", orderIds).is("deleted_at", null)
       : Promise.resolve({ data: [] }),
+    supabase.from("pet_problems").select("id, title, status").eq("pet_id", pet.id).order("opened_at", { ascending: false }),
   ]);
 
   const names = new Map((staffQ.data ?? []).map((s) => [s.id, s.full_name]));
@@ -118,6 +120,7 @@ export default async function VisitPage({ params, searchParams }: PageProps<"/vi
   const orders: DiagnosticOrder[] = (dxQ.data ?? []).map((o) => ({
     id: o.id, code: o.code, status: o.status, reason: o.reason, is_urgent: o.is_urgent, findings: o.findings,
     impression: o.impression, result_values: (o.result_values ?? {}) as Record<string, string>, created_at: o.created_at,
+    result_meta: (o.result_meta ?? {}) as DiagnosticOrder["result_meta"], external_lab: o.external_lab, external_ref: o.external_ref,
     ordered_by_name: o.ordered_by ? names.get(o.ordered_by) ?? null : null, reviewed_at: o.reviewed_at, cancel_reason: o.cancel_reason,
     type: o.diagnostic_types as unknown as DiagnosticType,
     files: (docs ?? []).filter((d) => d.entity_id === o.id),
@@ -193,6 +196,16 @@ export default async function VisitPage({ params, searchParams }: PageProps<"/vi
           onSave={setVisitServiceLocation.bind(null, id)} />
       </div>
 
+      {(() => {
+        const problems = (problemsQ.data ?? []) as ProblemOption[];
+        return (
+          <div className="-mt-2 mb-6">
+            <ProblemPicker visitId={id} options={problems} current={problems.find((pr) => pr.id === visit.problem_id) ?? null}
+              canEdit={me.can("clinical.create") && status !== "cancelled"} />
+          </div>
+        );
+      })()}
+
       {visit.reason && (
         <p className="-mt-2 mb-6 rounded-xl bg-surface px-4 py-3 ring-1 ring-border">
           <span className="text-sm text-muted-foreground">Owner says: </span>{visit.reason}
@@ -229,7 +242,7 @@ export default async function VisitPage({ params, searchParams }: PageProps<"/vi
             <RxPanel visitId={id} petId={pet.id} consultationId={c?.id ?? null} prescriptions={prescriptions} canWrite={me.can("prescriptions.manage")} />
           </TabsContent>
           <TabsContent value="tests">
-            <TestsPanel visitId={id} petId={pet.id} consultationId={c?.id ?? null} types={(dxTypesQ.data ?? []) as DiagnosticType[]}
+            <TestsPanel visitId={id} petId={pet.id} species={pet.species?.name ?? null} consultationId={c?.id ?? null} types={(dxTypesQ.data ?? []) as DiagnosticType[]}
               orders={orders} canManage={me.can("diagnostics.manage")} canUpload={me.can("diagnostics.manage") || me.can("clinical.create")} />
           </TabsContent>
         </div>

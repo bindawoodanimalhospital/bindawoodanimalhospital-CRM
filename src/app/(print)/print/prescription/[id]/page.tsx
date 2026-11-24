@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { InfoGrid, PrintShell, type ClinicProfile } from "@/components/print/print-shell";
+import { spellFrequency } from "@/lib/clinical";
 import { requireStaff } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getSetting } from "@/lib/queries";
@@ -71,7 +72,7 @@ export default async function PrescriptionPrint({ params }: PageProps<"/print/pr
                 {it.medicine_name}{it.strength ? ` ${it.strength}` : ""}{it.form ? <span className="font-normal"> ({it.form})</span> : null}
                 {it.quantity ? <span className="float-right font-normal">Qty: {it.quantity}</span> : null}
               </p>
-              <p>{it.dose} — {it.frequency}{it.duration ? ` — for ${it.duration}` : ""}{it.route ? ` — ${it.route}` : ""}</p>
+              <p>{it.dose} — {spellFrequency(it.frequency)}{it.duration ? ` — for ${it.duration}` : ""}{it.route ? ` — ${it.route}` : ""}</p>
               {it.instructions && <p className="text-muted-foreground">{it.instructions}</p>}
             </div>
           </li>

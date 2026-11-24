@@ -23,17 +23,19 @@ export function formatDateTime(value: string | Date | null | undefined): string 
   }).format(new Date(value));
 }
 
-/** "3 yrs 2 mo", "5 mo", "12 days" */
+/** "3 yrs 2 mo", "5 mo", "8 wks 6 days" (under 16 weeks, when doses change week by week), "12 days" */
 export function formatAge(dob: string | null | undefined, estimate = false): string {
   if (!dob) return "";
   const d = new Date(dob);
   const now = new Date();
   const years = differenceInYears(now, d);
   const months = differenceInMonths(now, d) - years * 12;
+  const days = differenceInDays(now, d);
   let text: string;
   if (years >= 1) text = months ? `${years} yr${years > 1 ? "s" : ""} ${months} mo` : `${years} yr${years > 1 ? "s" : ""}`;
-  else if (differenceInMonths(now, d) >= 1) text = `${differenceInMonths(now, d)} mo`;
-  else text = `${differenceInDays(now, d)} days`;
+  else if (days >= 112) text = `${differenceInMonths(now, d)} mo`;
+  else if (days >= 14) text = `${Math.floor(days / 7)} wks${days % 7 ? ` ${days % 7} day${days % 7 > 1 ? "s" : ""}` : ""}`;
+  else text = `${days} day${days === 1 ? "" : "s"}`;
   return estimate ? `~${text}` : text;
 }
 

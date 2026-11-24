@@ -17,6 +17,7 @@ import {
 import { StatusPill } from "@/components/app/page-header";
 import { formatDateTime, todayPK } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { cToF, fToC } from "@/lib/clinical";
 import {
   finalizeConsultation, reopenConsultation, saveConsultation, setDiagnoses, startConsultation, type ConsultationPatch,
 } from "./actions";
@@ -166,13 +167,15 @@ function ConsultationEditor({ visitId, c, template, canFinalize }: {
           )}
           {section === "vitals" && (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-              <Vital label="Temp" unit="°C" value={v("temperature_c")} onChange={(x) => setField("temperature_c", x)} step="0.1" />
+              <TempVital value={v("temperature_c")} onChange={(x) => setField("temperature_c", x)} />
               <Vital label="Heart rate" unit="/min" value={v("heart_rate")} onChange={(x) => setField("heart_rate", x)} />
               <Vital label="Resp. rate" unit="/min" value={v("resp_rate")} onChange={(x) => setField("resp_rate", x)} />
               <Vital label="Weight" unit="kg" value={v("weight_kg")} onChange={(x) => setField("weight_kg", x)} step="0.01" />
               <Vital label="CRT" unit="sec" value={v("crt_seconds")} onChange={(x) => setField("crt_seconds", x)} step="0.5" />
               <TextVital label="Mucous membranes" value={v("mucous_membranes")} onChange={(x) => setField("mucous_membranes", x)} options={["Pink", "Pale", "Congested", "Cyanotic", "Icteric"]} />
               <TextVital label="Hydration" value={v("hydration")} onChange={(x) => setField("hydration", x)} options={["Normal", "Mild (5%)", "Moderate (8%)", "Severe (10%+)"]} />
+              <TextVital label="Pulse" value={v("pulse_quality")} onChange={(x) => setField("pulse_quality", x)} options={["Strong and synchronous", "Weak", "Bounding", "Irregular", "Pulse deficits"]} />
+              <TextVital label="Mentation" value={v("mentation")} onChange={(x) => setField("mentation", x)} options={["BAR (bright, alert, responsive)", "QAR (quiet, alert, responsive)", "Depressed", "Obtunded", "Stuporous", "Comatose"]} />
               <Vital label="Body condition" unit="/9" value={v("body_condition_score")} onChange={(x) => setField("body_condition_score", x)} />
               <Vital label="Pain" unit="/10" value={v("pain_score")} onChange={(x) => setField("pain_score", x)} />
             </div>
@@ -204,6 +207,9 @@ function ConsultationEditor({ visitId, c, template, canFinalize }: {
               <Textarea rows={2} value={v("assessment")} onChange={(e) => setField("assessment", e.target.value)}
                 placeholder="Your assessment" />
               <DiagnosisList items={diagnoses} onChange={saveDx} />
+              <div className="max-w-xs">
+                <TextVital label="Prognosis" value={v("prognosis")} onChange={(x) => setField("prognosis", x)} options={["Excellent", "Good", "Fair", "Guarded", "Poor", "Grave"]} />
+              </div>
             </div>
           )}
           {section === "treatment" && (
@@ -288,6 +294,46 @@ function Vital({ label, unit, value, onChange, step }: {
   );
 }
 
+const TEMP_UNIT_KEY = "crm:temp-unit";
+
+function TempVital({ value, onChange }: { value: string | number; onChange: (celsius: string) => void }) {
+  const [unit, setUnit] = useState<"C" | "F">(() => {
+    try { return localStorage.getItem(TEMP_UNIT_KEY) === "F" ? "F" : "C"; } catch { return "C"; }
+  });
+  const shown = (u: "C" | "F") => (value === "" || value == null ? "" : String(u === "F" ? cToF(Number(value)) : Number(value)));
+  // What the doctor typed stays as typed; only the stored value is converted.
+  const [text, setText] = useState(() => shown(unit));
+  const switchTo = (u: "C" | "F") => {
+    setUnit(u); setText(shown(u));
+    try { localStorage.setItem(TEMP_UNIT_KEY, u); } catch { /* private mode */ }
+  };
+  return (
+    <label className="grid gap-1 rounded-xl bg-surface p-2.5 ring-1 ring-border">
+      <span className="flex items-center justify-between text-xs font-medium text-muted-foreground">
+        Temp
+        <span className="flex overflow-hidden rounded-md ring-1 ring-border">
+          {(["C", "F"] as const).map((u) => (
+            <button key={u} type="button" onClick={() => switchTo(u)}
+              className={cn("px-1.5 text-[11px] font-semibold", unit === u ? "bg-brand text-brand-foreground" : "bg-card")}>°{u}</button>
+          ))}
+        </span>
+      </span>
+      <span className="flex items-baseline gap-1">
+        <input type="number" inputMode="decimal" step="0.1" value={text} aria-label={`Temperature in °${unit}`}
+          onChange={(e) => {
+            setText(e.target.value);
+            const n = e.target.value === "" ? null : Number(e.target.value);
+            onChange(n == null || Number.isNaN(n) ? "" : String(unit === "F" ? fToC(n) : n));
+          }}
+          className="w-full min-w-0 bg-transparent text-lg font-semibold tabular outline-none" />
+        <span className="text-xs text-muted-foreground">°{unit}</span>
+      </span>
+      {text !== "" && <span className="text-[11px] text-muted-foreground">
+        = {unit === "F" ? `${value} °C` : `${cToF(Number(value))} °F`}</span>}
+    </label>
+  );
+}
+
 function TextVital({ label, value, onChange, options }: {
   label: string; value: string | number; onChange: (v: string) => void; options: string[];
 }) {
@@ -350,12 +396,13 @@ function DiagnosisList({ items, onChange }: { items: Diagnosis[]; onChange: (d: 
 const FIELD_LABELS: [string, string][] = [
   ["chief_complaint", "Reason for visit"], ["history", "History"], ["observations", "Observations"],
   ["assessment", "Assessment"], ["treatment", "Treatment given"], ["medicines_administered", "Medicines given in clinic"],
-  ["follow_up_plan", "Plan & advice"], ["doctor_notes", "Doctor notes"],
+  ["prognosis", "Prognosis"], ["follow_up_plan", "Plan & advice"], ["doctor_notes", "Doctor notes"],
 ];
 const VITALS: [string, string, string][] = [
   ["temperature_c", "Temp", "°C"], ["heart_rate", "Heart rate", "/min"], ["resp_rate", "Resp. rate", "/min"],
   ["weight_kg", "Weight", "kg"], ["crt_seconds", "CRT", "s"], ["mucous_membranes", "Mucous membranes", ""],
   ["hydration", "Hydration", ""], ["body_condition_score", "BCS", "/9"], ["pain_score", "Pain", "/10"],
+  ["pulse_quality", "Pulse", ""], ["mentation", "Mentation", ""],
 ];
 
 function ConsultationView({ visitId, c, template, canReopen }: {
@@ -382,7 +429,8 @@ function ConsultationView({ visitId, c, template, canReopen }: {
           {vitals.map(([k, label, unit]) => (
             <div key={k} className="rounded-xl bg-surface p-2.5 ring-1 ring-border">
               <p className="text-xs text-muted-foreground">{label}</p>
-              <p className="font-semibold tabular">{String(f[k])} <span className="text-xs font-normal text-muted-foreground">{unit}</span></p>
+              <p className="font-semibold tabular">{String(f[k])} <span className="text-xs font-normal text-muted-foreground">{unit}</span>
+                {k === "temperature_c" && <span className="block text-xs font-normal text-muted-foreground">{cToF(Number(f[k]))} °F</span>}</p>
             </div>
           ))}
         </div>

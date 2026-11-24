@@ -13,13 +13,17 @@ import { FormField } from "@/components/app/form-field";
 import { StatusPill } from "@/components/app/page-header";
 import { createClient } from "@/lib/supabase/client";
 import { formatDateTime } from "@/lib/format";
+import { defaultRange, flagResult } from "@/lib/clinical";
+import { cn } from "@/lib/utils";
 import { cancelDiagnostic, orderDiagnostic, recordDocument, saveDiagnosticResult, signedFileUrl } from "./actions";
 
-export type DiagnosticType = { id: string; name: string; category: string; result_fields: { key: string; label: string; unit?: string }[] };
+export type ResultField = { key: string; label: string; unit?: string; group?: string; ranges?: Record<string, string> };
+export type DiagnosticType = { id: string; name: string; category: string; result_fields: ResultField[] };
 export type DiagnosticOrder = {
   id: string; code: string; status: "ordered" | "in_progress" | "resulted" | "reviewed" | "cancelled";
   type: DiagnosticType; reason: string | null; is_urgent: boolean; findings: string | null; impression: string | null;
   result_values: Record<string, string>; created_at: string; ordered_by_name: string | null;
+  result_meta: Record<string, { range?: string; comment?: string }>; external_lab: string | null; external_ref: string | null;
   reviewed_at: string | null; cancel_reason: string | null;
   files: { id: string; file_name: string; path: string; mime_type: string | null }[];
 };
@@ -32,8 +36,8 @@ const STATUS = {
 
 const MAX_BYTES = 25 * 1024 * 1024;
 
-export function TestsPanel({ visitId, petId, consultationId, types, orders, canManage, canUpload }: {
-  visitId: string; petId: string; consultationId: string | null; types: DiagnosticType[];
+export function TestsPanel({ visitId, petId, species, consultationId, types, orders, canManage, canUpload }: {
+  visitId: string; petId: string; species: string | null; consultationId: string | null; types: DiagnosticType[];
   orders: DiagnosticOrder[]; canManage: boolean; canUpload: boolean;
 }) {
   const [typeId, setTypeId] = useState("");
@@ -65,17 +69,22 @@ export function TestsPanel({ visitId, petId, consultationId, types, orders, canM
         </section>
       )}
       {orders.length === 0 ? <p className="text-muted-foreground">No tests for this visit.</p>
-        : orders.map((o) => <OrderCard key={o.id} visitId={visitId} petId={petId} o={o} canManage={canManage} canUpload={canUpload} />)}
+        : orders.map((o) => <OrderCard key={o.id} visitId={visitId} petId={petId} species={species} o={o} canManage={canManage} canUpload={canUpload} />)}
     </div>
   );
 }
 
-function OrderCard({ visitId, petId, o, canManage, canUpload }: {
-  visitId: string; petId: string; o: DiagnosticOrder; canManage: boolean; canUpload: boolean;
+function OrderCard({ visitId, petId, species, o, canManage, canUpload }: {
+  visitId: string; petId: string; species: string | null; o: DiagnosticOrder; canManage: boolean; canUpload: boolean;
 }) {
   const [findings, setFindings] = useState(o.findings ?? "");
   const [impression, setImpression] = useState(o.impression ?? "");
   const [values, setValues] = useState<Record<string, string>>(o.result_values ?? {});
+  // Range per value: the one saved with the result, else the usual range for this species (editable to match the lab report).
+  const [meta, setMeta] = useState<Record<string, { range?: string; comment?: string }>>(() => Object.fromEntries(
+    o.type.result_fields.map((f) => [f.key, { range: o.result_meta?.[f.key]?.range ?? defaultRange(f, species), comment: o.result_meta?.[f.key]?.comment ?? "" }])));
+  const [lab, setLab] = useState(o.external_lab ?? "");
+  const [labRef, setLabRef] = useState(o.external_ref ?? "");
   const [pending, start] = useTransition();
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -84,7 +93,10 @@ function OrderCard({ visitId, petId, o, canManage, canUpload }: {
   const s = STATUS[o.status];
 
   const save = (status: "in_progress" | "resulted" | "reviewed") => start(async () => {
-    const r = await saveDiagnosticResult(visitId, o.id, { findings, impression, result_values: values, status });
+    // Keep a range only for values that were entered, so the saved report shows exactly what was measured.
+    const keptMeta = Object.fromEntries(Object.entries(meta).filter(([k, m]) => values[k]?.trim() || m.comment?.trim()));
+    const r = await saveDiagnosticResult(visitId, o.id, { findings, impression, result_values: values, status,
+      result_meta: keptMeta, external_lab: lab, external_ref: labRef });
     if (r.ok) toast.success(r.message); else toast.error(r.message);
   });
 
@@ -130,19 +142,18 @@ function OrderCard({ visitId, petId, o, canManage, canUpload }: {
       {o.status !== "cancelled" && (
         <>
           {o.type.result_fields.length > 0 && (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-              {o.type.result_fields.map((f) => (
-                <label key={f.key} className="grid gap-1 rounded-xl bg-surface p-2.5 ring-1 ring-border">
-                  <span className="text-xs font-medium text-muted-foreground">{f.label}</span>
-                  <span className="flex items-baseline gap-1">
-                    <input value={values[f.key] ?? ""} disabled={!editable} onChange={(e) => setValues((v) => ({ ...v, [f.key]: e.target.value }))}
-                      className="w-full min-w-0 bg-transparent font-semibold tabular outline-none disabled:opacity-80" />
-                    {f.unit && <span className="text-xs text-muted-foreground">{f.unit}</span>}
-                  </span>
-                </label>
-              ))}
-            </div>
+            <LabResults fields={o.type.result_fields} values={values} meta={meta} editable={editable}
+              setValue={(k, v) => setValues((x) => ({ ...x, [k]: v }))}
+              setMeta={(k, m) => setMeta((x) => ({ ...x, [k]: { ...x[k], ...m } }))} />
           )}
+          <div className="grid gap-3 sm:grid-cols-2">
+            <FormField label="Outside lab (if sent out)">
+              <Input value={lab} disabled={!editable} onChange={(e) => setLab(e.target.value)} placeholder="e.g. Center for Animal Diagnostics" />
+            </FormField>
+            <FormField label="Lab case / report no.">
+              <Input value={labRef} disabled={!editable} onChange={(e) => setLabRef(e.target.value)} placeholder="Number on the lab report" />
+            </FormField>
+          </div>
           <div className="grid gap-3 sm:grid-cols-2">
             <FormField label="Findings">
               <Textarea rows={3} value={findings} disabled={!editable} onChange={(e) => setFindings(e.target.value)} />
@@ -185,5 +196,43 @@ function OrderCard({ visitId, petId, o, canManage, canUpload }: {
         </>
       )}
     </article>
+  );
+}
+
+/** Lab values laid out like a lab report: grouped, each with unit, normal range (editable), H/L flag and a comment. */
+function LabResults({ fields, values, meta, editable, setValue, setMeta }: {
+  fields: ResultField[]; values: Record<string, string>; meta: Record<string, { range?: string; comment?: string }>; editable: boolean;
+  setValue: (key: string, v: string) => void; setMeta: (key: string, m: { range?: string; comment?: string }) => void;
+}) {
+  const shown = editable ? fields : fields.filter((f) => values[f.key]?.trim());
+  if (!shown.length) return null;
+  return (
+    <div className="grid grid-cols-1 gap-1 rounded-xl py-1 ring-1 ring-border">
+      <div className="hidden grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.6fr)] gap-2 border-b px-3 pb-1.5 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase sm:grid">
+        <span>Test</span><span>Result</span><span>Normal range</span><span>Comment</span>
+      </div>
+      {shown.map((f, i) => {
+        const flag = flagResult(values[f.key], meta[f.key]?.range);
+        const heading = f.group && f.group !== shown[i - 1]?.group;
+        return (
+          <div key={f.key} className="grid grid-cols-1">
+            {heading && <p className="px-3 pt-2 pb-0.5 text-xs font-semibold text-brand">{f.group}</p>}
+            <div className="grid grid-cols-2 items-center gap-2 px-3 py-1 sm:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.6fr)]">
+              <span className="col-span-2 text-sm sm:col-span-1">{f.label}{f.unit && <span className="text-xs text-muted-foreground"> · {f.unit}</span>}</span>
+              <span className="flex min-w-0 items-center gap-1">
+                <Input value={values[f.key] ?? ""} disabled={!editable} inputMode="decimal" aria-label={`${f.label} result`}
+                  onChange={(e) => setValue(f.key, e.target.value)}
+                  className={cn("h-8 font-semibold tabular", flag && "border-danger text-danger")} />
+                {flag && <span className="w-4 shrink-0 text-xs font-bold text-danger">{flag}</span>}
+              </span>
+              <Input value={meta[f.key]?.range ?? ""} disabled={!editable} aria-label={`${f.label} normal range`} placeholder="e.g. 5.5-19.5"
+                onChange={(e) => setMeta(f.key, { range: e.target.value })} className="h-8 text-xs" />
+              <Input value={meta[f.key]?.comment ?? ""} disabled={!editable} aria-label={`${f.label} comment`} placeholder="Comment (optional)"
+                onChange={(e) => setMeta(f.key, { comment: e.target.value })} className="col-span-2 h-8 text-xs sm:col-span-1" />
+            </div>
+          </div>
+        );
+      })}
+    </div>
   );
 }
