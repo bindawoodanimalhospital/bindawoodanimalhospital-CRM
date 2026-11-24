@@ -22,7 +22,7 @@ export default async function PrescriptionPrint({ params }: PageProps<"/print/pr
         pets(code, name, sex, date_of_birth, dob_is_estimate, species(name), breeds(name), breed_text,
              pet_owners(is_primary, customers(full_name, customer_contacts(phone, whatsapp)))),
         visits(customers(full_name, customer_contacts(phone, whatsapp))),
-        consultations(weight_kg, consultation_diagnoses(label, is_primary)),
+        consultations(weight_kg, consultation_diagnoses(label, certainty, is_primary, created_at)),
         prescription_items(medicine_name, strength, form, dose, frequency, duration, route, quantity, instructions, sort_order)`)
       .eq("id", id).maybeSingle(),
     getSetting<ClinicProfile>("clinic.profile"),
@@ -36,7 +36,14 @@ export default async function PrescriptionPrint({ params }: PageProps<"/print/pr
   const visitOwner = (rx.visits as unknown as { customers: { full_name: string } } | null)?.customers;
   const owner = visitOwner ?? pet.pet_owners.find((o) => o.is_primary)?.customers ?? pet.pet_owners[0]?.customers;
   const doctor = rx.doctor as unknown as { full_name: string; title: string | null; pvmc_number: string | null } | null;
-  const consult = rx.consultations as unknown as { weight_kg: number | null; consultation_diagnoses: { label: string; is_primary: boolean }[] } | null;
+  const consult = rx.consultations as unknown as { weight_kg: number | null;
+    consultation_diagnoses: { label: string; certainty: string; is_primary: boolean; created_at: string }[] } | null;
+  // Same rule as the owner's medical record: confirmed / primary as the diagnosis, other provisional ones apart, ruled-out left off.
+  const dxs = [...(consult?.consultation_diagnoses ?? [])].filter((d) => d.certainty !== "ruled_out")
+    .sort((a, b) => Number(b.is_primary) - Number(a.is_primary) || a.created_at.localeCompare(b.created_at));
+  const diagnosis = dxs.filter((d) => d.is_primary || d.certainty === "confirmed")
+    .map((d) => d.label + (d.certainty === "provisional" ? " (possible)" : "")).join(", ");
+  const alsoConsidered = dxs.filter((d) => !d.is_primary && d.certainty === "provisional").map((d) => d.label).join(", ");
   const items = ((rx.prescription_items ?? []) as { sort_order: number; medicine_name: string; strength: string | null; form: string | null;
     dose: string; frequency: string; duration: string | null; route: string | null; quantity: string | null; instructions: string | null }[])
     .sort((a, b) => a.sort_order - b.sort_order);
@@ -58,7 +65,8 @@ export default async function PrescriptionPrint({ params }: PageProps<"/print/pr
           ["Species", [pet.species?.name, pet.breeds?.name ?? pet.breed_text].filter(Boolean).join(" · ")],
           ["Age / sex", [formatAge(pet.date_of_birth, pet.dob_is_estimate), pet.sex !== "unknown" ? pet.sex : null].filter(Boolean).join(" · ")],
           ["Weight", consult?.weight_kg ? `${Number(consult.weight_kg)} kg` : null],
-          ["Diagnosis", consult?.consultation_diagnoses?.map((d) => d.label).join(", ") || null],
+          ["Diagnosis", diagnosis || null],
+          ["Also considered", alsoConsidered || null],
         ]} />
       </div>
 
