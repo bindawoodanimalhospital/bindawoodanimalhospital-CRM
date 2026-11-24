@@ -35,7 +35,9 @@ export default async function PetPage({ params }: PageProps<"/pets/[id]">) {
   const { id } = await params;
   const supabase = await createClient();
 
-  const [{ data: p }, { data: weights }, { data: alerts }] = await Promise.all([
+  // Everything the page needs in one parallel round of queries (each section used to wait for the one before).
+  const showDeworming = me.can("clinical.view") || me.can("vaccinations.manage");
+  const [{ data: p }, { data: weights }, { data: alerts }, removalBase, dewormQ, dewormerQ, plans, vacc] = await Promise.all([
     supabase.from("pets")
       .select(`*, species(name), breeds(name),
         pet_owners(is_primary, relationship, customers(id, code, full_name, customer_contacts(phone, whatsapp)))`)
@@ -44,6 +46,12 @@ export default async function PetPage({ params }: PageProps<"/pets/[id]">) {
       .order("measured_at", { ascending: false }).limit(12),
     supabase.from("pet_alerts").select("id, kind, label, severity, notes, created_at").eq("pet_id", id)
       .eq("is_active", true).order("severity", { ascending: false }),
+    removalState(me, "pet", id, ""),
+    // Deworming history — and earlier dewormings (before the CRM) can be added here so reminders continue.
+    showDeworming ? supabase.from("dewormings").select("id, visit_id, product, dose, given_at, next_due_date, given_by, voided_at, void_reason, confirmed, tracks").eq("pet_id", id).order("given_at", { ascending: false }) : null,
+    showDeworming ? supabase.from("dewormers").select("id, name, tracks, covers, dose_text, adult_interval_days, species_ids").eq("is_active", true).order("sort_order").order("name") : null,
+    showDeworming ? reminderPlans() : null,
+    showDeworming ? petVaccineData(id) : null,
   ]);
   if (!p) notFound();
 
@@ -55,15 +63,7 @@ export default async function PetPage({ params }: PageProps<"/pets/[id]">) {
   const latest = weights?.[0];
   const canEdit = me.can("pets.edit");
   const critical = [...(alerts ?? []).filter((a) => a.severity !== "info")];
-  const removal = await removalState(me, "pet", p.id, p.name);
-  // Deworming history — and earlier dewormings (before the CRM) can be added here so reminders continue.
-  const showDeworming = me.can("clinical.view") || me.can("vaccinations.manage");
-  const [dewormQ, dewormerQ, plans] = showDeworming ? await Promise.all([
-    supabase.from("dewormings").select("id, visit_id, product, dose, given_at, next_due_date, given_by, voided_at, void_reason, confirmed, tracks").eq("pet_id", p.id).order("given_at", { ascending: false }),
-    supabase.from("dewormers").select("id, name, tracks, covers, dose_text, adult_interval_days, species_ids").eq("is_active", true).order("sort_order").order("name"),
-    reminderPlans(),
-  ]) : [null, null, null];
-  const vacc = showDeworming ? await petVaccineData(p.id, p.species_id) : null;
+  const removal = { ...removalBase, name: p.name };
 
   return (
     <>

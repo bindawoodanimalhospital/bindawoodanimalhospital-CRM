@@ -27,11 +27,16 @@ export default async function InvoicePage({ params }: PageProps<"/billing/[id]">
   if (!me.can("billing.view") && !me.can("pos.use")) redirect("/dashboard?denied=1");
   const { id } = await params;
   const supabase = await createClient();
-  const { data: inv } = await supabase.from("invoices")
+  // Payments on this bill and staff names only need its id: start them now, alongside the bill itself.
+  const paymentsAndStaff = Promise.all([
+    supabase.from("payment_allocations").select("amount, payments(id, code, kind, method, received_at, reference, received_by)").eq("invoice_id", id).order("id"),
+    supabase.from("staff").select("id, full_name"),
+  ]);
+  const [{ data: inv }, methods] = await Promise.all([supabase.from("invoices")
     .select(`*, customers(id, full_name, customer_contacts(phone, whatsapp), house_no, block, address, area, city), pets(id, name), visits(id, token_no, visit_date),
       invoice_items(id, item_id, description, kind, quantity, unit_price, discount_amount, line_total, returned_qty, sort_order, line_role, catalog_items(price_is_editable, track_stock)),
       dues(status, promised_date, approval_status)`)
-    .eq("id", id).maybeSingle();
+    .eq("id", id).maybeSingle(), paymentMethods()]);
   if (!inv) notFound();
 
   const customer = withContact(inv.customers as unknown as ({ id: string; full_name: string } & AddressParts) | null);
@@ -39,8 +44,9 @@ export default async function InvoicePage({ params }: PageProps<"/billing/[id]">
   const visit = inv.visits as unknown as { id: string; token_no: number } | null;
   const items = ((inv.invoice_items ?? []) as (Line & { sort_order: number; returned_qty: number; catalog_items: { price_is_editable: boolean; track_stock: boolean } })[])
     .sort((a, b) => a.sort_order - b.sort_order);
-  const [methods, credit, prevBal] = await Promise.all([paymentMethods(), customer ? customerCredit(customer.id) : Promise.resolve(0),
-    customer && inv.status !== "void" ? previousBalance(customer.id, inv.id, inv.issued_at) : Promise.resolve(null)]);
+  const [credit, prevBal, visitLines] = await Promise.all([customer ? customerCredit(customer.id) : Promise.resolve(0),
+    customer && inv.status !== "void" ? previousBalance(customer.id, inv.id, inv.issued_at) : Promise.resolve(null),
+    inv.status === "draft" && inv.visit_id ? visitSuggestions(inv.visit_id) : Promise.resolve({ suggestions: [], unmatched: [] })]);
   const methodsNoWriteOff = methods.filter((m) => m.key !== "write_off");
 
   const title = inv.status === "draft" ? "New bill" : `Bill ${inv.number}`;
@@ -115,7 +121,7 @@ export default async function InvoicePage({ params }: PageProps<"/billing/[id]">
 
   if (inv.status === "draft") {
     if (!me.can("billing.create") && !(inv.kind === "store" && me.can("pos.use"))) redirect("/billing?denied=1");
-    const { suggestions, unmatched } = inv.visit_id ? await visitSuggestions(inv.visit_id) : { suggestions: [], unmatched: [] };
+    const { suggestions, unmatched } = visitLines;
     const lines: Line[] = items.map((i) => ({ ...i, quantity: Number(i.quantity), unit_price: Number(i.unit_price), discount_amount: Number(i.discount_amount),
       line_total: Number(i.line_total), price_is_editable: i.catalog_items.price_is_editable, track_stock: i.catalog_items.track_stock }));
     return (
@@ -132,10 +138,7 @@ export default async function InvoicePage({ params }: PageProps<"/billing/[id]">
     );
   }
 
-  const [{ data: allocs }, { data: staff }] = await Promise.all([
-    supabase.from("payment_allocations").select("amount, payments(id, code, kind, method, received_at, reference, received_by)").eq("invoice_id", id).order("id"),
-    supabase.from("staff").select("id, full_name"),
-  ]);
+  const [{ data: allocs }, { data: staff }] = await paymentsAndStaff;
   const names = new Map((staff ?? []).map((s) => [s.id, s.full_name]));
   const payments: PaymentRow[] = (allocs ?? []).map((a) => {
     const p = a.payments as unknown as { id: string; code: string; kind: string; method: string; received_at: string; reference: string | null; received_by: string | null };

@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { assertCan } from "@/lib/auth";
+import { assertCan, forgetStaffCache } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { toE164 } from "@/lib/phone";
@@ -51,6 +51,7 @@ export async function createStaff(_prev: FormState, fd: FormData): Promise<FormS
     .insert(roles.map((role_id) => ({ staff_id: userId, role_id, granted_by: me.id })));
   if (roleErr) return { message: dbErrorMessage(roleErr) };
 
+  forgetStaffCache();
   revalidatePath("/admin/staff");
   redirect(`/admin/staff/${userId}?notice=created`);
 }
@@ -62,6 +63,7 @@ export async function updateStaffProfile(id: string, _prev: FormState, fd: FormD
   const supabase = await createClient();
   const { error } = await supabase.from("staff").update(parsed.data).eq("id", id);
   if (error) return { message: dbErrorMessage(error) };
+  forgetStaffCache();
   revalidatePath(`/admin/staff/${id}`);
   return { ok: true, message: "Profile saved." };
 }
@@ -74,6 +76,7 @@ export async function setStaffActive(id: string, active: boolean): Promise<FormS
   if (error) return { message: dbErrorMessage(error) };
   // Kill existing sessions so a deactivated account is locked out immediately.
   if (!active) await createAdminClient().auth.admin.signOut(id, "global").catch(() => {});
+  forgetStaffCache();
   revalidatePath(`/admin/staff/${id}`);
   revalidatePath("/admin/staff");
   return { ok: true, message: active ? "Account activated." : "Account deactivated." };
@@ -88,6 +91,7 @@ export async function grantRole(staffId: string, roleId: string, validUntil: str
     valid_until: validUntil ? new Date(`${validUntil}T23:59:59+05:00`).toISOString() : null,
   });
   if (error) return { message: dbErrorMessage(error) };
+  forgetStaffCache();
   revalidatePath(`/admin/staff/${staffId}`);
   return { ok: true, message: "Role granted." };
 }
@@ -101,6 +105,7 @@ export async function revokeRole(staffId: string, roleId: string): Promise<FormS
   }
   const { error } = await supabase.from("staff_roles").delete().eq("staff_id", staffId).eq("role_id", roleId);
   if (error) return { message: dbErrorMessage(error) };
+  forgetStaffCache();
   revalidatePath(`/admin/staff/${staffId}`);
   return { ok: true, message: "Role removed." };
 }

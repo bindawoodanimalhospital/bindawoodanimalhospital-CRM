@@ -7,9 +7,11 @@ import type { BilledVaccine, DueRow, ProtocolOption, VaccinationRow, VaccineOpti
  * species, approved schedules, its full vaccination history, what is due — and vaccines that were
  * billed for this pet but never written into its history (so they can be added in one tap).
  */
-export async function petVaccineData(petId: string, speciesId: string) {
+export async function petVaccineData(petId: string) {
   const supabase = await createClient();
-  const [vaccinesQ, protocolsQ, historyQ, dueQ, staffQ, petBills, visitsQ] = await Promise.all([
+  // One round of queries (all in parallel). Bills reach the pet directly or through one of its visits.
+  const billedSelect = "id, description, catalog_items!inner(vaccine_id), invoices!inner(number, issued_at, status";
+  const [vaccinesQ, protocolsQ, historyQ, dueQ, staffQ, petQ, billedDirect, billedViaVisit] = await Promise.all([
     supabase.from("vaccines").select("id, name, protects_against, default_route, default_manufacturer, species_ids").eq("is_active", true).order("name"),
     supabase.from("vaccination_protocols").select("id, name, species_id, booster_interval_days, vaccination_protocol_steps(step_no, label, vaccine_id, days_after_previous)")
       .eq("is_approved", true).eq("is_active", true),
@@ -17,9 +19,13 @@ export async function petVaccineData(petId: string, speciesId: string) {
       .eq("pet_id", petId).order("administered_at", { ascending: false }),
     supabase.from("due_items").select("id, title, due_on, kind").eq("pet_id", petId).eq("status", "pending").order("due_on"),
     supabase.from("staff").select("id, full_name"),
-    supabase.from("invoices").select("id").eq("pet_id", petId).eq("status", "issued"),
-    supabase.from("visits").select("id").eq("pet_id", petId),
+    supabase.from("pets").select("species_id").eq("id", petId).maybeSingle(),
+    supabase.from("invoice_items").select(`${billedSelect}, pet_id)`)
+      .eq("invoices.pet_id", petId).eq("invoices.status", "issued").not("catalog_items.vaccine_id", "is", null),
+    supabase.from("invoice_items").select(`${billedSelect}, visits!inner(pet_id))`)
+      .eq("invoices.visits.pet_id", petId).eq("invoices.status", "issued").not("catalog_items.vaccine_id", "is", null),
   ]);
+  const speciesId = petQ.data?.species_id ?? "";
   const names = new Map((staffQ.data ?? []).map((s) => [s.id, s.full_name]));
   const vaccines = ((vaccinesQ.data ?? []) as (VaccineOption & { species_ids: string[] })[])
     .filter((v) => !v.species_ids.length || v.species_ids.includes(speciesId));
@@ -30,18 +36,12 @@ export async function petVaccineData(petId: string, speciesId: string) {
   const rows = historyQ.data ?? [];
   const history: VaccinationRow[] = rows.map((h) => ({ ...h, administered_by_name: h.administered_by ? names.get(h.administered_by) ?? null : null }));
 
-  // Bills for this pet (directly, or through its visits) that include a vaccine from the price list.
-  const visitIds = (visitsQ.data ?? []).map((v) => v.id);
-  const viaVisits = visitIds.length
-    ? (await supabase.from("invoices").select("id").in("visit_id", visitIds).eq("status", "issued")).data ?? [] : [];
-  const billIds = [...new Set([...(petBills.data ?? []), ...viaVisits].map((b) => b.id))];
+  // Vaccine lines on this pet's issued bills (directly, or through its visits), each line once.
+  const lines = [...new Map([...(billedDirect.data ?? []), ...(billedViaVisit.data ?? [])].map((l) => [l.id, l])).values()];
   const billed: BilledVaccine[] = [];
-  if (billIds.length) {
-    const { data: lines } = await supabase.from("invoice_items")
-      .select("id, description, catalog_items!inner(vaccine_id), invoices!inner(number, issued_at)")
-      .in("invoice_id", billIds).not("catalog_items.vaccine_id", "is", null);
+  if (lines.length) {
     const day = (iso: string) => new Date(iso).toLocaleDateString("en-CA", { timeZone: "Asia/Karachi" });
-    for (const l of lines ?? []) {
+    for (const l of lines) {
       const vaccineId = (l.catalog_items as unknown as { vaccine_id: string }).vaccine_id;
       const inv = l.invoices as unknown as { number: string; issued_at: string };
       const date = day(inv.issued_at);

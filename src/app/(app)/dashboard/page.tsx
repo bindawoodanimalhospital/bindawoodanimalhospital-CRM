@@ -59,6 +59,12 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
 
   const seeMoney = me.can("finance.view") || me.can("billing.create");
   const canDeliveries = me.can("pos.use") || me.can("billing.create");
+  // The owner's month-to-date money report runs alongside the other dashboard queries, not after them
+  // (Promise.resolve starts the request now; a Supabase query only runs once something awaits it).
+  const month = presetRange("mtd");
+  const monthReportQuery = me.can("reports.financial")
+    ? Promise.resolve(supabase.rpc("report_financial", { p_from: month.from, p_to: month.to }))
+    : null;
   const [customers, pets, newCustomers, newPets, recent, queue, appts, dueToday, overdue, inWard, theatre, payToday, openDues, stock, toSend, myTasks, deliveries, loansDue, removals, unconfDew, unconfVac] = await Promise.all([
     canCustomers ? supabase.from("customers").select("id", { count: "exact", head: true }).neq("status", "merged") : null,
     canPets ? supabase.from("pets").select("id", { count: "exact", head: true }).eq("status", "active") : null,
@@ -94,10 +100,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
   const inClinicCount = queueRows.length - waitingCount;
   const toDispatch = (deliveries?.data ?? []).filter((d) => d.delivery_status === "pending").length;
   const outForDelivery = (deliveries?.data ?? []).filter((d) => d.delivery_status === "dispatched").length;
-  const month = presetRange("mtd");
-  const monthReport = me.can("reports.financial")
-    ? ((await supabase.rpc("report_financial", { p_from: month.from, p_to: month.to })).data as FinancialReport | null)
-    : null;
+  const monthReport = monthReportQuery ? ((await monthReportQuery).data as FinancialReport | null) : null;
   const myOverdueTasks = (myTasks?.data ?? []).filter((t) => isPast(t.due_at)).length;
   const collected = (payToday?.data ?? []).reduce((s, p) => s + (p.kind === "payment" ? Number(p.amount) : p.kind === "refund" ? -Number(p.amount) : 0), 0);
   const owed = (openDues?.data ?? []).reduce((s, d) => s + Number((d.invoices as unknown as { balance: number } | null)?.balance ?? 0), 0);

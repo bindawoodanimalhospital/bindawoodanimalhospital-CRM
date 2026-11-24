@@ -34,14 +34,15 @@ export default async function CustomerPage({ params }: PageProps<"/customers/[id
   const { id } = await params;
   const supabase = await createClient();
 
-  const { data: c } = await supabase
+  // The removal panel's lookup runs alongside the main query instead of after it.
+  const [{ data: c }, removalBase] = await Promise.all([supabase
     .from("customers")
     .select(`*, ${CONTACT}, merged_into:merged_into_id(id, full_name),
       pet_owners(is_primary, relationship,
         pets(id, code, name, sex, date_of_birth, dob_is_estimate, status, special_handling, breed_text,
              species(name), breeds(name), pet_alerts(label, severity, is_active)))`)
     .eq("id", id)
-    .maybeSingle();
+    .maybeSingle(), removalState(me, "customer", id, "")]);
   if (!c) notFound();
 
   type PetRow = {
@@ -59,7 +60,7 @@ export default async function CustomerPage({ params }: PageProps<"/customers/[id
   const contact = contactOf(c);
   const wa = whatsappLink(contact.whatsapp ?? contact.phone);
   const mergedInto = c.merged_into as { id: string; full_name: string } | null;
-  const removal = c.status !== "merged" ? await removalState(me, "customer", c.id, c.full_name) : null;
+  const removal = c.status !== "merged" ? { ...removalBase, name: c.full_name } : null;
 
   return (
     <>

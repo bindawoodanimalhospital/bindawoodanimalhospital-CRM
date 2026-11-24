@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { assertCan } from "@/lib/auth";
+import { assertCan, forgetStaffCache } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { dbErrorMessage, type FormState } from "@/lib/validation";
 
@@ -16,6 +16,7 @@ export async function setRolePermission(roleId: string, permission: string, gran
     ? await supabase.from("role_permissions").upsert({ role_id: roleId, permission_key: permission })
     : await supabase.from("role_permissions").delete().eq("role_id", roleId).eq("permission_key", permission);
   if (error) return { message: dbErrorMessage(error) };
+  forgetStaffCache();
   revalidatePath("/admin/roles");
   return { ok: true };
 }
@@ -37,6 +38,7 @@ export async function createRole(name: string, description: string, copyFrom: st
       await supabase.from("role_permissions").insert(perms.map((p) => ({ role_id: role.id, permission_key: p.permission_key })));
     }
   }
+  forgetStaffCache();
   revalidatePath("/admin/roles");
   return { ok: true, message: "Role created." };
 }
@@ -50,6 +52,7 @@ export async function deleteRole(roleId: string): Promise<FormState> {
   if (count) return { message: `Remove this role from ${count} staff member(s) first.` };
   const { error } = await supabase.from("roles").delete().eq("id", roleId);
   if (error) return { message: dbErrorMessage(error) };
+  forgetStaffCache();
   revalidatePath("/admin/roles");
   return { ok: true, message: "Role deleted." };
 }

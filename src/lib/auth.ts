@@ -16,12 +16,27 @@ export type CurrentStaff = {
   can: (p: Permission) => boolean;
 };
 
-/** The signed-in staff member, their roles and effective permissions. Memoised per request. */
+/*
+ * Profile, roles and permissions are remembered per staff member for a few seconds, so moving between pages doesn't
+ * wait on a database round trip first. This only shapes the screens (menus, buttons, page access): the database
+ * checks the staff member is active and holds the permission on every query, so a stale entry can never grant
+ * access. Saving staff or role changes clears it at once (forgetStaffCache).
+ */
+const STAFF_TTL_MS = 30_000;
+const staffCache = new Map<string, { at: number; staff: CurrentStaff }>();
+
+export function forgetStaffCache() {
+  staffCache.clear();
+}
+
+/** The signed-in staff member, their roles and effective permissions. Memoised per request and briefly across requests. */
 export const getCurrentStaff = cache(async (): Promise<CurrentStaff | null> => {
   const supabase = await createClient();
   const { data: claims } = await supabase.auth.getClaims();
   const userId = claims?.claims?.sub;
   if (!userId) return null;
+  const hit = staffCache.get(userId);
+  if (hit && Date.now() - hit.at < STAFF_TTL_MS) return hit.staff;
 
   const [{ data: staff }, { data: perms }, { data: roles }] = await Promise.all([
     supabase.from("staff").select("id, email, full_name, title, is_active, is_doctor").eq("id", userId).maybeSingle(),
@@ -34,7 +49,7 @@ export const getCurrentStaff = cache(async (): Promise<CurrentStaff | null> => {
 
   const now = Date.now();
   const permissions = new Set<Permission>((perms ?? []) as Permission[]);
-  return {
+  const me: CurrentStaff = {
     id: userId,
     email: staff?.email ?? (claims.claims.email as string | undefined) ?? null,
     fullName: staff?.full_name || (claims.claims.email as string | undefined) || "Staff",
@@ -47,6 +62,9 @@ export const getCurrentStaff = cache(async (): Promise<CurrentStaff | null> => {
     permissions,
     can: (p) => permissions.has(p),
   };
+  // Only remember a complete answer; a failed lookup is retried on the next page.
+  if (staff) staffCache.set(userId, { at: now, staff: me });
+  return me;
 });
 
 /** For pages: signed in, active, and (optionally) holding a permission — otherwise redirect. */

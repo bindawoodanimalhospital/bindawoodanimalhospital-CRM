@@ -36,11 +36,34 @@ export default async function VisitPage({ params, searchParams }: PageProps<"/vi
   const { tab } = await searchParams;
   const supabase = await createClient();
 
-  const { data: visit } = await supabase.from("visits")
-    .select(`*, pets(id, code, name, sex, date_of_birth, dob_is_estimate, special_handling, species_id, species(name), breeds(name), breed_text,
+  const canSurgery = me.can("surgery.manage");
+  const canAdmit = me.can("inpatient.manage");
+  // Round 1: the visit, plus everything that only needs the visit's id — all in parallel.
+  const [{ data: visit }, doctors, kennels, proceduresQ, templatesQ, consultQ, vaccinesQ, protocolsQ, rxQ, dxTypesQ, dxQ, staffQ, dewormerQ, plans] = await Promise.all([
+    supabase.from("visits")
+      .select(`*, pets(id, code, name, sex, date_of_birth, dob_is_estimate, special_handling, species_id, species(name), breeds(name), breed_text,
       pet_alerts(label, kind, severity, is_active)),
       customers(id, full_name, customer_contacts(phone, whatsapp), house_no, block, address, area, city), doctor:doctor_id(full_name), appointment_types(name)`)
-    .eq("id", id).maybeSingle();
+    .eq("id", id).maybeSingle(),
+    canSurgery || canAdmit ? getDoctors() : Promise.resolve([]),
+    canAdmit ? getKennels() : Promise.resolve([]),
+    canSurgery ? supabase.from("surgery_procedures").select("id, name, default_minutes").eq("is_active", true).order("sort_order") : Promise.resolve({ data: [] }),
+    supabase.from("clinical_templates").select("key, name, description, sections, exam_prompts").eq("is_active", true).order("sort_order"),
+    supabase.from("consultations").select("*, consultation_diagnoses(label, certainty, is_primary, created_at), consultation_revisions(revision, finalized_at, reason)")
+      .eq("visit_id", id).order("created_at", { ascending: false }).limit(1).maybeSingle(),
+    supabase.from("vaccines").select("id, name, protects_against, default_route, default_manufacturer, species_ids").eq("is_active", true).order("name"),
+    supabase.from("vaccination_protocols").select("id, name, species_id, booster_interval_days, vaccination_protocol_steps(step_no, label, vaccine_id, days_after_previous)")
+      .eq("is_approved", true).eq("is_active", true),
+    supabase.from("prescriptions").select("id, code, status, notes, issued_at, cancel_reason, doctor_id, prescription_items(id, medicine_name, strength, form, dose, frequency, duration, route, quantity, instructions, sort_order)")
+      .eq("visit_id", id).order("created_at", { ascending: false }),
+    supabase.from("diagnostic_types").select("id, name, category, result_fields").eq("is_active", true).order("sort_order"),
+    supabase.from("diagnostic_orders").select("id, code, status, reason, is_urgent, findings, impression, result_values, created_at, ordered_by, reviewed_at, cancel_reason, diagnostic_types(id, name, category, result_fields)")
+      .eq("visit_id", id).order("created_at", { ascending: false }),
+    supabase.from("staff").select("id, full_name"),
+    // Dewormers on the price list, offered as suggestions (the doctor can type any product).
+    supabase.from("dewormers").select("id, name, tracks, covers, dose_text, adult_interval_days, species_ids").eq("is_active", true).order("sort_order").order("name"),
+    reminderPlans(),
+  ]);
   if (!visit) notFound();
 
   type PetT = { id: string; code: string; name: string; sex: string; date_of_birth: string | null; dob_is_estimate: boolean;
@@ -49,35 +72,18 @@ export default async function VisitPage({ params, searchParams }: PageProps<"/vi
   const pet = visit.pets as unknown as PetT;
   const owner = withContact(visit.customers as unknown as { id: string; full_name: string } & AddressParts);
 
-  const canSurgery = me.can("surgery.manage");
-  const canAdmit = me.can("inpatient.manage");
-  const [doctors, kennels, proceduresQ, openAdmissionQ] = await Promise.all([
-    canSurgery || canAdmit ? getDoctors() : Promise.resolve([]),
-    canAdmit ? getKennels() : Promise.resolve([]),
-    canSurgery ? supabase.from("surgery_procedures").select("id, name, default_minutes").eq("is_active", true).order("sort_order") : Promise.resolve({ data: [] }),
+  // Round 2: the pet's own history, and files attached to this visit's test orders.
+  const orderIds = (dxQ.data ?? []).map((o) => o.id);
+  const [openAdmissionQ, historyQ, dueQ, weightQ, dewormQ, { data: docs }] = await Promise.all([
     supabase.from("admissions").select("id").eq("pet_id", pet.id).eq("status", "admitted").maybeSingle(),
-  ]);
-  const [templatesQ, consultQ, vaccinesQ, protocolsQ, historyQ, dueQ, rxQ, dxTypesQ, dxQ, staffQ, weightQ, dewormQ, dewormerQ, plans] = await Promise.all([
-    supabase.from("clinical_templates").select("key, name, description, sections, exam_prompts").eq("is_active", true).order("sort_order"),
-    supabase.from("consultations").select("*, consultation_diagnoses(label, certainty, is_primary, created_at), consultation_revisions(revision, finalized_at, reason)")
-      .eq("visit_id", id).order("created_at", { ascending: false }).limit(1).maybeSingle(),
-    supabase.from("vaccines").select("id, name, protects_against, default_route, default_manufacturer, species_ids").eq("is_active", true).order("name"),
-    supabase.from("vaccination_protocols").select("id, name, species_id, booster_interval_days, vaccination_protocol_steps(step_no, label, vaccine_id, days_after_previous)")
-      .eq("is_approved", true).eq("is_active", true),
     supabase.from("vaccinations").select("id, vaccine_id, vaccine_name, administered_at, batch_no, next_due_date, administered_by, voided_at, void_reason, visit_id, confirmed")
       .eq("pet_id", pet.id).order("administered_at", { ascending: false }),
     supabase.from("due_items").select("id, title, due_on, kind").eq("pet_id", pet.id).eq("status", "pending").order("due_on"),
-    supabase.from("prescriptions").select("id, code, status, notes, issued_at, cancel_reason, doctor_id, prescription_items(id, medicine_name, strength, form, dose, frequency, duration, route, quantity, instructions, sort_order)")
-      .eq("visit_id", id).order("created_at", { ascending: false }),
-    supabase.from("diagnostic_types").select("id, name, category, result_fields").eq("is_active", true).order("sort_order"),
-    supabase.from("diagnostic_orders").select("id, code, status, reason, is_urgent, findings, impression, result_values, created_at, ordered_by, reviewed_at, cancel_reason, diagnostic_types(id, name, category, result_fields)")
-      .eq("visit_id", id).order("created_at", { ascending: false }),
-    supabase.from("staff").select("id, full_name"),
     supabase.from("pet_weights").select("weight_kg").eq("pet_id", pet.id).order("measured_at", { ascending: false }).limit(1).maybeSingle(),
     supabase.from("dewormings").select("id, visit_id, product, dose, given_at, next_due_date, given_by, voided_at, void_reason, confirmed, tracks").eq("pet_id", pet.id).order("given_at", { ascending: false }),
-    // Dewormers on the price list, offered as suggestions (the doctor can type any product).
-    supabase.from("dewormers").select("id, name, tracks, covers, dose_text, adult_interval_days, species_ids").eq("is_active", true).order("sort_order").order("name"),
-    reminderPlans(),
+    orderIds.length
+      ? supabase.from("documents").select("id, file_name, path, mime_type, entity_id").eq("entity_type", "diagnostic_order").in("entity_id", orderIds).is("deleted_at", null)
+      : Promise.resolve({ data: [] }),
   ]);
 
   const names = new Map((staffQ.data ?? []).map((s) => [s.id, s.full_name]));
@@ -109,10 +115,6 @@ export default async function VisitPage({ params, searchParams }: PageProps<"/vi
     items: ((r.prescription_items ?? []) as (Rx["items"][number] & { sort_order: number })[]).sort((a, b) => a.sort_order - b.sort_order),
   }));
 
-  const orderIds = (dxQ.data ?? []).map((o) => o.id);
-  const { data: docs } = orderIds.length
-    ? await supabase.from("documents").select("id, file_name, path, mime_type, entity_id").eq("entity_type", "diagnostic_order").in("entity_id", orderIds).is("deleted_at", null)
-    : { data: [] };
   const orders: DiagnosticOrder[] = (dxQ.data ?? []).map((o) => ({
     id: o.id, code: o.code, status: o.status, reason: o.reason, is_urgent: o.is_urgent, findings: o.findings,
     impression: o.impression, result_values: (o.result_values ?? {}) as Record<string, string>, created_at: o.created_at,
