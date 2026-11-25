@@ -44,8 +44,7 @@ export default async function SharedRecordPage({ params }: PageProps<"/r/[token]
   return (
     <PrintShell clinic={record.clinic} title={record.scope ? `Medical record — ${record.scope.title}` : "Medical record"}
       meta={`Prepared ${formatDateTime(record.generatedAt)}`}
-      footer={<>Shared privately with {record.pet.name}&apos;s owner · this link stops working on {formatDate(expiresAt)}.
-        <span className="mt-1.5 block text-[11px] font-medium text-foreground/80">AI softwares by OBD · +92 337 8624781</span></>}>
+      footer={<>Shared privately with {record.pet.name}&apos;s owner · this link stops working on {formatDate(expiresAt)}.</>}>
       <MedicalRecordView r={record} />
     </PrintShell>
   );

@@ -20,8 +20,7 @@ export default async function MedicalRecordPrint({ params, searchParams }: PageP
   return (
     <PrintShell clinic={r.clinic} title={r.scope ? `Medical record — ${r.scope.title}` : "Medical record"}
       meta={`Prepared ${formatDateTime(r.generatedAt)}`}
-      footer={<>For the owner&apos;s information. Medicines must be given only as the doctor prescribed.
-        <span className="mt-1.5 block text-[11px] font-medium text-foreground/80">AI softwares by OBD · +92 337 8624781</span></>}>
+      footer={<>For the owner&apos;s information. Medicines must be given only as the doctor prescribed.</>}>
       <MedicalRecordView r={r} />
     </PrintShell>
   );
