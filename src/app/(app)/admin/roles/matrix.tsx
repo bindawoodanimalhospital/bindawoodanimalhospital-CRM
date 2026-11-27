@@ -13,6 +13,7 @@ import {
 import { FormField } from "@/components/app/form-field";
 import { cn } from "@/lib/utils";
 import { createRole, deleteRole, setRolePermission } from "./actions";
+import { useConfirm } from "@/components/app/confirm";
 
 type Role = { id: string; key: string; name: string; is_system: boolean; members: number };
 type Perm = { key: string; module: string; label: string; is_sensitive: boolean };
@@ -98,10 +99,13 @@ function ModuleRows({ module, permissions, roles, isOn, editable, onToggle }: {
 
 function DeleteRole({ role }: { role: Role }) {
   const [pending, start] = useTransition();
+  const [ask, confirmBox] = useConfirm();
   return (
+    <>
+    {confirmBox}
     <Button size="icon-xs" variant="ghost" title="Delete role" disabled={pending}
-      onClick={() => {
-        if (!confirm(`Delete the “${role.name}” role?`)) return;
+      onClick={async () => {
+        if (!(await ask({ title: `Delete the “${role.name}” role?`, description: "Staff with only this role lose its permissions.", confirm: "Delete role", danger: true }))) return;
         start(async () => {
           const res = await deleteRole(role.id);
           if (res.ok) toast.success(res.message); else toast.error(res.message);
@@ -109,6 +113,7 @@ function DeleteRole({ role }: { role: Role }) {
       }}>
       {pending ? <Loader2 className="animate-spin" /> : <Trash2 />}
     </Button>
+    </>
   );
 }
 

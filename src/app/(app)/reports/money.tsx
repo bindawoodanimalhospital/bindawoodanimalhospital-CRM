@@ -38,7 +38,7 @@ export function MoneyReport({ r, prev }: { r: FinancialReport; prev: FinancialRe
           <BarList money items={r.by_doctor.map((c) => ({ label: c.label, value: c.amount, sub: `${c.bills} bills` }))} />
         </Panel>
         <Panel title="By species" note="Billed">
-          <BarList money items={r.by_species.map((c) => ({ label: c.label, value: c.amount, sub: `${c.bills} bills` }))} />
+          <BarList money items={r.by_species.map((c) => ({ label: c.label === "No pet (walk-in sale)" ? "Pet store (no pet)" : c.label, value: c.amount, sub: `${c.bills} bills` }))} />
         </Panel>
         <Panel title="How owners paid" note="Payments received, by method">
           <BarList money items={r.collected.by_method.map((m) => ({ label: m.method, value: m.amount, sub: `${m.count}×` }))} />

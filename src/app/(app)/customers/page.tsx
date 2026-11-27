@@ -44,7 +44,7 @@ export default async function CustomersPage({ searchParams }: PageProps<"/custom
         title="Customers"
         description={`${count ?? 0} pet owner${count === 1 ? "" : "s"}`}
         actions={me.can("customers.create") && (
-          <Button asChild><Link href="/customers/new"><UserPlus /> New customer</Link></Button>
+          <Button asChild><Link href="/customers/new"><UserPlus /> New pet owner</Link></Button>
         )}
       />
       <form className="mb-4 max-w-sm">

@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { NewBillButton } from "../../../billing/new-bill";
 import { PayBalance } from "./pay-balance";
 import { AddPreviousBalance } from "./previous-balance";
+import { sortLedger } from "@/lib/clinic";
 
 export const metadata: Metadata = { title: "Customer account" };
 
@@ -43,7 +44,7 @@ export default async function AccountPage({ params }: PageProps<"/customers/[id]
   // Balances from before the CRM are labelled as such in the ledger.
   const previous = new Map((prev ?? []).map((p) => [p.id, p.previous_ref]));
   if (!c) notFound();
-  const rows = withRunningBalance(ledger ?? []);
+  const rows = withRunningBalance(sortLedger(ledger ?? []));
   const balance = rows.at(-1)?.running ?? 0;
 
   return (

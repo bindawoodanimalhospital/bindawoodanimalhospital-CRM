@@ -146,22 +146,22 @@ function OrderCard({ visitId, petId, species, o, canManage, canUpload }: {
               setValue={(k, v) => setValues((x) => ({ ...x, [k]: v }))}
               setMeta={(k, m) => setMeta((x) => ({ ...x, [k]: { ...x[k], ...m } }))} />
           )}
-          <div className="grid gap-3 sm:grid-cols-2">
+          {(editable || lab || labRef) && <div className="grid gap-3 sm:grid-cols-2">
             <FormField label="Outside lab (if sent out)">
               <Input value={lab} disabled={!editable} onChange={(e) => setLab(e.target.value)} placeholder="e.g. Center for Animal Diagnostics" />
             </FormField>
             <FormField label="Lab case / report no.">
               <Input value={labRef} disabled={!editable} onChange={(e) => setLabRef(e.target.value)} placeholder="Number on the lab report" />
             </FormField>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-2">
+          </div>}
+          {(editable || findings || impression) && <div className="grid gap-3 sm:grid-cols-2">
             <FormField label="Findings">
               <Textarea rows={3} value={findings} disabled={!editable} onChange={(e) => setFindings(e.target.value)} />
             </FormField>
             <FormField label="Impression / conclusion">
               <Textarea rows={3} value={impression} disabled={!editable} onChange={(e) => setImpression(e.target.value)} />
             </FormField>
-          </div>
+          </div>}
 
           <div className="flex flex-wrap items-center gap-2">
             {o.files.map((f) => (

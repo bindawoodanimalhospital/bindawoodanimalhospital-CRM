@@ -1,6 +1,6 @@
 import { formatAge, formatDate, formatDateTime } from "@/lib/format";
 import { formatTemp, formatWeight, parseRange, spellFrequency } from "@/lib/clinical";
-import type { MedicalRecord, RecordTest, RecordVisit } from "@/lib/medical-record";
+import type { MedicalRecord, RecordStay, RecordSurgery, RecordTest, RecordVisit } from "@/lib/medical-record";
 import { cn } from "@/lib/utils";
 
 /*
@@ -92,6 +92,14 @@ export function MedicalRecordView({ r }: { r: MedicalRecord }) {
         {r.visits.length === 0 && <p className="text-muted-foreground">No visits recorded yet.</p>}
         {r.visits.map((v) => <Visit key={v.id} v={v} showProblem={!r.scope} />)}
       </section>
+
+      {((r.surgeries?.length ?? 0) > 0 || (r.stays?.length ?? 0) > 0) && (
+        <section className="grid gap-3">
+          <Heading>Surgeries &amp; hospital stays</Heading>
+          {r.surgeries?.map((x) => <SurgeryBlock key={x.procedure + x.at} x={x} />)}
+          {r.stays?.map((x) => <StayBlock key={x.admittedAt} x={x} />)}
+        </section>
+      )}
 
       {/* Vaccines and deworming (whole record) */}
       {!r.scope && r.vaccinations.length > 0 && (
@@ -217,13 +225,42 @@ function Visit({ v, showProblem }: { v: RecordVisit; showProblem: boolean }) {
         {reports.map((t) => <LabReport key={t.id} t={t} />)}
 
         {(v.vaccinations.length > 0 || v.dewormings.length > 0) && (
-          <p>
-            {v.vaccinations.map((x) => <span key={x.name + x.at} className="mr-3"><b>Vaccine:</b> {x.name}{x.nextDue ? ` (next ${formatDate(x.nextDue)})` : ""}</span>)}
-            {v.dewormings.map((x) => <span key={x.product + x.at} className="mr-3"><b>Deworming:</b> {x.product}{x.dose ? ` ${x.dose}` : ""}{x.nextDue ? ` (next ${formatDate(x.nextDue)})` : ""}</span>)}
-          </p>
+          <div>
+            {v.vaccinations.map((x) => <p key={x.name + x.at}><b>Vaccine:</b> {x.name}{x.nextDue ? ` (next ${formatDate(x.nextDue)})` : ""}</p>)}
+            {v.dewormings.map((x) => <p key={x.product + x.at}><b>Deworming:</b> {x.product}{x.dose ? ` ${x.dose}` : ""}{x.nextDue ? ` (next ${formatDate(x.nextDue)})` : ""}</p>)}
+          </div>
         )}
+        {v.surgeries?.map((x) => <SurgeryBlock key={x.procedure + x.at} x={x} />)}
+        {v.stays?.map((x) => <StayBlock key={x.admittedAt} x={x} />)}
       </div>
     </article>
+  );
+}
+
+/** A completed operation, written for the owner: what was done, when, by whom, home care and the check-up. */
+function SurgeryBlock({ x }: { x: RecordSurgery }) {
+  return (
+    <div className="break-inside-avoid rounded-lg bg-surface/60 p-2.5 ring-1 ring-border">
+      <p className="font-semibold">Surgery — {x.procedure} <span className="font-normal text-muted-foreground">· {formatDateTime(x.at)}{x.doctor ? ` · ${x.doctor}` : ""}</span></p>
+      {x.reason && <p><b>Why:</b> {x.reason}</p>}
+      {x.complications && <p><b>Complications:</b> {x.complications}</p>}
+      {x.homeCare && <p className="whitespace-pre-wrap"><b>Care at home:</b> {x.homeCare}</p>}
+      {x.checkUp && <p><b>Check-up:</b> {formatDate(x.checkUp)}</p>}
+    </div>
+  );
+}
+
+/** A finished hospital (ward) stay, written for the owner. */
+function StayBlock({ x }: { x: RecordStay }) {
+  return (
+    <div className="break-inside-avoid rounded-lg bg-surface/60 p-2.5 ring-1 ring-border">
+      <p className="font-semibold">Hospital stay <span className="font-normal text-muted-foreground">· {formatDateTime(x.admittedAt)} → {formatDateTime(x.dischargedAt)}{x.doctor ? ` · ${x.doctor}` : ""}</span></p>
+      <p><b>Reason:</b> {x.reason}</p>
+      {x.summary && <p className="whitespace-pre-wrap"><b>Summary:</b> {x.summary}</p>}
+      {x.outcome && <p><b>Outcome:</b> {x.outcome}</p>}
+      {x.homeCare && <p className="whitespace-pre-wrap"><b>Care at home:</b> {x.homeCare}</p>}
+      {x.checkUp && <p><b>Check-up:</b> {formatDate(x.checkUp)}</p>}
+    </div>
   );
 }
 

@@ -72,7 +72,7 @@ export default async function DuePage({ searchParams }: PageProps<"/due">) {
         ))}
       </div>
       {entries.length === 0 ? (
-        <EmptyState icon={CalendarCheck} title="All clear" description="Nothing in this list right now." />
+        <EmptyState icon={CalendarCheck} title="All clear" description={view !== "week" && count.week ? `Nothing ${view === "today" ? "due today" : "overdue"} — ${count.week} coming up in the next 7 days (tap “Next 7 days”).` : "Nothing in this list right now."} />
       ) : (
         <ul className="grid grid-cols-1 gap-3">
           {entries.map((d) => <DueRow key={d.id} d={d} canWork={canWork} clinicName={clinic?.name || "Bin Dawood Animal Hospital"} />)}

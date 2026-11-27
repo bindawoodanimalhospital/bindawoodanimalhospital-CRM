@@ -33,7 +33,7 @@ export default async function PetHistoryPrint({ params }: PageProps<"/print/pet-
 
   return (
     <PrintShell clinic={clinic ?? {}} title="Complete medical history"
-      footer={`Printed ${formatDateTime(new Date())} by ${me.fullName} · ${h.episodes.length} entries`}>
+      footer={`Printed ${formatDateTime(new Date())} by ${me.fullName} · ${h.episodes.length} ${h.episodes.length === 1 ? "entry" : "entries"}`}>
       <InfoGrid rows={[
         ["Pet", `${pet.name} (${pet.code})`],
         ["Owner", owner ? [owner.full_name, formatPhone(withContact(owner).phone)].filter(Boolean).join(" · ") : null],

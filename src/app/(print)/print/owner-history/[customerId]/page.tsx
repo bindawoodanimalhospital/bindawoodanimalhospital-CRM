@@ -33,7 +33,7 @@ export default async function OwnerHistoryPrint({ params }: PageProps<"/print/ow
 
   return (
     <PrintShell clinic={clinic ?? {}} title="Owner history — all pets"
-      footer={`Printed ${formatDateTime(new Date())} by ${me.fullName} · ${items.length} entries`}>
+      footer={`Printed ${formatDateTime(new Date())} by ${me.fullName} · ${items.length} ${items.length === 1 ? "entry" : "entries"}`}>
       <InfoGrid rows={[
         ["Owner", `${c.full_name} (${c.code})`], ["Phone", formatPhone(withContact(c).phone) || null],
         ["Area", c.area], ["Address", c.address], ["Registered", formatDate(c.created_at)],

@@ -91,7 +91,8 @@ export default async function InvoicePrint({ params, searchParams }: PageProps<"
           <div className="text-center">
             <LogoMark tone="ink" className="mx-auto w-10" priority />
             <p className="mt-1 font-sans text-sm font-bold">{(clinic?.name || "Bin Dawood Animal Hospital").toUpperCase()}</p>
-            {(clinic?.tagline || clinic?.city) && <p>{[clinic?.tagline, clinic?.city].filter(Boolean).join(" · ")}</p>}
+            {clinic?.tagline && <p>{clinic.tagline}</p>}
+            {(clinic?.address || clinic?.city) && <p>{[clinic?.address, clinic?.city].filter(Boolean).join(", ")}</p>}
             {clinic?.phone && <p>Tel / WhatsApp {formatPhone(clinic.phone)}</p>}
           </div>
 
@@ -172,7 +173,7 @@ export default async function InvoicePrint({ params, searchParams }: PageProps<"
               <Heart className="size-3.5 shrink-0 fill-black" strokeWidth={2} />
             </p>
             <p>{rPet ? `Wishing ${rPet.name} a happy, healthy life.` : "Your pets are always welcome here."}</p>
-            {cfg?.invoice_footer && <p className="mt-1">{cfg.invoice_footer}</p>}
+            {cfg?.invoice_footer && !/^\s*thank/i.test(cfg.invoice_footer) && <p className="mt-1">{cfg.invoice_footer}</p>}
           </div>
 
           <p className="mt-2 text-center font-sans text-[10px] font-medium">AI softwares by OBD · +92 337 8624781</p>

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { spellFrequency } from "@/lib/clinical";
 import {
   BedDouble, Bug, FlaskConical, Home, Pill, Receipt, Scissors, Stethoscope, Syringe, UserRound, type LucideIcon,
 } from "lucide-react";
@@ -90,7 +91,7 @@ export function EpisodeCard({ e, print, showMoney, showPrivate, open, showPet }:
           aside={[p.doctor && `By ${p.doctor}`, p.issuedAt && formatDateTime(p.issuedAt)].filter(Boolean).join(" · ")}
           link={print ? undefined : { href: `/print/prescription/${p.id}`, label: "Print" }}>
           <Table head={["Medicine", "Dose", "How often", "For", "Route", "Qty", "Instructions"]}
-            rows={p.lines.map((l) => [[l.medicine, l.strength, l.form].filter(Boolean).join(" "), l.dose, l.frequency, l.duration, l.route, l.quantity == null ? null : String(l.quantity), l.instructions])} />
+            rows={p.lines.map((l) => [[l.medicine, l.strength, l.form].filter(Boolean).join(" "), l.dose, l.frequency ? spellFrequency(l.frequency) : null, l.duration, l.route, l.quantity, l.instructions])} />
           {p.notes && <p className="mt-1 text-xs text-muted-foreground">Advice: {p.notes}</p>}
         </Section>
       ))}
@@ -123,7 +124,7 @@ export function EpisodeCard({ e, print, showMoney, showPrivate, open, showPet }:
           link={print ? undefined : { href: `/surgery/${s.id}`, label: "Open" }}>
           <Facts rows={[
             ["Surgeon", s.surgeon], ["Team", s.team.length ? s.team.map((t) => `${t.name} (${t.role.replace(/_/g, " ")})`).join(", ") : null],
-            ["Why", s.indication], ["Urgency", s.urgency], ["ASA", s.asa], ["Anaesthesia", s.anaesthesia], ["During surgery", s.intraOp],
+            ["Why", s.indication], ["Urgency", s.urgency ? s.urgency.charAt(0).toUpperCase() + s.urgency.slice(1) : null], ["ASA", s.asa], ["Anaesthesia", s.anaesthesia], ["During surgery", s.intraOp],
             ["Complications", s.complications], ["Recovery", s.recovery], ["Materials used", s.consumables.join(", ") || null],
             ["Discharged by", s.dischargedBy], ["Follow-up", s.followUp ? formatDate(s.followUp) : null],
           ]} />

@@ -382,6 +382,9 @@ function DiagnosisList({ items, onChange }: { items: Diagnosis[]; onChange: (d: 
           </span>
         ))}
       </div>
+      {items.length > 0 && (
+        <p className="text-xs text-muted-foreground">Tap <b>PROVISIONAL</b> to mark a diagnosis confirmed · ★ makes it the main diagnosis.</p>
+      )}
       <div className="flex max-w-md gap-2">
         <Input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Add diagnosis, e.g. Tick fever"
           onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); add(); } }} />

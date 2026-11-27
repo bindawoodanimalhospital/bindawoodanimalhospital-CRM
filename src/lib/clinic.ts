@@ -128,6 +128,15 @@ export const DELIVERY_STATUS: Record<DeliveryStatus, { label: string; tone: Tone
 
 export type AddressParts = { house_no?: string | null; block?: string | null; address?: string | null; area?: string | null; city?: string | null };
 
+/**
+ * Ledger rows in the order people expect: by the minute, and within the same minute a bill (charge) before the
+ * payment taken for it — checkout saves the payment a moment before the bill is issued.
+ */
+export function sortLedger<T extends { at: string; debit: number | string | null }>(rows: T[]): T[] {
+  const minute = (at: string) => Math.floor(new Date(at).getTime() / 60000);
+  return [...rows].sort((a, b) => minute(a.at) - minute(b.at) || Number(Number(b.debit) > 0) - Number(Number(a.debit) > 0) || a.at.localeCompare(b.at));
+}
+
 /** "House 12, Block C, Street 4, DHA Phase 5, Lahore" — same format as public.customer_address_line(). */
 export function addressLine(c: AddressParts | null | undefined): string {
   if (!c) return "";

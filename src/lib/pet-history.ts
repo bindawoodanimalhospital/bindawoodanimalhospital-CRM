@@ -13,7 +13,7 @@ const CAP = 1000;
 type Obj = Record<string, unknown>;
 
 export type Who = string | null;
-export type RxLine = { medicine: string; strength: string | null; form: string | null; dose: string | null; frequency: string | null; duration: string | null; route: string | null; quantity: number | null; instructions: string | null };
+export type RxLine = { medicine: string; strength: string | null; form: string | null; dose: string | null; frequency: string | null; duration: string | null; route: string | null; quantity: string | null; instructions: string | null };
 export type Rx = { id: string; code: string; status: string; issuedAt: string | null; doctor: Who; notes: string | null; lines: RxLine[] };
 export type Deworming = { id: string; at: string; product: string; dose: string | null; by: Who; nextDue: string | null };
 export type Vaccination = { id: string; at: string; name: string; manufacturer: string | null; batch: string | null; dose: string | null; route: string | null; site: string | null; by: Who; nextDue: string | null; reaction: string | null; notes: string | null };
@@ -99,7 +99,7 @@ export async function loadHistory({ petIds, customerId }: { petIds: string[]; cu
     id: r.id as string, code: r.code as string, status: r.status as string, issuedAt: str(r.issued_at), doctor: who(r.doctor_id), notes: str(r.notes),
     lines: ((r.prescription_items ?? []) as Obj[]).sort((a, b) => num(a.sort_order) - num(b.sort_order)).map((i) => ({
       medicine: String(i.medicine_name), strength: str(i.strength), form: str(i.form), dose: str(i.dose), frequency: str(i.frequency),
-      duration: str(i.duration), route: str(i.route), quantity: i.quantity == null ? null : num(i.quantity), instructions: str(i.instructions),
+      duration: str(i.duration), route: str(i.route), quantity: str(i.quantity), instructions: str(i.instructions),
     })),
   });
   const toVacc = (v: Obj): Vaccination => ({

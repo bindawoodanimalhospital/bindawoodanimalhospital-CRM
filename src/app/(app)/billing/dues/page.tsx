@@ -109,7 +109,7 @@ export default async function DuesPage({ searchParams }: PageProps<"/billing/due
                   <p className="mt-1 text-sm text-muted-foreground">{[formatPhone(r.customer.phone), r.reason].filter(Boolean).join(" · ")}</p>
                   <p className="mt-1 text-sm">
                     <b className="text-lg tabular">{formatPKR(r.balance)}</b>
-                    <span className="text-muted-foreground"> of {formatPKR(r.original_amount)} · promised {formatDate(r.promised_date)}</span>
+                    <span className="text-muted-foreground">{Number(r.original_amount) !== Number(r.balance) ? ` left of ${formatPKR(r.original_amount)} owed` : " owed"} · promised {formatDate(r.promised_date)}</span>
                     {r.late > 0 && <span className="ml-2 font-semibold text-danger">{r.late} day{r.late > 1 ? "s" : ""} late</span>}
                   </p>
                 </div>

@@ -8,10 +8,11 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { FormField } from "@/components/app/form-field";
-import { formatPKR, todayPK } from "@/lib/format";
+import { formatDate, formatPKR, todayPK } from "@/lib/format";
 import type { FormState } from "@/lib/validation";
 import { searchCatalog, type CatalogHit } from "../billing/actions";
 import { addPurchaseLine, cancelPurchase, paySupplier, receivePurchase, removePurchaseLine, saveSupplier, startPurchase, usualLocation } from "./actions";
+import { useConfirm } from "@/components/app/confirm";
 
 function useRun() {
   const [pending, start] = useTransition();
@@ -78,6 +79,7 @@ export function GrnEditor({ purchaseId, lines, locations, total }: { purchaseId:
   const [item, setItem] = useState<CatalogHit | null>(null);
   const [f, setF] = useState({ location_id: locations[0]?.id ?? "", batch_no: "", expiry_date: "", qty: "", unit_cost: "" });
   const { pending, run } = useRun();
+  const [ask, confirmBox] = useConfirm();
   useEffect(() => {
     if (item || q.trim().length < 2) return;
     const t = setTimeout(async () => setHits((await searchCatalog(q)).filter((h) => h.kind === "product")), 200);
@@ -91,7 +93,7 @@ export function GrnEditor({ purchaseId, lines, locations, total }: { purchaseId:
         {lines.map((l) => (
           <li key={l.id} className="flex flex-wrap items-center gap-3 rounded-xl bg-surface px-3 py-2 text-sm ring-1 ring-border">
             <span className="font-semibold">{l.item_name}</span>
-            <span className="text-muted-foreground">{l.location} · batch {l.batch_no || "—"} · exp {l.expiry_date ?? "—"}</span>
+            <span className="text-muted-foreground">{l.location} · batch {l.batch_no || "—"} · exp {l.expiry_date ? formatDate(l.expiry_date) : "—"}</span>
             <span className="ml-auto tabular">{l.qty} × {formatPKR(l.unit_cost)} = <b>{formatPKR(l.line_total)}</b></span>
             <Button variant="ghost" size="icon-sm" aria-label="Remove" onClick={() => run(() => removePurchaseLine(purchaseId, l.id))}><Trash2 /></Button>
           </li>
@@ -130,10 +132,11 @@ export function GrnEditor({ purchaseId, lines, locations, total }: { purchaseId:
       </div>
 
       <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-4">
-        <Button variant="ghost" onClick={() => { if (confirm("Cancel this delivery?")) run(() => cancelPurchase(purchaseId)); }}>Cancel delivery</Button>
+        {confirmBox}
+        <Button variant="ghost" onClick={async () => { if (await ask({ title: "Cancel this delivery?", description: "Nothing has been added to stock yet.", confirm: "Cancel delivery", cancel: "Keep it", danger: true })) run(() => cancelPurchase(purchaseId)); }}>Cancel delivery</Button>
         <div className="flex items-center gap-4">
           <span className="text-lg">Total <b className="tabular">{formatPKR(total)}</b></span>
-          <Button size="lg" disabled={pending || !lines.length} onClick={() => { if (confirm("Add all of this to stock? This can't be edited afterwards.")) run(() => receivePurchase(purchaseId)); }}>
+          <Button size="lg" disabled={pending || !lines.length} onClick={async () => { if (await ask({ title: "Add all of this to stock?", description: "The delivery can't be edited afterwards.", confirm: "Receive into stock", cancel: "Check again" })) run(() => receivePurchase(purchaseId)); }}>
             {pending ? <Loader2 className="animate-spin" /> : <PackageCheck />} Receive into stock</Button>
         </div>
       </div>

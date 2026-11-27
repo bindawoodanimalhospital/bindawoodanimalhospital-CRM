@@ -110,9 +110,27 @@ export type CustomerOption = { id: string; code: string; title: string; subtitle
 export async function searchCustomers(q: string): Promise<CustomerOption[]> {
   if (q.trim().length < 2) return [];
   const supabase = await createClient();
-  const { data } = await supabase.rpc("smart_search", { q, p_scope: "owner", max_results: 8 });
-  return ((data ?? []) as (CustomerOption & { kind: string })[]).filter((h) => h.kind === "customer").slice(0, 8)
-    .map((h) => ({ ...h, subtitle: prettifyPhones(h.subtitle) }));
+  const [owners, pets] = await Promise.all([
+    supabase.rpc("smart_search", { q, p_scope: "owner", max_results: 8 }),
+    supabase.rpc("smart_search", { q, p_scope: "pet", max_results: 8 }),
+  ]);
+  const found: CustomerOption[] = ((owners.data ?? []) as (CustomerOption & { kind: string })[]).filter((h) => h.kind === "customer")
+    .map((h) => ({ id: h.id, code: h.code, title: h.title, subtitle: prettifyPhones(h.subtitle) }));
+  const petHits = ((pets.data ?? []) as { kind: string; id: string; title: string }[]).filter((h) => h.kind === "pet");
+  if (petHits.length) {
+    const { data: links } = await supabase.from("pet_owners").select("pet_id, is_primary, customers(id, code, full_name, area)")
+      .in("pet_id", petHits.map((h) => h.id));
+    for (const h of petHits) {
+      const ls = ((links ?? []) as unknown as { pet_id: string; is_primary: boolean; customers: { id: string; code: string; full_name: string; area: string | null } | null }[])
+        .filter((l) => l.pet_id === h.id && l.customers).sort((a, b) => Number(b.is_primary) - Number(a.is_primary));
+      for (const l of ls) {
+        if (found.some((f) => f.id === l.customers!.id)) continue;
+        found.push({ id: l.customers!.id, code: l.customers!.code, title: l.customers!.full_name,
+          subtitle: [l.customers!.area, `owner of ${h.title}`].filter(Boolean).join(" · ") });
+      }
+    }
+  }
+  return found.slice(0, 8);
 }
 
 /** The customer's saved address as one line (house, block, full address, area, city) — for deliveries & home visits. */

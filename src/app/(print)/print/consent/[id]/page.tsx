@@ -1,3 +1,4 @@
+import { addressLine } from "@/lib/clinic";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { InfoGrid, PrintShell, type ClinicProfile } from "@/components/print/print-shell";
@@ -18,7 +19,7 @@ export default async function ConsentPrint({ params }: PageProps<"/print/consent
   const [{ data: s }, clinic, text] = await Promise.all([
     supabase.from("surgeries").select(`code, procedure_name, indication, estimate_amount, estimate_notes, scheduled_at, urgency,
       pets(code, name, sex, date_of_birth, dob_is_estimate, color, species(name), breeds(name), breed_text),
-      customers(full_name, customer_contacts(phone, whatsapp), address, area), surgeon:surgeon_id(full_name, pvmc_number),
+      customers(full_name, customer_contacts(phone, whatsapp), house_no, block, address, area, city), surgeon:surgeon_id(full_name, pvmc_number),
       surgery_consents(signed_by_name, relationship, method, signed_at, revoked_at)`).eq("id", id).maybeSingle(),
     getSetting<ClinicProfile>("clinic.profile"),
     getSetting<{ en: string; ur: string; status?: string }>("surgery.consent_text"),
@@ -26,7 +27,7 @@ export default async function ConsentPrint({ params }: PageProps<"/print/consent
   if (!s) notFound();
   const pet = s.pets as unknown as { code: string; name: string; sex: string; date_of_birth: string | null; dob_is_estimate: boolean; color: string | null;
     species: { name: string } | null; breeds: { name: string } | null; breed_text: string | null };
-  const owner = withContact(s.customers as unknown as { full_name: string; address: string | null; area: string | null });
+  const owner = withContact(s.customers as unknown as { full_name: string; house_no: string | null; block: string | null; address: string | null; area: string | null; city: string | null });
   const surgeon = s.surgeon as unknown as { full_name: string; pvmc_number: string | null } | null;
   const signed = ((s.surgery_consents ?? []) as { signed_by_name: string; relationship: string | null; method: string; signed_at: string; revoked_at: string | null }[])
     .find((c) => !c.revoked_at);
@@ -41,7 +42,7 @@ export default async function ConsentPrint({ params }: PageProps<"/print/consent
           ["Species", [pet.species?.name, pet.breeds?.name ?? pet.breed_text, pet.sex !== "unknown" ? pet.sex : null].filter(Boolean).join(" · ")],
           ["Age / colour", [formatAge(pet.date_of_birth, pet.dob_is_estimate), pet.color].filter(Boolean).join(" · ")],
           ["Owner", [owner.full_name, formatPhone(owner.phone)].filter(Boolean).join(" · ")],
-          ["Address", [owner.address, owner.area].filter(Boolean).join(", ") || null],
+          ["Address", addressLine(owner) || null],
           ["Surgeon", surgeon ? `${surgeon.full_name}${surgeon.pvmc_number ? ` (PVMC ${surgeon.pvmc_number})` : ""}` : null],
         ]} />
       </div>

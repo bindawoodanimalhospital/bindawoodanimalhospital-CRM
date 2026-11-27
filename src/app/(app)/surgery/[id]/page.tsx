@@ -105,7 +105,7 @@ export default async function SurgeryDetailPage({ params }: PageProps<"/surgery/
           consentText={consentText ?? { en: "", ur: "" }}
           perms={{ manage: me.can("surgery.manage"), assist: me.can("surgery.assist"), consent: me.can("surgery.consent"), phones: me.can("customers.contact"),
             reopen: me.can("clinical.reopen"), clinical }}
-          admitSlot={me.can("inpatient.manage") && ["recovery", "discharged"].includes(s.status) ? (
+          admitSlot={me.can("inpatient.manage") && s.status === "recovery" ? (
             <AdmitDialog kennels={kennels} doctors={doctors}
               fixed={{ pet_id: pet.id, pet_name: pet.name, customer_id: owner.id, surgery_id: s.id, visit_id: s.visit_id ?? undefined, reason: `Recovery after ${s.procedure_name}` }}
               trigger={<Button variant="outline"><BedDouble /> Keep in ward</Button>} />

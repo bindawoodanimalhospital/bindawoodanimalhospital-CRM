@@ -69,7 +69,7 @@ export function NewTaskDialog({ staff, meId, fixed, trigger }: {
               <div className="relative">
                 <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Owner or pet name" />
                 {opts.length > 0 && q.trim().length >= 2 && (
-                  <ul className="absolute z-20 mt-1 w-full rounded-xl bg-popover p-1 shadow-float ring-1 ring-border">
+                  <ul className="absolute bottom-full z-30 mb-1 max-h-56 w-full overflow-y-auto rounded-xl bg-popover p-1 shadow-float ring-1 ring-border">
                     {opts.map((o) => <li key={o.id}><button type="button" onClick={() => { setCustomer(o); setQ(""); setOpts([]); }} className="w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-muted"><b>{o.title}</b> <span className="text-muted-foreground">{o.subtitle}</span></button></li>)}
                   </ul>
                 )}

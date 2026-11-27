@@ -113,7 +113,11 @@ export function Register({ initial, popular = [], methods, canDiscount, defaultD
     if (r.ok && r.invoiceId) {
       key.current = newKey();
       if (wasDelivery) setDone(r.invoiceId);
-      else { setLastSale({ id: r.invoiceId, total: saleTotal, change: saleChange, name: saleName }); clearSale(); }
+      else {
+        setLastSale({ id: r.invoiceId, total: saleTotal, change: saleChange, name: saleName }); clearSale();
+        document.getElementById("checkout")?.scrollTo({ top: 0, behavior: "smooth" });
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
       setItems(await searchRetail(q));
     } else toast.error(r.message);
   });
@@ -129,7 +133,7 @@ export function Register({ initial, popular = [], methods, canDiscount, defaultD
     || (payNow && m?.needs_reference && !reference.trim()) || (Number(billDiscount) > 0 && !discountReason.trim()));
 
   return (
-    <div className={cn("grid grid-cols-1 gap-6 lg:grid-cols-[1fr_400px]", cart.length > 0 && "pb-24 lg:pb-0")}>
+    <div className={cn("grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_400px]", cart.length > 0 && "pb-24 xl:pb-0")}>
       <section className="grid min-w-0 content-start gap-4">
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="relative">
@@ -168,7 +172,7 @@ export function Register({ initial, popular = [], methods, canDiscount, defaultD
         </div>
       </section>
 
-      <aside id="checkout" className="grid scroll-mt-20 content-start gap-4 lg:sticky lg:top-20 lg:max-h-[calc(100svh-6rem)] lg:overflow-x-hidden lg:overflow-y-auto lg:overscroll-contain lg:pr-1 lg:pb-2 [scrollbar-width:thin]">
+      <aside id="checkout" className="grid scroll-mt-20 content-start gap-4 xl:sticky xl:top-20 xl:max-h-[calc(100svh-14.5rem)] xl:overflow-x-hidden xl:overflow-y-auto xl:overscroll-contain xl:pr-1 xl:pb-2 [scrollbar-width:thin]">
         {lastSale && (
           <section className="flex flex-wrap items-center gap-2 rounded-2xl bg-success-soft p-3 text-success ring-1 ring-success/30" role="status">
             <Check className="size-5" />
@@ -294,16 +298,16 @@ export function Register({ initial, popular = [], methods, canDiscount, defaultD
           {cart.some((l) => !(l.price > 0)) && <p className="text-xs text-danger">Enter the price for {cart.find((l) => !(l.price > 0))?.item.name}.</p>}
           {payNow && short > 0 && <p className="rounded-xl bg-warning-soft px-3 py-2 text-sm text-warning">{customer ? `${formatPKR(short)} will be added to ${customer.title}'s account.` : "Walk-in sales must be paid in full — or choose the customer."}</p>}
           {discountReason.trim() === "" && Number(billDiscount) > 0 && <p className="text-xs text-danger">Give a reason for the discount.</p>}
-          <Button size="lg" className="h-14 text-lg" onClick={pay} disabled={!canPay}>
+        </section>
+        <Button size="lg" className="h-14 w-full text-lg xl:sticky xl:bottom-0 xl:z-10 xl:shadow-float" onClick={pay} disabled={!canPay}>
             {pending ? <Loader2 className="animate-spin" /> : delivery ? <Truck /> : <Check />}
             {mode === "cod" ? "Confirm order — cash on delivery" : mode === "later" ? `Make bill — pay later (${formatPKR(total)})` : `Pay ${formatPKR(Math.min(paid, total))}`}
           </Button>
-        </section>
       </aside>
 
       {/* Phones: products come first, so keep the total and a way to pay always in reach. */}
       {cart.length > 0 && !done && (
-        <div className="fixed inset-x-3 bottom-3 z-30 flex items-center gap-3 rounded-2xl bg-ink p-2 pl-4 text-white shadow-float lg:hidden">
+        <div className="fixed inset-x-3 bottom-3 z-30 flex items-center gap-3 rounded-2xl bg-ink p-2 pl-4 text-white shadow-float xl:hidden">
           <ShoppingBag className="size-5 shrink-0 text-white/70" />
           <span className="min-w-0 flex-1 leading-tight">
             <span className="block text-xs text-white/60">{cart.reduce((n, l) => n + l.qty, 0)} item{cart.reduce((n, l) => n + l.qty, 0) === 1 ? "" : "s"}{delivery ? " · home delivery" : ""}</span>

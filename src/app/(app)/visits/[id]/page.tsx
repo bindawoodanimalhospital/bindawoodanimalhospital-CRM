@@ -152,7 +152,7 @@ export default async function VisitPage({ params, searchParams }: PageProps<"/vi
         }
         description={[pet.species?.name, pet.breeds?.name ?? pet.breed_text, pet.sex !== "unknown" ? pet.sex : null,
           formatAge(pet.date_of_birth, pet.dob_is_estimate), weight ? `${Number(weight)} kg` : null,
-          `checked in ${formatTime(visit.checked_in_at)}`].filter(Boolean).join(" · ")}
+          owner?.full_name ? `owner ${owner.full_name}` : null, `checked in ${formatTime(visit.checked_in_at)}`].filter(Boolean).join(" · ")}
         actions={
           <>
             {me.can("billing.create") && <BillVisitButton visitId={id} />}

@@ -118,7 +118,7 @@ export function DewormingPanel({ visitId, petId, dob, weight, history, dewormers
               <select value={dewormerId || (other !== "" ? "other" : "")} onChange={(e) => { if (e.target.value === "other") { setDewormerId(""); setOther(" "); } else { setOther(""); pick(e.target.value); } }}
                 className="h-10 w-full rounded-xl border border-input bg-card px-3 text-sm">
                 <option value="">Choose…</option>
-                {dewormers.map((d) => <option key={d.id} value={d.id}>{d.name} — {d.tracks.map(trackLabel).join(" + ")}</option>)}
+                {dewormers.filter((x) => !/other|not listed/i.test(x.name)).map((d) => <option key={d.id} value={d.id}>{d.name} — {d.tracks.map(trackLabel).join(" + ")}</option>)}
                 <option value="other">Other (not on the list)…</option>
               </select>
               {chosen && (

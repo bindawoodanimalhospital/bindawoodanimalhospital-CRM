@@ -94,7 +94,7 @@ export default async function MessagesPage({ searchParams }: PageProps<"/message
     <>{header}{tabs}
       {items.length === 0
         ? <EmptyState icon={MessageCircle} title="All messages sent" description="New reminders appear here automatically (checked every 30 minutes)." />
-        : <MessageQueue items={items} canSend={me.can("crm.manage")} />}
+        : <MessageQueue items={items} canSend={me.can("crm.manage")} canSeeNumbers={me.can("customers.contact")} />}
     </>
   );
 }

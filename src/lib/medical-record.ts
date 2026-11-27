@@ -1,12 +1,13 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { defaultRange, flagResult } from "@/lib/clinical";
+import { ADMISSION_OUTCOMES } from "@/lib/clinic";
 import type { ClinicProfile } from "@/components/print/print-shell";
 
 /*
  * The medical record shared with a pet's owner — the same document for the staff printout and the private link.
  * Built from the CRM's own records: finalized consultations, issued prescriptions, tests, confirmed vaccines and
- * dewormings, problems and weights. Never included: bills and money, private doctor notes, draft consultation
+ * dewormings, completed surgeries and hospital stays, problems and weights. Never included: bills and money, private doctor notes, draft consultation
  * notes, cancelled prescriptions or tests, and phone numbers. Every query is filtered to the one pet, so the same
  * loader is safe with the service-role client used by the public link page.
  */
@@ -38,6 +39,14 @@ export type RecordConsultation = {
   diagnoses: { label: string; certainty: string; primary: boolean }[];
   prognosis: string | null; treatment: string | null; medicinesGiven: string | null; advice: string | null; followUpDate: string | null;
 };
+export type RecordSurgery = {
+  procedure: string; at: string; doctor: string | null; reason: string | null; complications: string | null;
+  homeCare: string | null; checkUp: string | null; visitId: string | null;
+};
+export type RecordStay = {
+  admittedAt: string; dischargedAt: string; doctor: string | null; reason: string; outcome: string | null; summary: string | null;
+  homeCare: string | null; checkUp: string | null; visitId: string | null;
+};
 export type RecordVisit = {
   id: string; at: string; token: number | null; priority: string; homeVisit: boolean; reason: string | null;
   doctor: string | null; problem: { id: string; title: string } | null;
@@ -45,6 +54,8 @@ export type RecordVisit = {
   prescriptions: RecordRx[]; tests: RecordTest[];
   vaccinations: { name: string; at: string; nextDue: string | null }[];
   dewormings: { product: string; dose: string | null; at: string; nextDue: string | null }[];
+  surgeries?: RecordSurgery[];
+  stays?: RecordStay[];
 };
 export type RecordProblem = {
   id: string; title: string; status: "open" | "resolved"; openedAt: string; resolvedAt: string | null;
@@ -67,6 +78,9 @@ export type MedicalRecord = {
   vaccinations: { name: string; at: string; nextDue: string | null; visitId: string | null }[];
   dewormings: { product: string; dose: string | null; at: string; nextDue: string | null; visitId: string | null }[];
   vitals: { at: string; weightKg: number | null; tempC: number | null; hr: number | null; rr: number | null }[];
+  /** Surgeries and stays not tied to a visit shown above (planned straight from the pet, or from an older visit). */
+  surgeries?: RecordSurgery[];
+  stays?: RecordStay[];
   draftNotes: number;
 };
 
@@ -77,7 +91,7 @@ const n = (v: unknown) => (v == null || v === "" ? null : Number(v));
 
 /** Load the record for one pet; with `problemId`, only that problem's visits. Returns null if the pet isn't found. */
 export async function loadMedicalRecord(db: SupabaseClient, petId: string, problemId?: string | null): Promise<MedicalRecord | null> {
-  const [pet, clinic, visits, consults, rx, tests, vacc, dew, problems, weights, alerts, due, staff] = await Promise.all([
+  const [pet, clinic, visits, consults, rx, tests, vacc, dew, problems, weights, alerts, due, staff, surg, adm] = await Promise.all([
     db.from("pets").select(`id, code, name, sex, is_neutered, date_of_birth, dob_is_estimate, color, microchip_no, breed_text,
       species(name), breeds(name), pet_owners(is_primary, customers(full_name, code))`).eq("id", petId).maybeSingle(),
     db.from("system_settings").select("value").eq("key", "clinic.profile").maybeSingle(),
@@ -103,6 +117,10 @@ export async function loadMedicalRecord(db: SupabaseClient, petId: string, probl
     db.from("pet_alerts").select("label, kind, severity").eq("pet_id", petId).eq("is_active", true),
     db.from("due_items").select("title, due_on, kind").eq("pet_id", petId).eq("status", "pending").order("due_on").limit(20),
     db.from("staff").select("id, full_name"),
+    db.from("surgeries").select(`visit_id, procedure_name, indication, procedure_start, discharged_at, discharge_instructions, follow_up_date,
+      complications, surgeon_id`).eq("pet_id", petId).not("discharged_at", "is", null).order("discharged_at", { ascending: false }).limit(CAP),
+    db.from("admissions").select(`visit_id, reason, admitted_at, discharged_at, outcome, discharge_summary, discharge_instructions,
+      follow_up_date, attending_doctor_id`).eq("pet_id", petId).eq("status", "discharged").order("discharged_at", { ascending: false }).limit(CAP),
   ]);
   if (!pet.data) return null;
 
@@ -183,6 +201,13 @@ export async function loadMedicalRecord(db: SupabaseClient, petId: string, probl
   const dewormings = ((dew.data ?? []) as Obj[]).map((d) => ({ product: String(d.product), dose: s(d.dose), at: String(d.given_at),
     nextDue: s(d.next_due_date), visitId: s(d.visit_id) }));
 
+  const surgeries: RecordSurgery[] = ((surg.data ?? []) as Obj[]).map((x) => ({ procedure: String(x.procedure_name),
+    at: String(x.procedure_start ?? x.discharged_at), doctor: who(x.surgeon_id), reason: s(x.indication), complications: s(x.complications),
+    homeCare: s(x.discharge_instructions), checkUp: s(x.follow_up_date), visitId: s(x.visit_id) }));
+  const stays: RecordStay[] = ((adm.data ?? []) as Obj[]).map((x) => ({ admittedAt: String(x.admitted_at), dischargedAt: String(x.discharged_at),
+    doctor: who(x.attending_doctor_id), reason: String(x.reason), outcome: ADMISSION_OUTCOMES.find((o) => o.value === x.outcome)?.label ?? null,
+    summary: s(x.discharge_summary), homeCare: s(x.discharge_instructions), checkUp: s(x.follow_up_date), visitId: s(x.visit_id) }));
+
   const allVisits = (visits.data ?? []) as Obj[];
   const problemList = ((problems.data ?? []) as Obj[]).map((pr): RecordProblem => {
     const vs = allVisits.filter((v) => v.problem_id === pr.id).map((v) => String(v.checked_in_at)).sort();
@@ -209,6 +234,8 @@ export async function loadMedicalRecord(db: SupabaseClient, petId: string, probl
       tests: orders.filter((o) => o.visit_id === v.id).map(toTest),
       vaccinations: vaccinations.filter((x) => x.visitId === v.id).map(({ name: nm, at, nextDue }) => ({ name: nm, at, nextDue })),
       dewormings: dewormings.filter((x) => x.visitId === v.id).map(({ product, dose, at, nextDue }) => ({ product, dose, at, nextDue })),
+      surgeries: surgeries.filter((x) => x.visitId === v.id),
+      stays: stays.filter((x) => x.visitId === v.id),
     };
   });
 
@@ -234,5 +261,7 @@ export async function loadMedicalRecord(db: SupabaseClient, petId: string, probl
     vaccinations: scope ? vaccinations.filter((x) => x.visitId && inScopeIds.has(x.visitId)) : vaccinations,
     dewormings: scope ? dewormings.filter((x) => x.visitId && inScopeIds.has(x.visitId)) : dewormings,
     vitals, draftNotes,
+    surgeries: scope ? [] : surgeries.filter((x) => !x.visitId || !inScopeIds.has(x.visitId)),
+    stays: scope ? [] : stays.filter((x) => !x.visitId || !inScopeIds.has(x.visitId)),
   };
 }

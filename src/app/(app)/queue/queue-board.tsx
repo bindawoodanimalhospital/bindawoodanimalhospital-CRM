@@ -24,6 +24,7 @@ import { cn } from "@/lib/utils";
 import type { DoctorOption } from "@/lib/queries";
 import { assignDoctor, cancelVisit, moveVisit } from "./actions";
 import { BillVisitButton } from "../billing/bill-visit-button";
+import { useConfirm } from "@/components/app/confirm";
 
 export type QueueVisit = {
   id: string; token_no: number; status: VisitStatus; priority: VisitPriority; reason: string | null;
@@ -113,6 +114,7 @@ function VisitCard({ v, now, doctors, canManage, canClinical, canBill }: {
   v: QueueVisit; now: Date; doctors: DoctorOption[]; canManage: boolean; canClinical: boolean; canBill: boolean;
 }) {
   const [pending, start] = useTransition();
+  const [ask, confirmBox] = useConfirm();
   const [cancelOpen, setCancelOpen] = useState(false);
   const next = NEXT_STEP[v.status];
   const waitingMins = minutesSince(v.status_changed_at, now);
@@ -196,12 +198,17 @@ function VisitCard({ v, now, doctors, canManage, canClinical, canBill }: {
 
       {next && (canManage || canClinical) && (
         <div className="mt-4 flex flex-wrap gap-2">
+          {confirmBox}
+          {canClinical && ["with_doctor", "in_treatment"].includes(v.status) && (
+            <Button asChild className="w-full"><Link href={`/visits/${v.id}`}><Stethoscope /> Open visit</Link></Button>
+          )}
           <Button className="flex-1" variant={v.status === "waiting" ? "default" : "outline"} disabled={pending}
-            onClick={() => {
+            onClick={async () => {
               // Finishing from "Ready to pay" checks the bill: nothing is closed unpaid or unbilled by accident.
               if (v.status === "ready_for_billing" && v.bill !== undefined && v.bill !== "paid"
-                  && !confirm(v.bill === "none" ? `${v.pet.name} has no bill yet. Finish the visit without billing?`
-                    : `Rs. ${Number(v.bill).toLocaleString("en-PK")} is still unpaid on this visit. Finish anyway? (It stays on Unpaid bills.)`)) return;
+                  && !(await ask(v.bill === "none"
+                    ? { title: `${v.pet.name} has no bill yet`, description: "Finish the visit without billing?", confirm: "Finish without a bill" }
+                    : { title: `Rs. ${Number(v.bill).toLocaleString("en-PK")} is still unpaid`, description: "Finish the visit anyway? The amount stays on Unpaid bills.", confirm: "Finish anyway" }))) return;
               run(() => moveVisit(v.id, next.to));
             }}>
             {pending ? <Loader2 className="animate-spin" /> : null}{" "}

@@ -20,6 +20,7 @@ export default async function DischargePrint({ params }: PageProps<"/print/disch
   const { kind, id } = await params;
   const supabase = await createClient();
   const clinic = await getSetting<ClinicProfile>("clinic.profile");
+  const callNo = formatPhone(clinic?.phone) || formatPhone(clinic?.whatsapp);
   const petSel = "pets(code, name, sex, date_of_birth, dob_is_estimate, species(name), breeds(name), breed_text)";
 
   if (kind === "surgery") {
@@ -35,7 +36,8 @@ export default async function DischargePrint({ params }: PageProps<"/print/disch
         <Header pet={pet} owner={owner} extra={[["Procedure", s.procedure_name], ["Operated", s.procedure_start ? formatDateTime(s.procedure_start) : null], ["Discharged", formatDateTime(s.discharged_at)]]} />
         <Block title="Care at home">{s.discharge_instructions}</Block>
         {s.follow_up_date && <Block title="Come back for a check-up on"><b>{formatDate(s.follow_up_date)}</b></Block>}
-        <Block title="Call us straight away if you see">Bleeding, swelling or discharge from the wound, the stitches opening, vomiting, no eating for more than a day, or unusual weakness.</Block>
+        <Block title="Call us straight away if you see">Bleeding, swelling or discharge from the wound, the stitches opening, vomiting, no eating for more than a day, or unusual weakness.
+          {callNo && <span className="mt-1 block text-base font-bold">Call {callNo}</span>}</Block>
         <Signature name={surgeon?.full_name} pvmc={surgeon?.pvmc_number} />
       </PrintShell>
     );
@@ -57,6 +59,8 @@ export default async function DischargePrint({ params }: PageProps<"/print/disch
         <Block title="Summary">{a.discharge_summary}</Block>
         {a.discharge_instructions && <Block title="Care at home">{a.discharge_instructions}</Block>}
         {a.follow_up_date && <Block title="Come back for a check-up on"><b>{formatDate(a.follow_up_date)}</b></Block>}
+        <Block title="Call us straight away if you see">Not eating or drinking, vomiting or diarrhoea, fast or difficult breathing, or getting weaker.
+          {callNo && <span className="mt-1 block text-base font-bold">Call {callNo}</span>}</Block>
         <Signature name={doctor?.full_name} pvmc={doctor?.pvmc_number} />
       </PrintShell>
     );

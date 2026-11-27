@@ -145,10 +145,11 @@ export function SurgeryWorkspace({ s, perms, doctors, staff, checklist, consentT
               </label>
             </div>
             <div className="mt-4 flex flex-wrap gap-2">
-              {[{ v: true, l: "Fasted ✓" }, { v: false, l: "NOT fasted" }].map((o) => (
+              {[{ v: true, l: "Fasted" }, { v: false, l: "NOT fasted" }].map((o) => (
                 <button key={o.l} type="button" disabled={!editable} onClick={() => set("fasting_confirmed", o.v)}
                   className={cn("h-10 rounded-xl px-4 text-sm font-semibold ring-1", f.fasting_confirmed === o.v
-                    ? (o.v ? "bg-success-soft text-success ring-success/40" : "bg-danger-soft text-danger ring-danger/40") : "bg-card ring-border")}>{o.l}</button>
+                    ? (o.v ? "bg-success-soft text-success ring-success/40" : "bg-danger-soft text-danger ring-danger/40") : "bg-card ring-border")}>
+                  {f.fasting_confirmed === o.v ? "✓ " : ""}{o.l}</button>
               ))}
             </div>
             <div className="mt-4 grid gap-2 sm:grid-cols-2">

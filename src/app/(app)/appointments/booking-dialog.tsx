@@ -100,7 +100,7 @@ export function BookingDialog({ doctors, types, defaultDate, appointment, trigge
       <DialogContent className="max-h-[92svh] overflow-y-auto rounded-2xl sm:max-w-xl">
         <DialogHeader>
           <DialogTitle className="text-xl">{a ? "Change appointment" : "Book an appointment"}</DialogTitle>
-          <DialogDescription>Search the owner by name or phone number.</DialogDescription>
+          <DialogDescription>Search by owner name, pet name or phone number.</DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-4">

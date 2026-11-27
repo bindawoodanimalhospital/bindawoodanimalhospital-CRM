@@ -34,7 +34,7 @@ export function IssuedPanel({ inv, lines, payments, methods, perms, credit }: {
 }) {
   const voided = inv.status === "void";
   return (
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_380px]">
+    <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
       <section className="min-w-0 rounded-2xl bg-card p-5 shadow-card ring-1 ring-border">
         <h2 className="mb-3 text-lg font-semibold">Items</h2>
         <table className="w-full text-sm">
@@ -201,8 +201,12 @@ function ReturnDialog({ inv, lines, methods }: { inv: IssuedInvoice; lines: Issu
         <ul className="grid gap-2">
           {lines.filter((l) => l.returned_qty < l.quantity).map((l) => (
             <li key={l.id} className="flex items-center gap-3">
-              <span className="flex-1 text-sm">{l.description} <span className="text-muted-foreground">(max {Number(l.quantity) - Number(l.returned_qty)})</span></span>
-              <Input className="w-20 text-center" inputMode="decimal" placeholder="0" value={qty[l.id] ?? ""} onChange={(e) => setQty({ ...qty, [l.id]: e.target.value })} />
+              <span className="flex-1 text-sm">{l.description} <span className="text-muted-foreground">(up to {Number(l.quantity) - Number(l.returned_qty)})</span></span>
+              <Input className="w-20 text-center" inputMode="decimal" placeholder="0" value={qty[l.id] ?? ""} onChange={(e) => {
+                const left = Number(l.quantity) - Number(l.returned_qty);
+                const v = e.target.value.replace(/[^\d.]/g, "");
+                setQty({ ...qty, [l.id]: v !== "" && Number(v) > left ? String(left) : v });
+              }} />
             </li>
           ))}
         </ul>

@@ -33,7 +33,8 @@ export function formatAge(dob: string | null | undefined, estimate = false): str
   const days = differenceInDays(now, d);
   let text: string;
   if (years >= 1) text = months ? `${years} yr${years > 1 ? "s" : ""} ${months} mo` : `${years} yr${years > 1 ? "s" : ""}`;
-  else if (days >= 112) text = `${differenceInMonths(now, d)} mo`;
+  else if (days >= 112 || (estimate && days >= 28)) text = `${Math.max(1, differenceInMonths(now, d))} mo`;
+  else if (estimate && days >= 14) text = `${Math.round(days / 7)} wks`;
   else if (days >= 14) text = `${Math.floor(days / 7)} wks${days % 7 ? ` ${days % 7} day${days % 7 > 1 ? "s" : ""}` : ""}`;
   else text = `${days} day${days === 1 ? "" : "s"}`;
   return estimate ? `~${text}` : text;

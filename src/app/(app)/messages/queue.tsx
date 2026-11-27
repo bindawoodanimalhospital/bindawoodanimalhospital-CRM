@@ -17,15 +17,15 @@ export type QueueMessage = {
   customer: { id: string; full_name: string } | null; is_promotional: boolean; attempts: number;
 };
 
-export function MessageQueue({ items, canSend }: { items: QueueMessage[]; canSend: boolean }) {
+export function MessageQueue({ items, canSend, canSeeNumbers = false }: { items: QueueMessage[]; canSend: boolean; canSeeNumbers?: boolean }) {
   return (
     <ul className="grid gap-3">
-      {items.map((m) => <QueueItem key={m.id} m={m} canSend={canSend} />)}
+      {items.map((m) => <QueueItem key={m.id} m={m} canSend={canSend} canSeeNumbers={canSeeNumbers} />)}
     </ul>
   );
 }
 
-function QueueItem({ m, canSend }: { m: QueueMessage; canSend: boolean }) {
+function QueueItem({ m, canSend, canSeeNumbers }: { m: QueueMessage; canSend: boolean; canSeeNumbers: boolean }) {
   const [opened, setOpened] = useState(false);
   const [noteFor, setNoteFor] = useState<null | "not_reached" | "cancelled">(null);
   const [note, setNote] = useState("");
@@ -57,7 +57,9 @@ function QueueItem({ m, canSend }: { m: QueueMessage; canSend: boolean }) {
             <Button asChild size="lg" variant="outline" onClick={() => setOpened(true)}><a href={`tel:${m.to_phone}`}><Phone /> Call</a></Button>
           ) : (
             // Numbers are private to the owner (customers.contact): others can read the message but not send it.
-            <p className="rounded-xl bg-muted/70 p-2.5 text-xs text-muted-foreground">The number is private — the clinic owner sends this one.</p>
+            <p className="rounded-xl bg-muted/70 p-2.5 text-xs text-muted-foreground">{canSeeNumbers
+              ? "No phone number is saved for this owner — add one on their page, then send."
+              : "The number is private — the clinic owner sends this one."}</p>
           )}
           <Button variant={opened ? "default" : "outline"} disabled={pending} onClick={() => run("sent")}>
             {pending ? <Loader2 className="animate-spin" /> : <Check />} {m.channel === "call" ? "Called — done" : "Sent"}

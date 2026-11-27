@@ -10,19 +10,23 @@ import { withContact } from "@/lib/contacts";
 
 export const metadata: Metadata = { title: "Vaccination card" };
 
+const DUE_KINDS = ["vaccination", "deworming"];
+
 export default async function VaccinationCardPrint({ params }: PageProps<"/print/vaccination-card/[petId]">) {
   const me = await requireStaff();
   if (!me.can("clinical.view") && !me.can("crm.view")) notFound();
   const { petId } = await params;
   const supabase = await createClient();
-  const [{ data: pet }, { data: vaccinations }, { data: due }, { data: staff }, clinic] = await Promise.all([
+  const [{ data: pet }, { data: vaccinations }, { data: due }, { data: staff }, clinic, { data: dewormings }] = await Promise.all([
     supabase.from("pets").select(`code, name, sex, date_of_birth, dob_is_estimate, color, microchip_no, species(name), breeds(name), breed_text,
       pet_owners(is_primary, customers(full_name, customer_contacts(phone, whatsapp)))`).eq("id", petId).maybeSingle(),
     supabase.from("vaccinations").select("vaccine_name, manufacturer, batch_no, administered_at, next_due_date, administered_by")
       .eq("pet_id", petId).is("voided_at", null).order("administered_at"),
-    supabase.from("due_items").select("title, due_on").eq("pet_id", petId).eq("kind", "vaccination").eq("status", "pending").order("due_on"),
+    supabase.from("due_items").select("title, due_on").eq("pet_id", petId).in("kind", DUE_KINDS).eq("status", "pending").order("due_on"),
     supabase.from("staff").select("id, full_name, pvmc_number"),
     getSetting<ClinicProfile>("clinic.profile"),
+    supabase.from("dewormings").select("product, dose, given_at, next_due_date, given_by").eq("pet_id", petId)
+      .is("voided_at", null).eq("confirmed", true).order("given_at"),
   ]);
   if (!pet) notFound();
 
@@ -65,6 +69,30 @@ export default async function VaccinationCardPrint({ params }: PageProps<"/print
           {!vaccinations?.length && <tr><td colSpan={5} className="py-4 text-center text-muted-foreground">No vaccinations recorded.</td></tr>}
         </tbody>
       </table>
+
+      {(dewormings?.length ?? 0) > 0 && (
+        <>
+          <p className="mt-6 text-xs font-bold tracking-wide text-brand uppercase">Deworming &amp; flea / tick</p>
+          <table className="mt-1 w-full border-collapse text-left">
+            <thead>
+              <tr className="border-b-2 border-ink text-xs tracking-wide uppercase">
+                <th className="py-2">Date</th><th>Product</th><th>Dose</th><th>Next due</th><th>Given by</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(dewormings ?? []).map((d, i) => (
+                <tr key={i} className="border-b align-top">
+                  <td className="py-2 pr-2 whitespace-nowrap">{formatDate(d.given_at)}</td>
+                  <td className="pr-2 font-semibold">{d.product}</td>
+                  <td className="pr-2">{d.dose}</td>
+                  <td className="pr-2 whitespace-nowrap">{formatDate(d.next_due_date)}</td>
+                  <td>{d.given_by ? names.get(d.given_by)?.full_name : null}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
+      )}
 
       {due && due.length > 0 && (
         <div className="mt-6 rounded-lg border-2 border-brand p-3">

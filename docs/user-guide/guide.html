@@ -541,7 +541,7 @@
     <tr><td><b>Ready to pay</b></td><td>Done with the doctor — collect payment</td><td><b>Paid — finish</b> (or automatic once the bill is issued)</td></tr>
     <tr><td><b>Done</b></td><td>Visit finished</td><td>—</td></tr>
   </table>
-  <p>Each card shows token, pet, owner, reason, waiting time and doctor. The ⋮ menu has <b>Move to</b> (any stage), <b>Assign doctor</b>, <b>Open visit</b>, <b>Pet profile</b> and <b>Remove from queue</b> (kept in history as cancelled). Urgent cases are highlighted. The board updates live on every device; tokens restart at 1 every day (Pakistan time).</p>
+  <p>Each card shows token, pet, owner, reason, waiting time and doctor. The ⋮ menu has <b>Move to</b> (any stage), <b>Assign doctor</b>, <b>Open visit</b>, <b>Pet profile</b> and <b>Remove from queue</b> (kept in history as cancelled). Cards <b>With doctor</b> or in <b>Treatment</b> also have a big <b>Open visit</b> button for the doctor. Urgent cases are highlighted. The board updates live on every device; tokens restart at 1 every day (Pakistan time).</p>
   <div class="box note"><b class="t">One pet, one visit per day</b>Checking in a pet already in today's queue joins the existing visit — no second token, no second bill.</div>
   <h3>Appointments</h3>
   <ul>
@@ -559,7 +559,7 @@
     <tr><th style="width:24%">Tab</th><th>Contents and rules</th></tr>
     <tr><td><b>Consultation</b></td><td>Complaint, history, vitals (temperature in °C or °F — the choice is remembered on that device; pulse quality; mentation), examination, diagnoses (one primary; provisional or confirmed), prognosis, treatment, medicines given in clinic, follow-up date, doctor's private notes (never printed or shared). Saves as you type. <b>Finalize</b> locks it; to correct, a senior doctor uses <b>Reopen to correct</b> with a reason — every version is kept.</td></tr>
     <tr><td><b>Prescriptions</b></td><td>Medicines with strength, dose, frequency, duration, route, quantity, instructions and advice → <span class="btn">Issue prescription</span> → print. Short forms are spelled out for the owner: <b>OD</b> once a day, <b>BD</b> twice a day, <b>TDS</b> three times a day, <b>QID</b> four times a day, <b>EOD</b> every other day, <b>SOS</b> when needed. The printed prescription shows the <b>Diagnosis</b> (primary and confirmed ones; <i>(possible)</i> if the primary isn't confirmed yet) and other provisional ones under <b>Also considered</b>; ruled-out diagnoses are left off. Issued = locked; to change, cancel and issue a new one.</td></tr>
-    <tr><td><b>Vaccines &amp; deworming</b></td><td>Vaccine with batch, dose, route, site and next dose (from the approved schedule) with the <b>What happens next</b> plan; void with a reason if wrong; <b>Vaccination card</b> print. Deworming with product, dose, weight and next date (age-based suggestion); <b>Entered by mistake</b> to undo.</td></tr>
+    <tr><td><b>Vaccines &amp; deworming</b></td><td>Vaccine with batch, dose, route, site and next dose (from the approved schedule) with the <b>What happens next</b> plan; void with a reason if wrong; <b>Vaccination card</b> print (vaccines and deworming on one card, with what is due next). Deworming with product, dose, weight and next date (age-based suggestion); <b>Entered by mistake</b> to undo.</td></tr>
     <tr><td><b>Tests</b></td><td>Order with reason and urgency → enter results (findings, values, impression) → <b>Save result</b> → <b>Mark reviewed</b>, which locks the result. Pending and unreviewed tests appear in the Alert centre.</td></tr>
   </table>
   <h3>Problems — one illness, many visits</h3>
@@ -699,7 +699,7 @@
   <h3>An owner's full history — all pets</h3>
   <p>Owner page → <b>Full history — all pets</b>: one family timeline with every pet's visits in full, appointments (including missed), payments and refunds (who received them), and every call or message with its outcome.</p>
   <h3>The owner's medical record — print it or share a link</h3>
-  <p>A clean, branded record written for the pet's owner: the pet's details and alerts, problems, and every finalized visit with vitals, history, examination, diagnosis, prognosis, the doctor's advice, prescriptions, tests advised and lab reports (with normal ranges, H/L flags and trends), plus vaccinations, deworming and weight. <b>Never included:</b> bills and money, doctors' private notes, phone numbers, cancelled items, and notes that are still drafts.</p>
+  <p>A clean, branded record written for the pet's owner: the pet's details and alerts, problems, and every finalized visit with vitals, history, examination, diagnosis, prognosis, the doctor's advice, prescriptions, tests advised and lab reports (with normal ranges, H/L flags and trends), completed surgeries and hospital stays (what was done, care at home, check-up date), plus vaccinations, deworming and weight. <b>Never included:</b> bills and money, doctors' private notes, phone numbers, cancelled items, and notes that are still drafts.</p>
   <ol class="steps">
     <li>Pet page → <b>Owner's medical record</b>. For the whole record use <b>Print / PDF</b> or <span class="btn">Share link</span> at the top; for one illness use <b>Print</b> or <b>Share</b> on that problem.</li>
     <li><b>Print / PDF</b> opens the record on A4 → <b>Print</b> → choose the printer, or <i>Save as PDF</i> to send the file.</li>
@@ -713,7 +713,7 @@
     <tr><th style="width:32%">Print</th><th>From</th></tr>
     <tr><td>Bill / receipt</td><td>Any issued bill, or after a pet-store sale</td></tr>
     <tr><td>Prescription</td><td>Visit → Prescriptions → issued prescription</td></tr>
-    <tr><td>Vaccination card</td><td>Visit → Vaccines &amp; deworming</td></tr>
+    <tr><td>Vaccination card (vaccines + deworming)</td><td>Visit → Vaccines &amp; deworming</td></tr>
     <tr><td>Surgery consent form</td><td>Surgery → Owner consent</td></tr>
     <tr><td>Discharge sheet (surgery / ward)</td><td>Surgery or ward stay → discharge</td></tr>
     <tr><td>Account statement</td><td>Owner → Account &amp; statement</td></tr>

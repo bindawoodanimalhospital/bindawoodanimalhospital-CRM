@@ -22,6 +22,10 @@ create or replace function pg_temp.at(days_ago int) returns timestamptz language
 create or replace function pg_temp.pending(pet uuid, k text) returns text language sql security definer as $$
   select coalesce(string_agg(array_to_string(groups, '+') || '@' || (due_on - private.clinic_today()), ' | ' order by due_on), '')
     from public.due_items where pet_id = pet and kind = k::public.due_kind and status = 'pending' $$;
+-- A new clinic's price list may not have this item yet: add it for the test (rolled back with everything else).
+insert into public.catalog_items (kind, name, sale_price) select 'service', 'Deworming (Praferan)', 600
+  where not exists (select 1 from public.catalog_items where name = 'Deworming (Praferan)');
+update public.dewormers set catalog_item_id = (select id from public.catalog_items where name = 'Deworming (Praferan)') where name = 'Praferan';
 set local role authenticated;
 select pg_temp.as_('00000000-0000-0000-0000-0000000ce101');
 

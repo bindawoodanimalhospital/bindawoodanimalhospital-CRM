@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { PageHeader, StatusPill } from "@/components/app/page-header";
 import { requireStaff } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { formatDateTime, formatPKR } from "@/lib/format";
+import { formatDate, formatDateTime, formatPKR } from "@/lib/format";
 import { savePurchaseHeader } from "../../actions";
 import { GrnEditor, HeaderFields, type GrnLine } from "../../widgets";
 
@@ -28,7 +28,7 @@ export default async function ReceivePage({ params }: PageProps<"/suppliers/rece
     <div className="mx-auto max-w-5xl">
       <PageHeader back={{ href: `/suppliers/${supplier.id}`, label: supplier.name }}
         title={<span className="flex items-center gap-3">Delivery {p.code}
-          <StatusPill tone={p.status === "received" ? "success" : p.status === "draft" ? "warning" : "neutral"}>{p.status === "draft" ? "Being entered" : p.status}</StatusPill></span>}
+          <StatusPill tone={p.status === "received" ? "success" : p.status === "draft" ? "warning" : "neutral"}>{p.status === "draft" ? "Being entered" : p.status === "received" ? "Received" : p.status === "cancelled" ? "Cancelled" : p.status}</StatusPill></span>}
         description={p.status === "received" ? `Received ${formatDateTime(p.received_at)} · ${formatPKR(p.total)}` : "Enter every item from the supplier's bill, then receive it into stock."} />
       <div className="grid gap-6 rounded-2xl bg-card p-5 shadow-card ring-1 ring-border">
         {p.status === "draft" ? (
@@ -40,7 +40,7 @@ export default async function ReceivePage({ params }: PageProps<"/suppliers/rece
           <ul className="grid gap-2">
             {lines.map((l) => (
               <li key={l.id} className="flex flex-wrap gap-3 rounded-xl bg-surface px-3 py-2 text-sm ring-1 ring-border">
-                <b>{l.item_name}</b><span className="text-muted-foreground">{l.location} · batch {l.batch_no || "—"} · exp {l.expiry_date ?? "—"}</span>
+                <b>{l.item_name}</b><span className="text-muted-foreground">{l.location} · batch {l.batch_no || "—"} · exp {l.expiry_date ? formatDate(l.expiry_date) : "—"}</span>
                 <span className="ml-auto tabular">{l.qty} × {formatPKR(l.unit_cost)} = <b>{formatPKR(l.line_total)}</b></span>
               </li>
             ))}

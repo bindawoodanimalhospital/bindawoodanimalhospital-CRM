@@ -17,6 +17,7 @@ import {
   addLine, addLines, checkout, deleteDraft, removeLine, searchCatalog, setInvoiceDiscount, updateLine,
   type CatalogHit, type PaymentLine,
 } from "../actions";
+import { useConfirm } from "@/components/app/confirm";
 
 export type Line = {
   id: string; item_id: string; description: string; kind: "service" | "product"; quantity: number; unit_price: number;
@@ -30,7 +31,7 @@ export function InvoiceEditor({ invoiceId, lines, totals, suggestions, unmatched
   perms: { discount: boolean }; customerCredit: number; customerName: string;
 }) {
   return (
-    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_380px]">
+    <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_380px]">
       <div className="grid min-w-0 content-start gap-6">
         {(suggestions.length > 0 || unmatched.length > 0) && <Suggestions invoiceId={invoiceId} items={suggestions} unmatched={unmatched} />}
         <section className="rounded-2xl bg-card p-5 shadow-card ring-1 ring-border">
@@ -156,10 +157,10 @@ function LineRow({ invoiceId, line, canDiscount }: { invoiceId: string; line: Li
     <li className="grid gap-2.5 rounded-xl bg-surface p-3 ring-1 ring-border">
       <div className="flex items-start gap-3">
         <div className="min-w-0 flex-1">
-          <p className="font-semibold leading-snug">{line.description}</p>
+          <p className="font-semibold leading-snug break-words">{line.description}</p>
           <p className="text-xs text-muted-foreground">{line.kind === "product" ? (line.track_stock ? "Product · taken from stock" : "Product") : "Service"}</p>
         </div>
-        <span className="pt-0.5 text-right text-base font-bold tabular">{formatPKR(line.line_total)}</span>
+        <span className="shrink-0 pt-0.5 text-right text-base font-bold whitespace-nowrap tabular">{formatPKR(line.line_total)}</span>
         <Button size="icon-sm" variant="ghost" className="-mt-0.5 -mr-1 text-muted-foreground hover:text-danger" disabled={pending}
           onClick={() => start(async () => { const r = await removeLine(invoiceId, line.id); if (!r.ok) toast.error(r.message); })} aria-label={`Remove ${line.description}`}><Trash2 /></Button>
       </div>
@@ -190,11 +191,18 @@ function LineRow({ invoiceId, line, canDiscount }: { invoiceId: string; line: Li
 
 function DiscardDraft({ invoiceId }: { invoiceId: string }) {
   const [pending, start] = useTransition();
+  const [ask, confirmBox] = useConfirm();
   return (
-    <Button variant="ghost" className="justify-self-start text-muted-foreground" disabled={pending}
-      onClick={() => { if (confirm("Delete this draft bill?")) start(async () => { const r = await deleteDraft(invoiceId); if (r && !r.ok) toast.error(r.message); }); }}>
-      <X /> Delete draft
-    </Button>
+    <>
+      {confirmBox}
+      <Button variant="ghost" className="justify-self-start text-muted-foreground" disabled={pending}
+        onClick={async () => {
+          if (!(await ask({ title: "Delete this draft bill?", description: "Nothing was charged yet. The items stay unbilled on the visit.", confirm: "Delete draft", danger: true }))) return;
+          start(async () => { const r = await deleteDraft(invoiceId); if (r && !r.ok) toast.error(r.message); });
+        }}>
+        <X /> Delete draft
+      </Button>
+    </>
   );
 }
 
