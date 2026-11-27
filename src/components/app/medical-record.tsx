@@ -1,5 +1,6 @@
 import { formatAge, formatDate, formatDateTime } from "@/lib/format";
 import { formatTemp, formatWeight, parseRange, spellFrequency } from "@/lib/clinical";
+import { historyText, vitalFlag } from "@/lib/consult-questions";
 import type { MedicalRecord, RecordStay, RecordSurgery, RecordTest, RecordVisit } from "@/lib/medical-record";
 import { cn } from "@/lib/utils";
 
@@ -90,7 +91,7 @@ export function MedicalRecordView({ r }: { r: MedicalRecord }) {
       <section className="grid gap-4">
         <Heading>{r.scope ? "Visits for this problem" : "Visits"}</Heading>
         {r.visits.length === 0 && <p className="text-muted-foreground">No visits recorded yet.</p>}
-        {r.visits.map((v) => <Visit key={v.id} v={v} showProblem={!r.scope} />)}
+        {r.visits.map((v) => <Visit key={v.id} v={v} showProblem={!r.scope} species={p.species} />)}
       </section>
 
       {((r.surgeries?.length ?? 0) > 0 || (r.stays?.length ?? 0) > 0) && (
@@ -128,16 +129,22 @@ export function MedicalRecordView({ r }: { r: MedicalRecord }) {
   );
 }
 
-function Visit({ v, showProblem }: { v: RecordVisit; showProblem: boolean }) {
+function Visit({ v, showProblem, species }: { v: RecordVisit; showProblem: boolean; species: string | null }) {
   const c = v.consultation;
   const vit = c?.vitals;
   const vitals = (vit ? [
-    vit.tempC != null && ["Temperature", formatTemp(vit.tempC)], vit.hr != null && ["Heart rate", `${vit.hr} /min`],
-    vit.rr != null && ["Breathing", `${vit.rr} /min`], vit.weightKg != null && ["Weight", formatWeight(vit.weightKg)],
-    vit.bcs != null && ["Body condition", `${vit.bcs}/9`], vit.mm && ["Mucous membranes", vit.mm], vit.crt != null && ["CRT", `${vit.crt} s`],
-    vit.hydration && ["Hydration", vit.hydration], vit.pulse && ["Pulse", vit.pulse], vit.mentation && ["Mentation", vit.mentation],
-    vit.pain != null && ["Pain", `${vit.pain}/10`],
-  ] : []).filter(Boolean) as [string, string][];
+    vit.tempC != null && ["Temperature", formatTemp(vit.tempC), vitalFlag("temp", vit.tempC, species)],
+    vit.hr != null && ["Heart rate", `${vit.hr} /min`, vitalFlag("hr", vit.hr, species)],
+    vit.rr != null && ["Breathing", `${vit.rr} /min`, vitalFlag("rr", vit.rr, species)], vit.weightKg != null && ["Weight", formatWeight(vit.weightKg), null],
+    vit.bcs != null && ["Body condition", `${vit.bcs}/9`, null], vit.mm && ["Mucous membranes", vit.mm, null],
+    vit.crt != null && ["CRT", `${vit.crt} s`, vitalFlag("crt", vit.crt, species)],
+    vit.hydration && ["Hydration", vit.hydration, null], vit.pulse && ["Pulse", vit.pulse, null], vit.mentation && ["Mentation", vit.mentation, null],
+    vit.pain != null && ["Pain", `${vit.pain}/10`, null],
+  ] : []).filter(Boolean) as [string, string, ReturnType<typeof vitalFlag>][];
+  // The "Details" line: the visit kind plus what the owner reported that isn't normal, and vaccine / deworming status.
+  const concerns = c?.answers.filter((a) => a.concern) ?? [];
+  const status = c?.answers.filter((a) => !a.concern && (a.key === "vaccinated" || a.key === "dewormed")) ?? [];
+  const fine = c?.answers.filter((a) => !a.concern && a.key !== "vaccinated" && a.key !== "dewormed") ?? [];
   const abnormal = c?.exam.filter((e) => !e.normal) ?? [];
   const normal = c?.exam.filter((e) => e.normal) ?? [];
   const dx = c?.diagnoses.filter((d) => d.certainty !== "ruled_out" && (d.primary || d.certainty === "confirmed")) ?? [];
@@ -158,21 +165,37 @@ function Visit({ v, showProblem }: { v: RecordVisit; showProblem: boolean }) {
         </span>
       </header>
       <div className="grid gap-3 p-3.5">
+        {(concerns.length > 0 || status.length > 0) && (
+          <p className="flex flex-wrap items-center gap-1.5 text-[11.5px]">
+            <span className="text-[9.5px] font-bold tracking-[0.12em] text-muted-foreground uppercase">Details</span>
+            {status.map((a) => <span key={a.key} className={cn("rounded-md px-1.5 py-0.5 font-semibold ring-1",
+              a.answer === "Up to date" ? "bg-success-soft text-success ring-success/25" : "bg-surface text-muted-foreground ring-border")}>{a.label}: {a.answer}</span>)}
+            {concerns.map((a) => <span key={a.key} className="rounded-md bg-danger-soft px-1.5 py-0.5 font-semibold text-danger ring-1 ring-danger/25">{historyText(a)}</span>)}
+          </p>
+        )}
         {vitals.length > 0 && (
           <div className="grid break-inside-avoid grid-cols-2 gap-1.5 sm:grid-cols-4 print:grid-cols-4">
-            {vitals.map(([label, value]) => (
-              <div key={label} className="rounded-lg bg-surface px-2.5 py-1.5 ring-1 ring-border">
-                <p className="text-[9.5px] font-bold tracking-[0.12em] text-muted-foreground uppercase">{label}</p>
-                <p className="text-[12px] leading-snug font-semibold">{value}</p>
+            {vitals.map(([label, value, flag]) => (
+              <div key={label} className={cn("rounded-lg px-2.5 py-1.5 ring-1", flag ? "bg-danger-soft/60 ring-danger/30" : "bg-surface ring-border")}>
+                <p className="flex items-center justify-between gap-1 text-[9.5px] font-bold tracking-[0.12em] text-muted-foreground uppercase">{label}
+                  {flag && <span className="tracking-normal text-danger normal-case">{flag.dir === "H" ? "↑ High" : "↓ Low"}</span>}</p>
+                <p className={cn("text-[12px] leading-snug font-semibold", flag && "text-danger")}>{value}</p>
+                {flag && <p className="text-[9.5px] text-muted-foreground">{label === "CRT" ? `normal under ${flag.range[1]} s` : `normal ${flag.range[0]}–${flag.range[1]}${label === "Temperature" ? " °C" : ""}`}</p>}
               </div>
             ))}
           </div>
         )}
         {!c && v.reason && <Block letter="S" title="Reason for visit" tone="info">{v.reason}</Block>}
         {!c && v.draftNotes && <p className="text-[11.5px] text-muted-foreground italic">The doctor&apos;s notes for this visit are not finalised yet.</p>}
-        {c && (c.complaint || c.history) && (
+        {c && (c.complaint || c.history || fine.length > 0) && (
           <Block letter="S" title="History" tone="info">
             {c.complaint && <p className="font-semibold">{c.complaint}</p>}
+            {/* What's wrong is already on the Details line above; here, the rest of what the owner said. */}
+            {fine.length > 0 && (
+              <ul className="grid gap-x-4 gap-y-0.5 sm:grid-cols-2 print:grid-cols-2">
+                {fine.map((a) => <li key={a.key}><span className="text-muted-foreground">{a.label}:</span> <b>{a.answer}</b></li>)}
+              </ul>
+            )}
             {c.history && <p className="whitespace-pre-wrap">{c.history}</p>}
           </Block>
         )}
@@ -198,9 +221,15 @@ function Visit({ v, showProblem }: { v: RecordVisit; showProblem: boolean }) {
             {c.prognosis && <p><b>Prognosis:</b> {c.prognosis}</p>}
           </Block>
         )}
-        {c && (c.treatment || c.medicinesGiven || c.advice || c.followUpDate) && (
+        {c && (c.given.length > 0 || c.treatment || c.medicinesGiven || c.advice || c.followUpDate) && (
           <Block letter="P" title="Treatment & plan" tone="brand">
-            {c.treatment && <p className="whitespace-pre-wrap"><b>Treatment given:</b> {c.treatment}</p>}
+            {c.given.length > 0 && (
+              <div>
+                <p className="font-semibold">Given at the clinic</p>
+                <Table head={["Treatment", "Dose", "Route"]} rows={c.given.map((t) => [<b key="w">{t.what}</b>, t.dose ?? "—", t.route ?? "—"])} />
+              </div>
+            )}
+            {c.treatment && <p className="whitespace-pre-wrap"><b>{c.given.length ? "Also:" : "Treatment given:"}</b> {c.treatment}</p>}
             {c.medicinesGiven && <p className="whitespace-pre-wrap"><b>Medicines given at the clinic:</b> {c.medicinesGiven}</p>}
             {c.advice && <p className="whitespace-pre-wrap"><b>Doctor&apos;s advice:</b> {c.advice}</p>}
             {c.followUpDate && <p><b>Next check-up:</b> {formatDate(c.followUpDate)}</p>}

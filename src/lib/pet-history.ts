@@ -1,5 +1,6 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
+import { historyLines, historyText, treatmentsGiven } from "@/lib/consult-questions";
 
 /*
  * Everything that ever happened to one pet, organised as "episodes": one per visit, with the
@@ -21,7 +22,7 @@ export type Test = { id: string; code: string | null; type: string; status: stri
 export type Surgery = { id: string; code: string | null; procedure: string; status: string; urgency: string | null; at: string; surgeon: Who; team: { name: Who; role: string }[]; indication: string | null; asa: string | null; anaesthesia: string | null; complications: string | null; intraOp: string | null; recovery: string | null; consumables: string[]; dischargedBy: Who; followUp: string | null };
 export type WardStay = { id: string; code: string | null; reason: string | null; status: string; admittedAt: string; admittedBy: Who; doctor: Who; dischargedAt: string | null; dischargedBy: Who; outcome: string | null; summary: string | null; orders: { description: string; dose: string | null; route: string | null; every: number | null; by: Who; status: string }[]; doses: { at: string; what: string; result: string; by: Who; note: string | null }[]; notes: { at: string; kind: string; note: string; by: Who }[] };
 export type Bill = { id: string; number: string | null; status: string; at: string; total: number; paid: number; balance: number; by: Who; lines: { description: string; qty: number; total: number }[] };
-export type Consultation = { status: string; doctor: Who; finalizedAt: string | null; finalizedBy: Who; complaint: string | null; history: string | null; vitals: [string, string][]; exam: string | null; observations: string | null; assessment: string | null; treatment: string | null; medicinesGiven: string | null; followUpPlan: string | null; followUpDate: string | null; doctorNotes: string | null; diagnoses: { label: string; primary: boolean; certainty: string | null }[]; revisions: number };
+export type Consultation = { status: string; doctor: Who; finalizedAt: string | null; finalizedBy: Who; complaint: string | null; history: string | null; ownerSays: string | null; given: string | null; prognosis: string | null; vitals: [string, string][]; exam: string | null; observations: string | null; assessment: string | null; treatment: string | null; medicinesGiven: string | null; followUpPlan: string | null; followUpDate: string | null; doctorNotes: string | null; diagnoses: { label: string; primary: boolean; certainty: string | null }[]; revisions: number };
 
 export type Episode = {
   key: string; petId: string | null; petName: string | null; at: string; kind: "visit" | "surgery" | "ward" | "vaccination" | "deworming" | "bill";
@@ -143,10 +144,16 @@ export async function loadHistory({ petIds, customerId }: { petIds: string[]; cu
     const vit: [string, unknown, string][] = [
       ["Temp", c.temperature_c, " °C"], ["Heart rate", c.heart_rate, " /min"], ["Resp. rate", c.resp_rate, " /min"], ["Weight", c.weight_kg, " kg"],
       ["Mucous membranes", c.mucous_membranes, ""], ["CRT", c.crt_seconds, " s"], ["Hydration", c.hydration, ""], ["Body condition", c.body_condition_score, "/9"], ["Pain", c.pain_score, "/10"],
+      ["Pulse", c.pulse_quality, ""], ["Mentation", c.mentation, ""],
     ];
+    const answers = historyLines(c.history_answers);
+    const given = treatmentsGiven(c.treatments_given);
     return {
       status: String(c.status), doctor: who(c.doctor_id), finalizedAt: str(c.finalized_at), finalizedBy: who(c.finalized_by),
-      complaint: str(c.chief_complaint), history: str(c.history), vitals: vit.filter(([, v]) => v != null && v !== "").map(([k, v, u]) => [k, `${v}${u}`]),
+      complaint: str(c.chief_complaint), history: str(c.history),
+      ownerSays: answers.length ? answers.map(historyText).join(" · ") : null,
+      given: given.length ? given.map((t) => [t.what, t.dose, t.route].filter(Boolean).join(" ")).join(" · ") : null,
+      prognosis: str(c.prognosis), vitals: vit.filter(([, v]) => v != null && v !== "").map(([k, v, u]) => [k, `${v}${u}`]),
       exam: typeof c.exam === "object" && c.exam ? Object.entries(c.exam as Obj).filter(([, v]) => v).map(([k, v]) => `${k.replace(/_/g, " ")}: ${v}`).join("; ") || null : str(c.exam),
       observations: str(c.observations), assessment: str(c.assessment), treatment: str(c.treatment), medicinesGiven: str(c.medicines_administered),
       followUpPlan: str(c.follow_up_plan), followUpDate: str(c.follow_up_date), doctorNotes: str(c.doctor_notes),

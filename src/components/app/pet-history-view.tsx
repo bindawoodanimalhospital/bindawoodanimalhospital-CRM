@@ -71,10 +71,10 @@ export function EpisodeCard({ e, print, showMoney, showPrivate, open, showPet }:
 
       {c && (
         <Section title={`Consultation${c.status === "finalized" ? " (finalized)" : " (draft)"}`} icon={Stethoscope}
-          aside={c.finalizedBy ? `Signed by ${c.finalizedBy}${c.finalizedAt ? `, ${formatDateTime(c.finalizedAt)}` : ""}${c.revisions ? ` · edited ${c.revisions}×` : ""}` : null}>
+          aside={c.finalizedBy ? `Signed by ${c.finalizedBy}${c.finalizedAt ? `, ${formatDateTime(c.finalizedAt)}` : ""}${c.revisions > 1 ? ` · corrected ${c.revisions - 1}× after signing` : ""}` : null}>
           <Facts rows={[
-            ["Complaint", c.complaint], ["History", c.history], ["Examination", c.exam], ["Observations", c.observations],
-            ["Diagnosis", dx || null], ["Assessment", c.assessment], ["Treatment", c.treatment], ["Medicines given in clinic", c.medicinesGiven],
+            ["Complaint", c.complaint], ["Owner says", c.ownerSays], ["History", c.history], ["Examination", c.exam], ["Observations", c.observations],
+            ["Diagnosis", dx || null], ["Assessment", c.assessment], ["Prognosis", c.prognosis], ["Given at the clinic", c.given], ["Treatment", c.treatment], ["Medicines given in clinic", c.medicinesGiven],
             ["Follow-up", [c.followUpPlan, c.followUpDate ? `on ${formatDate(c.followUpDate)}` : null].filter(Boolean).join(" ") || null],
             ...(showPrivate && !print ? [["Doctor's private notes", c.doctorNotes] as [string, string | null]] : []),
           ]} />

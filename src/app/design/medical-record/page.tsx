@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { PrintShell } from "@/components/print/print-shell";
 import { MedicalRecordView } from "@/components/app/medical-record";
 import type { MedicalRecord } from "@/lib/medical-record";
+import { historyLines } from "@/lib/consult-questions";
 import { RecordCard } from "@/app/(app)/pets/[id]/record-card";
 import { ProblemPicker } from "@/app/(app)/visits/[id]/problem-picker";
 import { TestsPanel, type DiagnosticType } from "@/app/(app)/visits/[id]/tests-panel";
@@ -41,8 +42,13 @@ const sample: MedicalRecord = {
       consultation: {
         doctor: "Dr. Sara Ahmed", finalizedAt: "2026-10-25T06:10:00Z",
         complaint: "Stopped eating one day ago; repeated vomiting and nausea.",
+        answers: historyLines({ appetite: "Not eating", drinking: "Drinking more", energy: "Quieter than usual", vomiting: "Yes",
+          vomiting_detail: "White foam, 4 times since last night", diarrhoea: "Soft", urine: "More often", breathing: "No",
+          vaccinated: "Up to date", dewormed: "Up to date", diet: "Dry cat food, some chicken", medicines: "None" }),
+        given: [{ what: "Ringer lactate (IV fluids)", dose: "60 ml/hr for 4 hours", route: "IV" },
+          { what: "Inj. Ondansetron", dose: "0.5 mg/kg", route: "IV" }, { what: "Inj. Tropin", dose: "0.3 ml", route: "SC" }],
         history: "Previously obese, significant weight loss over two months. A lab test at another clinic nine days ago showed a normal blood count and liver tests, but markedly raised kidney values (creatinine 10 mg/dL).",
-        vitals: { tempC: 39.1, hr: 144, rr: 32, weightKg: 4.1, crt: 3, mm: "Pale", hydration: "Moderate (8%)", bcs: 4, pain: 2,
+        vitals: { tempC: 39.1, hr: 144, rr: 32, weightKg: 4.1, crt: 3, mm: "Pale", hydration: "Moderate (7–9%)", bcs: 4, pain: 2,
           pulse: "Strong and synchronous", mentation: "QAR (quiet, alert, responsive)" },
         exam: [
           { system: "Eyes", finding: "Conjunctiva pale; no discharge", normal: false },
@@ -58,8 +64,8 @@ const sample: MedicalRecord = {
           { label: "Acute kidney injury", certainty: "provisional", primary: false }, { label: "Acute on chronic kidney disease", certainty: "provisional", primary: false },
           { label: "Pyelonephritis", certainty: "ruled_out", primary: false }],
         prognosis: "Guarded",
-        treatment: "IV isotonic fluids (Ringer lactate) at a calculated rate; anti-nausea injection.",
-        medicinesGiven: "Inj. Ondansetron 0.5 mg/kg IV; Inj. Tropin SC.",
+        treatment: "Kept on the drip in the clinic for 4 hours; vomiting settled.",
+        medicinesGiven: null,
         advice: "Give medicines exactly as written. Renal diet only. Repeat blood tests in 3 days — come back sooner if vomiting returns or Daisy stops drinking.",
         followUpDate: "2026-10-28",
       },

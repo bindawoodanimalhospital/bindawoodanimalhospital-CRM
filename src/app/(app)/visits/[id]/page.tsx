@@ -7,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { PageHeader, StatusPill } from "@/components/app/page-header";
 import { requireStaff } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { formatAge, formatTime } from "@/lib/format";
+import { formatAge, formatDate, formatTime } from "@/lib/format";
 import { getDoctors, getKennels } from "@/lib/queries";
 import { PlanSurgeryDialog } from "../../surgery/plan-dialog";
 import { AdmitDialog } from "../../ward/admit-dialog";
@@ -16,7 +16,7 @@ import { whatsappLink } from "@/lib/phone";
 import { PRIORITY, VISIT_STATUS_LABEL, addressLine, type AddressParts, type ServiceLocation, type VisitStatus } from "@/lib/clinic";
 import { ServiceLocationControl } from "@/components/app/service-location";
 import { setVisitServiceLocation } from "../../queue/actions";
-import { ConsultationPanel, type Consultation, type Template } from "./consultation-panel";
+import { ConsultationPanel, type Consultation, type PetContext, type Template } from "./consultation-panel";
 import { VaccinesPanel, type ProtocolOption, type VaccinationRow, type VaccineOption } from "./vaccines-panel";
 import { DewormingPanel, type DewormerOption, type DewormingRow } from "./deworming-panel";
 import { reminderPlans } from "@/lib/queries";
@@ -30,6 +30,10 @@ export const metadata: Metadata = { title: "Visit" };
 const CONSULT_FIELDS = ["chief_complaint", "history", "temperature_c", "heart_rate", "resp_rate", "weight_kg", "mucous_membranes",
   "crt_seconds", "hydration", "body_condition_score", "pain_score", "pulse_quality", "mentation", "prognosis", "observations", "assessment", "treatment",
   "medicines_administered", "follow_up_plan", "follow_up_date", "doctor_notes"] as const;
+const ago = (iso: string) => {
+  const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
+  return days < 1 ? "today" : days < 45 ? `${days} day${days === 1 ? "" : "s"} ago` : days < 730 ? `${Math.round(days / 30.4)} months ago` : `${Math.round(days / 365)} years ago`;
+};
 
 export default async function VisitPage({ params, searchParams }: PageProps<"/visits/[id]">) {
   const me = await requireStaff("clinical.view");
@@ -87,6 +91,11 @@ export default async function VisitPage({ params, searchParams }: PageProps<"/vi
       : Promise.resolve({ data: [] }),
     supabase.from("pet_problems").select("id, title, status").eq("pet_id", pet.id).order("opened_at", { ascending: false }),
   ]);
+  // Names offered when the doctor lists what was given at the clinic: medicines and services on the price list.
+  const [medNames, serviceNames] = await Promise.all([
+    supabase.from("medicines").select("name, strength").eq("is_active", true).order("name").limit(600),
+    supabase.from("catalog_items").select("name").eq("is_active", true).eq("kind", "service").order("name").limit(400),
+  ]);
 
   const names = new Map((staffQ.data ?? []).map((s) => [s.id, s.full_name]));
   const templates = (templatesQ.data ?? []) as Template[];
@@ -98,6 +107,8 @@ export default async function VisitPage({ params, searchParams }: PageProps<"/vi
     reopened_reason: c.reopened_reason, doctor_name: c.doctor_id ? names.get(c.doctor_id) ?? null : null, updated_at: c.updated_at,
     fields: Object.fromEntries(CONSULT_FIELDS.map((k) => [k, c[k] ?? null])),
     exam: (c.exam ?? {}) as Record<string, string>,
+    answers: (c.history_answers ?? {}) as Record<string, string>,
+    treatments: Array.isArray(c.treatments_given) ? c.treatments_given : [],
     diagnoses: ((c.consultation_diagnoses ?? []) as { label: string; certainty: string; is_primary: boolean; created_at: string }[])
       .sort((a, b) => Number(b.is_primary) - Number(a.is_primary) || a.created_at.localeCompare(b.created_at)),
     revisions: ((c.consultation_revisions ?? []) as Consultation["revisions"]).sort((a, b) => a.revision - b.revision),
@@ -127,6 +138,17 @@ export default async function VisitPage({ params, searchParams }: PageProps<"/vi
   }));
 
   const alerts = (pet.pet_alerts ?? []).filter((a) => a.is_active && a.severity !== "info");
+  const lastVacc = (historyQ.data ?? []).find((h) => !h.voided_at && h.confirmed);
+  const lastDew = (dewormQ.data ?? []).find((d) => !d.voided_at && d.confirmed);
+  const petContext: PetContext = {
+    species: pet.species?.name ?? null,
+    lastVaccine: lastVacc ? `${lastVacc.vaccine_name}, ${formatDate(lastVacc.administered_at)} (${ago(lastVacc.administered_at)})` : "no vaccine recorded",
+    lastDeworming: lastDew ? `${lastDew.product}, ${formatDate(lastDew.given_at)} (${ago(lastDew.given_at)})` : "no deworming recorded",
+    treatmentNames: [...new Set([
+      ...(medNames.data ?? []).map((m) => [m.name, m.strength].filter(Boolean).join(" ")),
+      ...(serviceNames.data ?? []).map((x) => x.name),
+    ])],
+  };
   const status = visit.status as VisitStatus;
   const wa = whatsappLink(owner.whatsapp);
   const weight = weightQ.data?.weight_kg;
@@ -227,7 +249,7 @@ export default async function VisitPage({ params, searchParams }: PageProps<"/vi
             <ConsultationPanel visitId={id} consultation={consultation} templates={templates} perms={{
               create: me.can("clinical.create"), edit: me.can("clinical.edit"), finalize: me.can("clinical.finalize"),
               reopen: me.can("clinical.reopen"), isAuthor: c?.created_by === me.id,
-            }} />
+            }} pet={petContext} />
           </TabsContent>
           <TabsContent value="vaccines">
             <VaccinesPanel visitId={id} petId={pet.id} vaccines={vaccines} protocols={protocols} history={history}

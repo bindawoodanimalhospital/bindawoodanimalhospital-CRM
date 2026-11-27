@@ -19,7 +19,7 @@ create or replace function pg_temp.as_(uid text) returns void language sql as $$
 $$;
 
 -- Lab test types carry dog / cat reference ranges
-select pg_temp.check((select jsonb_array_length(result_fields) = 20
+select pg_temp.check((select jsonb_array_length(result_fields) = 24
   and result_fields @> '[{"key":"wbc","group":"White cells","ranges":{"Cat":"5.5-19.5","Dog":"6.0-17.0"}}]' from public.diagnostic_types where name = 'CBC (complete blood count)'),
   'CBC has the full analyser panel with dog and cat ranges');
 select pg_temp.check((select bool_and(f ? 'group') and count(*) = 20 and count(*) filter (where f ? 'ranges') >= 16

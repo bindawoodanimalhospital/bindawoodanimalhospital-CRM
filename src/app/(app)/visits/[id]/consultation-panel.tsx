@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
-import { Check, CircleCheck, CloudOff, History, Loader2, Lock, Plus, Star, Stethoscope, Unlock, X } from "lucide-react";
+import { Check, CircleCheck, CloudOff, History, Loader2, Lock, Plus, Star, Stethoscope, Syringe, Unlock, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,10 @@ import { formatDateTime, todayPK } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { cToF, fToC } from "@/lib/clinical";
 import {
+  HISTORY_QUESTIONS, HISTORY_TEXT, HYDRATION_OPTIONS, MENTATION_OPTIONS, TREATMENT_ROUTES, historyLines, treatmentsGiven, vitalFlag,
+  vitalRangeText, type HistoryAnswers, type TreatmentGiven,
+} from "@/lib/consult-questions";
+import {
   finalizeConsultation, reopenConsultation, saveConsultation, setDiagnoses, startConsultation, type ConsultationPatch,
 } from "./actions";
 
@@ -30,6 +34,8 @@ export type Consultation = {
   doctor_name: string | null; updated_at: string;
   fields: Record<string, string | number | null>;
   exam: Record<string, string>;
+  answers: HistoryAnswers;
+  treatments: TreatmentGiven[];
   diagnoses: Diagnosis[];
   revisions: { revision: number; finalized_at: string; reason: string | null }[];
 };
@@ -39,18 +45,22 @@ const SECTION_TITLES: Record<string, string> = {
   exam: "Physical examination", assessment: "Assessment & diagnosis", treatment: "Treatment given", plan: "Plan & follow-up",
 };
 
-export function ConsultationPanel({ visitId, consultation, templates, perms }: {
+/** What the visit screen knows about the pet, to guide the doctor (normal ranges, last vaccine / deworming). */
+export type PetContext = { species: string | null; lastVaccine: string | null; lastDeworming: string | null; treatmentNames: string[] };
+
+export function ConsultationPanel({ visitId, consultation, templates, perms, pet }: {
   visitId: string;
   consultation: Consultation | null;
   templates: Template[];
   perms: { create: boolean; edit: boolean; finalize: boolean; reopen: boolean; isAuthor: boolean };
+  pet: PetContext;
 }) {
   if (!consultation) return <StartConsultation visitId={visitId} templates={templates} canCreate={perms.create} />;
   const template = templates.find((t) => t.key === consultation.template_key) ?? templates[0];
   const editable = consultation.status === "draft" && (perms.edit || (perms.create && perms.isAuthor));
   return editable
-    ? <ConsultationEditor key={consultation.id + consultation.revision} visitId={visitId} c={consultation} template={template} canFinalize={perms.finalize} />
-    : <ConsultationView visitId={visitId} c={consultation} template={template} canReopen={perms.reopen} />;
+    ? <ConsultationEditor key={consultation.id + consultation.revision} visitId={visitId} c={consultation} template={template} canFinalize={perms.finalize} pet={pet} />
+    : <ConsultationView visitId={visitId} c={consultation} template={template} canReopen={perms.reopen} species={pet.species} />;
 }
 
 function StartConsultation({ visitId, templates, canCreate }: { visitId: string; templates: Template[]; canCreate: boolean }) {
@@ -81,11 +91,13 @@ function StartConsultation({ visitId, templates, canCreate }: { visitId: string;
 
 type SaveState = "idle" | "saving" | "saved" | "error";
 
-function ConsultationEditor({ visitId, c, template, canFinalize }: {
-  visitId: string; c: Consultation; template: Template; canFinalize: boolean;
+function ConsultationEditor({ visitId, c, template, canFinalize, pet }: {
+  visitId: string; c: Consultation; template: Template; canFinalize: boolean; pet: PetContext;
 }) {
   const [fields, setFields] = useState(c.fields);
   const [exam, setExam] = useState(c.exam);
+  const [answers, setAnswers] = useState<HistoryAnswers>(c.answers);
+  const [treatments, setTreatments] = useState<TreatmentGiven[]>(c.treatments);
   const [diagnoses, setDx] = useState<Diagnosis[]>(c.diagnoses);
   const [save, setSave] = useState<SaveState>("idle");
   const [finalizing, startFinalize] = useTransition();
@@ -128,6 +140,17 @@ function ConsultationEditor({ visitId, c, template, canFinalize }: {
     setExam(next);
     queue({ exam: next });
   };
+  // Refs hold the latest lists, so quick taps / edits in a row each build on the one before.
+  const answersRef = useRef(answers);
+  const setAnswer = (k: string, val: string) => {
+    const next = { ...answersRef.current, [k]: val };
+    if (!val) delete next[k];
+    if (!val && !k.endsWith("_detail")) delete next[`${k}_detail`];
+    answersRef.current = next;
+    setAnswers(next);
+    queue({ history_answers: next });
+  };
+  const changeTreatments = (next: TreatmentGiven[]) => { setTreatments(next); queue({ treatments_given: next }); };
   const saveDx = async (next: Diagnosis[]) => {
     setDx(next);
     const r = await setDiagnoses(visitId, c.id, next);
@@ -162,20 +185,23 @@ function ConsultationEditor({ visitId, c, template, canFinalize }: {
               placeholder="e.g. Vomiting since last night, not eating" className="text-base" />
           )}
           {section === "history" && (
-            <Textarea rows={3} value={v("history")} onChange={(e) => setField("history", e.target.value)}
-              placeholder="Diet, vaccination status, previous illness, medicines already given…" />
+            <div className="grid gap-3">
+              <HistoryQuestions answers={answers} onChange={setAnswer} pet={pet} />
+              <Textarea rows={2} value={v("history")} onChange={(e) => setField("history", e.target.value)}
+                placeholder="Anything else the owner tells you — since when, previous illness, other pets at home…" />
+            </div>
           )}
           {section === "vitals" && (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-              <TempVital value={v("temperature_c")} onChange={(x) => setField("temperature_c", x)} />
-              <Vital label="Heart rate" unit="/min" value={v("heart_rate")} onChange={(x) => setField("heart_rate", x)} />
-              <Vital label="Resp. rate" unit="/min" value={v("resp_rate")} onChange={(x) => setField("resp_rate", x)} />
+              <TempVital value={v("temperature_c")} onChange={(x) => setField("temperature_c", x)} species={pet.species} />
+              <Vital label="Heart rate" unit="/min" value={v("heart_rate")} onChange={(x) => setField("heart_rate", x)} kind="hr" species={pet.species} />
+              <Vital label="Resp. rate" unit="/min" value={v("resp_rate")} onChange={(x) => setField("resp_rate", x)} kind="rr" species={pet.species} />
               <Vital label="Weight" unit="kg" value={v("weight_kg")} onChange={(x) => setField("weight_kg", x)} step="0.01" />
-              <Vital label="CRT" unit="sec" value={v("crt_seconds")} onChange={(x) => setField("crt_seconds", x)} step="0.5" />
+              <Vital label="CRT" unit="sec" value={v("crt_seconds")} onChange={(x) => setField("crt_seconds", x)} step="0.5" kind="crt" species={pet.species} />
               <TextVital label="Mucous membranes" value={v("mucous_membranes")} onChange={(x) => setField("mucous_membranes", x)} options={["Pink", "Pale", "Congested", "Cyanotic", "Icteric"]} />
-              <TextVital label="Hydration" value={v("hydration")} onChange={(x) => setField("hydration", x)} options={["Normal", "Mild (5%)", "Moderate (8%)", "Severe (10%+)"]} />
+              <TextVital label="Hydration" value={v("hydration")} onChange={(x) => setField("hydration", x)} options={HYDRATION_OPTIONS} />
               <TextVital label="Pulse" value={v("pulse_quality")} onChange={(x) => setField("pulse_quality", x)} options={["Strong and synchronous", "Weak", "Bounding", "Irregular", "Pulse deficits"]} />
-              <TextVital label="Mentation" value={v("mentation")} onChange={(x) => setField("mentation", x)} options={["BAR (bright, alert, responsive)", "QAR (quiet, alert, responsive)", "Depressed", "Obtunded", "Stuporous", "Comatose"]} />
+              <TextVital label="Mentation" value={v("mentation")} onChange={(x) => setField("mentation", x)} options={MENTATION_OPTIONS} />
               <Vital label="Body condition" unit="/9" value={v("body_condition_score")} onChange={(x) => setField("body_condition_score", x)} />
               <Vital label="Pain" unit="/10" value={v("pain_score")} onChange={(x) => setField("pain_score", x)} />
             </div>
@@ -213,11 +239,14 @@ function ConsultationEditor({ visitId, c, template, canFinalize }: {
             </div>
           )}
           {section === "treatment" && (
-            <div className="grid gap-3 sm:grid-cols-2">
-              <Textarea rows={3} value={v("treatment")} onChange={(e) => setField("treatment", e.target.value)}
-                placeholder="Procedures done (dressing, fluids, cleaning…)" />
-              <Textarea rows={3} value={v("medicines_administered")} onChange={(e) => setField("medicines_administered", e.target.value)}
-                placeholder="Medicines given in the clinic (injections etc.) — dose written by you" />
+            <div className="grid gap-3">
+              <TreatmentList items={treatments} onChange={changeTreatments} names={pet.treatmentNames} />
+              <Textarea rows={2} value={v("treatment")} onChange={(e) => setField("treatment", e.target.value)}
+                placeholder="Procedures & other notes (wound cleaned, ear flushed, fluids running 2 hours…)" />
+              {!!v("medicines_administered") && (
+                <Textarea rows={2} value={v("medicines_administered")} onChange={(e) => setField("medicines_administered", e.target.value)}
+                  placeholder="Medicines given in the clinic (older note)" />
+              )}
             </div>
           )}
           {section === "plan" && (
@@ -279,24 +308,124 @@ function SaveIndicator({ state }: { state: SaveState }) {
   );
 }
 
-function Vital({ label, unit, value, onChange, step }: {
+function Vital({ label, unit, value, onChange, step, kind, species }: {
   label: string; unit: string; value: string | number; onChange: (v: string) => void; step?: string;
+  kind?: "hr" | "rr" | "crt"; species?: string | null;
 }) {
+  const flag = kind ? vitalFlag(kind, value, species) : null;
+  const hint = kind ? vitalRangeText(kind, species) : null;
   return (
-    <label className="grid gap-1 rounded-xl bg-surface p-2.5 ring-1 ring-border">
-      <span className="text-xs font-medium text-muted-foreground">{label}</span>
+    <label className={cn("grid gap-1 rounded-xl bg-surface p-2.5 ring-1", flag ? "ring-danger/50" : "ring-border")}>
+      <span className="flex items-center justify-between text-xs font-medium text-muted-foreground">{label}
+        {flag && <FlagBadge dir={flag.dir} />}</span>
       <span className="flex items-baseline gap-1">
         <input type="number" inputMode="decimal" step={step ?? "1"} value={value ?? ""} onChange={(e) => onChange(e.target.value)}
           className="w-full min-w-0 bg-transparent text-lg font-semibold tabular outline-none" />
         <span className="text-xs text-muted-foreground">{unit}</span>
       </span>
+      {hint && <span className={cn("text-[11px]", flag ? "text-danger" : "text-muted-foreground")}>{hint}</span>}
     </label>
+  );
+}
+
+function FlagBadge({ dir }: { dir: "H" | "L" }) {
+  return <span className="rounded-full bg-danger-soft px-1.5 text-[10.5px] font-bold text-danger">{dir === "H" ? "↑ High" : "↓ Low"}</span>;
+}
+
+/** The standard questions: one tap per answer, a detail box when something is wrong, and what the records say. */
+function HistoryQuestions({ answers, onChange, pet }: { answers: HistoryAnswers; onChange: (k: string, v: string) => void; pet: PetContext }) {
+  return (
+    <div className="grid gap-2 rounded-2xl bg-surface p-3 ring-1 ring-border">
+      <p className="text-xs text-muted-foreground">Tap the owner&apos;s answer — anything not normal is highlighted on the record. Tap again to clear.</p>
+      {HISTORY_QUESTIONS.map((q) => {
+        const val = answers[q.key] ?? "";
+        const hint = q.key === "vaccinated" ? pet.lastVaccine : q.key === "dewormed" ? pet.lastDeworming : null;
+        return (
+          <div key={q.key} className="grid items-start gap-1.5 border-b border-border/60 pb-2 last:border-0 last:pb-0 sm:grid-cols-[130px_1fr]">
+            <span className="pt-1.5 text-sm font-semibold">{q.label}</span>
+            <div className="grid gap-1.5">
+              <div className="flex flex-wrap gap-1.5" role="radiogroup" aria-label={q.label}>
+                {q.options.map((o, i) => {
+                  const on = val === o;
+                  return (
+                    <button key={o} type="button" role="radio" aria-checked={on} onClick={() => onChange(q.key, on ? "" : o)}
+                      className={cn("h-8 rounded-full px-3 text-[13px] font-medium ring-1 transition",
+                        on ? (i === 0 || o === "Not sure" ? "bg-success-soft text-success ring-success/40" : "bg-danger-soft text-danger ring-danger/40")
+                          : "bg-card ring-border hover:bg-muted")}>
+                      {on && <Check className="mr-1 inline size-3.5" />}{o}
+                    </button>
+                  );
+                })}
+              </div>
+              {q.detail && val && val !== q.options[0] && (
+                <Input value={answers[`${q.key}_detail`] ?? ""} onChange={(e) => onChange(`${q.key}_detail`, e.target.value)}
+                  placeholder={q.detail} className="h-9 max-w-md" />
+              )}
+              {hint && <span className="text-[11px] text-muted-foreground">Our records: {hint}</span>}
+            </div>
+          </div>
+        );
+      })}
+      <div className="grid gap-2 pt-1 sm:grid-cols-2">
+        {HISTORY_TEXT.map((t) => (
+          <label key={t.key} className="grid gap-1">
+            <span className="text-sm font-semibold">{t.label}</span>
+            <Input value={answers[t.key] ?? ""} onChange={(e) => onChange(t.key, e.target.value)} placeholder={t.placeholder} />
+          </label>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** Treatments given at the clinic, one row each (what, dose, route) — printed as a table on the record. */
+function TreatmentList({ items, onChange, names }: { items: TreatmentGiven[]; onChange: (t: TreatmentGiven[]) => void; names: string[] }) {
+  const [draft, setDraft] = useState<TreatmentGiven>({ what: "", dose: "", route: "" });
+  const add = () => {
+    if (!draft.what.trim()) return;
+    onChange([...items, { what: draft.what.trim(), dose: draft.dose?.trim() || null, route: draft.route || null }]);
+    setDraft({ what: "", dose: "", route: draft.route });
+  };
+  const enter = (e: React.KeyboardEvent) => { if (e.key === "Enter") { e.preventDefault(); add(); } };
+  return (
+    <div className="grid gap-2">
+      <Label className="flex items-center gap-1.5"><Syringe className="size-4 text-brand" /> Given at the clinic</Label>
+      {items.length > 0 && (
+        <ul className="grid gap-1.5">
+          {items.map((t, i) => (
+            <li key={i} className="flex flex-wrap items-center gap-2 rounded-xl bg-surface px-3 py-2 ring-1 ring-border">
+              <span className="font-semibold">{t.what}</span>
+              {t.dose && <span className="text-sm">{t.dose}</span>}
+              {t.route && <span className="rounded-full bg-brand-soft px-2 text-xs font-semibold text-brand">{t.route}</span>}
+              <button type="button" title="Remove" aria-label={`Remove ${t.what}`} className="ml-auto rounded-full p-1 hover:bg-muted"
+                onClick={() => onChange(items.filter((_, j) => j !== i))}><X className="size-4" /></button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_150px_130px_auto]">
+        <Input list="treatment-names" value={draft.what} onChange={(e) => setDraft({ ...draft, what: e.target.value })}
+          placeholder="Medicine or procedure, e.g. Ondansetron inj." onKeyDown={enter} aria-label="Medicine or procedure" />
+        <datalist id="treatment-names">{names.map((nm) => <option key={nm} value={nm} />)}</datalist>
+        <Input value={draft.dose ?? ""} onChange={(e) => setDraft({ ...draft, dose: e.target.value })} placeholder="Dose, e.g. 0.5 ml"
+          onKeyDown={enter} aria-label="Dose" />
+        <select value={draft.route ?? ""} onChange={(e) => setDraft({ ...draft, route: e.target.value })} aria-label="Route"
+          className="h-10 rounded-xl border bg-card px-2 text-sm">
+          <option value="">Route…</option>
+          {TREATMENT_ROUTES.map((r) => <option key={r}>{r}</option>)}
+        </select>
+        <Button type="button" variant="outline" onClick={add} disabled={!draft.what.trim()}><Plus /> Add</Button>
+      </div>
+      {items.length === 0 && <p className="text-xs text-muted-foreground">Add each injection, drip or procedure — type the name, dose and route, then press Enter.</p>}
+    </div>
   );
 }
 
 const TEMP_UNIT_KEY = "crm:temp-unit";
 
-function TempVital({ value, onChange }: { value: string | number; onChange: (celsius: string) => void }) {
+function TempVital({ value, onChange, species }: { value: string | number; onChange: (celsius: string) => void; species?: string | null }) {
+  const flag = vitalFlag("temp", value, species);
+  const hint = vitalRangeText("temp", species);
   const [unit, setUnit] = useState<"C" | "F">(() => {
     try { return localStorage.getItem(TEMP_UNIT_KEY) === "F" ? "F" : "C"; } catch { return "C"; }
   });
@@ -308,9 +437,9 @@ function TempVital({ value, onChange }: { value: string | number; onChange: (cel
     try { localStorage.setItem(TEMP_UNIT_KEY, u); } catch { /* private mode */ }
   };
   return (
-    <label className="grid gap-1 rounded-xl bg-surface p-2.5 ring-1 ring-border">
-      <span className="flex items-center justify-between text-xs font-medium text-muted-foreground">
-        Temp
+    <label className={cn("grid gap-1 rounded-xl bg-surface p-2.5 ring-1", flag ? "ring-danger/50" : "ring-border")}>
+      <span className="flex items-center justify-between gap-1 text-xs font-medium text-muted-foreground">
+        <span className="flex items-center gap-1">Temp {flag && <FlagBadge dir={flag.dir} />}</span>
         <span className="flex overflow-hidden rounded-md ring-1 ring-border">
           {(["C", "F"] as const).map((u) => (
             <button key={u} type="button" onClick={() => switchTo(u)}
@@ -328,8 +457,8 @@ function TempVital({ value, onChange }: { value: string | number; onChange: (cel
           className="w-full min-w-0 bg-transparent text-lg font-semibold tabular outline-none" />
         <span className="text-xs text-muted-foreground">°{unit}</span>
       </span>
-      {text !== "" && <span className="text-[11px] text-muted-foreground">
-        = {unit === "F" ? `${value} °C` : `${cToF(Number(value))} °F`}</span>}
+      {text !== "" && <span className="text-[11px] text-muted-foreground">= {unit === "F" ? `${value} °C` : `${cToF(Number(value))} °F`}</span>}
+      {hint && <span className={cn("text-[11px]", flag ? "text-danger" : "text-muted-foreground")}>{hint} °C</span>}
     </label>
   );
 }
@@ -398,7 +527,7 @@ function DiagnosisList({ items, onChange }: { items: Diagnosis[]; onChange: (d: 
 
 const FIELD_LABELS: [string, string][] = [
   ["chief_complaint", "Reason for visit"], ["history", "History"], ["observations", "Observations"],
-  ["assessment", "Assessment"], ["treatment", "Treatment given"], ["medicines_administered", "Medicines given in clinic"],
+  ["assessment", "Assessment"], ["treatment", "Procedures & notes"], ["medicines_administered", "Medicines given in clinic"],
   ["prognosis", "Prognosis"], ["follow_up_plan", "Plan & advice"], ["doctor_notes", "Doctor notes"],
 ];
 const VITALS: [string, string, string][] = [
@@ -408,10 +537,14 @@ const VITALS: [string, string, string][] = [
   ["pulse_quality", "Pulse", ""], ["mentation", "Mentation", ""],
 ];
 
-function ConsultationView({ visitId, c, template, canReopen }: {
-  visitId: string; c: Consultation; template: Template; canReopen: boolean;
+const VITAL_KIND: Record<string, "temp" | "hr" | "rr" | "crt"> = { temperature_c: "temp", heart_rate: "hr", resp_rate: "rr", crt_seconds: "crt" };
+
+function ConsultationView({ visitId, c, template, canReopen, species }: {
+  visitId: string; c: Consultation; template: Template; canReopen: boolean; species: string | null;
 }) {
   const f = c.fields;
+  const answers = historyLines(c.answers);
+  const given = treatmentsGiven(c.treatments);
   const vitals = VITALS.filter(([k]) => f[k] != null && f[k] !== "");
   const exam = Object.entries(c.exam).filter(([, val]) => val);
   return (
@@ -429,13 +562,36 @@ function ConsultationView({ visitId, c, template, canReopen }: {
 
       {vitals.length > 0 && (
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
-          {vitals.map(([k, label, unit]) => (
-            <div key={k} className="rounded-xl bg-surface p-2.5 ring-1 ring-border">
-              <p className="text-xs text-muted-foreground">{label}</p>
+          {vitals.map(([k, label, unit]) => {
+            const flag = VITAL_KIND[k] ? vitalFlag(VITAL_KIND[k], f[k], species) : null;
+            return (
+            <div key={k} className={cn("rounded-xl bg-surface p-2.5 ring-1", flag ? "ring-danger/50" : "ring-border")}>
+              <p className="flex items-center justify-between text-xs text-muted-foreground">{label}{flag && <FlagBadge dir={flag.dir} />}</p>
               <p className="font-semibold tabular">{String(f[k])} <span className="text-xs font-normal text-muted-foreground">{unit}</span>
                 {k === "temperature_c" && <span className="block text-xs font-normal text-muted-foreground">{cToF(Number(f[k]))} °F</span>}</p>
             </div>
-          ))}
+            );
+          })}
+        </div>
+      )}
+      {answers.length > 0 && (
+        <div>
+          <p className="mb-2 text-xs font-medium text-muted-foreground">Owner&apos;s answers</p>
+          <div className="flex flex-wrap gap-1.5">
+            {answers.map((l) => (
+              <span key={l.key} className={cn("rounded-lg px-2 py-1 text-sm ring-1", l.concern ? "bg-danger-soft text-danger ring-danger/25" : "bg-surface ring-border")}>
+                <span className={l.concern ? "" : "text-muted-foreground"}>{l.label}:</span> <b>{l.answer}</b>{l.detail ? ` — ${l.detail}` : ""}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+      {given.length > 0 && (
+        <div>
+          <p className="mb-2 text-xs font-medium text-muted-foreground">Given at the clinic</p>
+          <ul className="grid gap-1 text-sm">
+            {given.map((t, i) => <li key={i}><b>{t.what}</b>{t.dose ? ` · ${t.dose}` : ""}{t.route ? ` · ${t.route}` : ""}</li>)}
+          </ul>
         </div>
       )}
       {c.diagnoses.length > 0 && (

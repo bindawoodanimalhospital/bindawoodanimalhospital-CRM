@@ -225,7 +225,7 @@ function LabResults({ fields, values, meta, editable, setValue, setMeta }: {
                   className={cn("h-8 font-semibold tabular", flag && "border-danger text-danger")} />
                 {flag && <span className="w-4 shrink-0 text-xs font-bold text-danger">{flag}</span>}
               </span>
-              <Input value={meta[f.key]?.range ?? ""} disabled={!editable} aria-label={`${f.label} normal range`} placeholder="e.g. 5.5-19.5"
+              <Input value={meta[f.key]?.range ?? ""} disabled={!editable} aria-label={`${f.label} normal range`} placeholder="Range on the report"
                 onChange={(e) => setMeta(f.key, { range: e.target.value })} className="h-8 text-xs" />
               <Input value={meta[f.key]?.comment ?? ""} disabled={!editable} aria-label={`${f.label} comment`} placeholder="Comment (optional)"
                 onChange={(e) => setMeta(f.key, { comment: e.target.value })} className="col-span-2 h-8 text-xs sm:col-span-1" />
