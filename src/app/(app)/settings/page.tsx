@@ -6,17 +6,19 @@ import { PageHeader } from "@/components/app/page-header";
 import { requireStaff } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getSetting } from "@/lib/queries";
-import { ClinicProfileForm, SpeciesManager } from "./widgets";
+import { ClinicProfileForm, SpeciesManager, WordingForms } from "./widgets";
 
 export const metadata: Metadata = { title: "Settings" };
 
 export default async function SettingsPage() {
   await requireStaff("settings.manage");
   const supabase = await createClient();
-  const [profile, { data: species }] = await Promise.all([
+  const [profile, { data: species }, consent, billing] = await Promise.all([
     getSetting<Record<string, string>>("clinic.profile"),
     supabase.from("species").select("id, name, breeds(id, name, is_active)").order("sort_order")
       .order("name", { referencedTable: "breeds" }),
+    getSetting<{ en: string; ur: string; status?: string }>("surgery.consent_text"),
+    getSetting<{ invoice_footer?: string }>("billing.config"),
   ]);
 
   return (
@@ -39,12 +41,19 @@ export default async function SettingsPage() {
           </span>
           <ArrowRight className="size-5 text-brand transition group-hover:translate-x-0.5" />
         </Link>
-        <Card>
+        <Card id="clinic-profile" className="scroll-mt-24">
           <CardHeader>
             <CardTitle>Clinic profile</CardTitle>
             <CardDescription>Printed on invoices, prescriptions and vaccination certificates.</CardDescription>
           </CardHeader>
           <CardContent><ClinicProfileForm profile={profile ?? {}} /></CardContent>
+        </Card>
+        <Card id="wording" className="scroll-mt-24">
+          <CardHeader>
+            <CardTitle>Printed wording</CardTitle>
+            <CardDescription>Your own words on the consent form and at the bottom of bills and receipts.</CardDescription>
+          </CardHeader>
+          <CardContent><WordingForms consent={consent ?? { en: "", ur: "" }} footer={billing?.invoice_footer ?? ""} /></CardContent>
         </Card>
         <Card>
           <CardHeader>

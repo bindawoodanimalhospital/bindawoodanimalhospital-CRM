@@ -19,6 +19,7 @@ import { formatPhone } from "@/lib/phone";
 import { cn } from "@/lib/utils";
 import { presetRange, type FinancialReport } from "@/lib/reports";
 import { withContact } from "@/lib/contacts";
+import { SetupChecklist } from "@/components/app/setup-checklist";
 
 export const metadata: Metadata = { title: "Home" };
 
@@ -168,6 +169,8 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
           <AlertDescription>You don&apos;t have access to that page. Ask the admin if you need it.</AlertDescription>
         </Alert>
       )}
+
+      {me.can("settings.manage") && <SetupChecklist />}
 
       {/* Greeting + spotlight search */}
       <section className="relative overflow-hidden rounded-3xl bg-ink bg-hero-gradient px-5 py-6 text-white shadow-float shadow-brand/20 md:px-8 md:py-8">

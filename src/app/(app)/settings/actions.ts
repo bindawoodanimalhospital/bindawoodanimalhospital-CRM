@@ -51,3 +51,28 @@ export async function setBreedActive(id: string, active: boolean): Promise<FormS
   revalidatePath("/settings");
   return { ok: true };
 }
+
+/** Surgery consent wording (English + Urdu). "approve" marks it reviewed — the form then stops printing "Draft wording". */
+export async function saveConsentWording(en: string, ur: string, approve: boolean): Promise<FormState> {
+  const me = await assertCan("settings.manage");
+  if (en.trim().length < 40) return { message: "The English wording is too short." };
+  const supabase = await createClient();
+  const value = { en: en.trim(), ur: ur.trim(), status: approve ? "approved" : "draft",
+    ...(approve ? { approved_by: me.id, approved_at: new Date().toISOString() } : {}) };
+  const { error } = await supabase.from("system_settings").update({ value, updated_by: me.id }).eq("key", "surgery.consent_text");
+  if (error) return { message: dbErrorMessage(error) };
+  revalidatePath("/settings"); revalidatePath("/dashboard");
+  return { ok: true, message: approve ? "Consent wording approved." : "Consent wording saved as a draft." };
+}
+
+/** The short line printed at the bottom of bills and receipts (e.g. "Thank you for trusting us with your pet."). */
+export async function saveBillFooter(text: string): Promise<FormState> {
+  const me = await assertCan("settings.manage");
+  const supabase = await createClient();
+  const { data } = await supabase.from("system_settings").select("value").eq("key", "billing.config").maybeSingle();
+  const value = { ...((data?.value as Record<string, unknown>) ?? {}), invoice_footer: text.trim() };
+  const { error } = await supabase.from("system_settings").update({ value, updated_by: me.id }).eq("key", "billing.config");
+  if (error) return { message: dbErrorMessage(error) };
+  revalidatePath("/settings");
+  return { ok: true, message: "Bill footer saved." };
+}

@@ -43,7 +43,7 @@ export default async function VaccineSchedulesPage() {
         description="The vaccines doctors can record, and the multi-dose schedules (Dose 1 → Dose 2 after N days → yearly booster) used to suggest the next date."
       />
       <div className="mb-6"><VaccineList vaccines={(allVaccines ?? []) as Vaccine[]} species={species ?? []} canEdit={canEditVaccines} /></div>
-      <div className="mb-6"><DewormerList dewormers={(dewormers ?? []) as Dewormer[]} species={species ?? []} items={items ?? []} canEdit={canEditVaccines} /></div>
+      <div id="dewormers" className="mb-6 scroll-mt-24"><DewormerList dewormers={(dewormers ?? []) as Dewormer[]} species={species ?? []} items={items ?? []} canEdit={canEditVaccines} /></div>
       <h2 className="mb-3 text-lg font-semibold">Schedules</h2>
       <div className="mb-6 flex gap-3 rounded-2xl bg-brand-wash p-4 ring-1 ring-brand-muted">
         <ShieldCheck className="mt-0.5 size-5 shrink-0 text-brand" />

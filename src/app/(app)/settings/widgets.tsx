@@ -5,11 +5,12 @@ import { Loader2, Plus, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { FormField } from "@/components/app/form-field";
 import { useFormAction } from "@/hooks/use-form-action";
 import { formatPhone } from "@/lib/phone";
 import { cn } from "@/lib/utils";
-import { addBreed, addSpecies, saveClinicProfile, setBreedActive } from "./actions";
+import { addBreed, addSpecies, saveBillFooter, saveClinicProfile, saveConsentWording, setBreedActive } from "./actions";
 
 export function ClinicProfileForm({ profile }: { profile: Record<string, string> }) {
   const { pending, onSubmit, errors } = useFormAction(saveClinicProfile);
@@ -96,6 +97,38 @@ export function SpeciesManager({ species }: { species: Species[] }) {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/** Consent wording (English / Urdu) with Save draft / Approve, and the bill footer line. */
+export function WordingForms({ consent, footer }: { consent: { en: string; ur: string; status?: string }; footer: string }) {
+  const [en, setEn] = useState(consent.en ?? "");
+  const [ur, setUr] = useState(consent.ur ?? "");
+  const [foot, setFoot] = useState(footer);
+  const [pending, start] = useTransition();
+  const run = (p: Promise<{ ok?: boolean; message?: string }>) => start(async () => { const r = await p; if (r.ok) toast.success(r.message); else toast.error(r.message ?? "Couldn't save"); });
+  return (
+    <div className="grid gap-6">
+      <div className="grid gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="font-semibold">Surgery consent form</p>
+          <span className={cn("rounded-full px-2.5 py-0.5 text-xs font-semibold", consent.status === "approved" ? "bg-success-soft text-success" : "bg-warning-soft text-warning")}>
+            {consent.status === "approved" ? "Approved" : "Draft — prints \u201cDraft wording\u201d"}</span>
+        </div>
+        <p className="text-sm text-muted-foreground">Read by (or to) the owner before an operation. Edit it to match your clinic&apos;s own form, then approve it.</p>
+        <FormField label="English"><Textarea rows={6} value={en} onChange={(e) => setEn(e.target.value)} /></FormField>
+        <FormField label="Urdu"><Textarea rows={6} dir="rtl" lang="ur" className="text-base leading-loose" value={ur} onChange={(e) => setUr(e.target.value)} /></FormField>
+        <div className="flex flex-wrap justify-end gap-2">
+          <Button variant="outline" disabled={pending} onClick={() => run(saveConsentWording(en, ur, false))}>Save as draft</Button>
+          <Button disabled={pending} onClick={() => run(saveConsentWording(en, ur, true))}>{pending && <Loader2 className="animate-spin" />} Save &amp; approve</Button>
+        </div>
+      </div>
+      <div className="grid gap-3 border-t pt-5">
+        <p className="font-semibold">Line at the bottom of bills and receipts</p>
+        <Input value={foot} onChange={(e) => setFoot(e.target.value)} placeholder="e.g. Thank you for trusting us with your pet." maxLength={160} />
+        <div className="flex justify-end"><Button variant="outline" disabled={pending} onClick={() => run(saveBillFooter(foot))}>Save footer</Button></div>
+      </div>
     </div>
   );
 }
