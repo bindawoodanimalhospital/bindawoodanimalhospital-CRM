@@ -202,15 +202,15 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
 
       {/* Quick actions */}
       {actions.length > 0 && (
-        <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+        <section className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 xl:grid-cols-6">
           {actions.map((a) => (
             <Link key={a.title} href={a.href}
-              className="group flex flex-col gap-3 rounded-2xl bg-card p-4 shadow-card ring-1 ring-border transition hover:-translate-y-0.5 hover:shadow-float hover:ring-brand-muted">
-              <span className={cn("flex size-10 items-center justify-center rounded-xl",
+              className="group flex items-center gap-2.5 rounded-2xl bg-card p-2.5 shadow-card ring-1 ring-border transition hover:-translate-y-0.5 hover:shadow-float hover:ring-brand-muted sm:flex-col sm:items-stretch sm:gap-3 sm:p-4">
+              <span className={cn("flex size-9 shrink-0 items-center justify-center rounded-xl sm:size-10",
                 a.primary ? "bg-brand-gradient text-white shadow-md shadow-brand/25" : "bg-brand-soft text-brand")}>
                 <a.icon className="size-5" />
               </span>
-              <span className="flex items-center justify-between gap-1 text-sm font-semibold">
+              <span className="flex min-w-0 items-center justify-between gap-1 text-sm leading-tight font-semibold">
                 {a.title}
                 <ArrowRight className="size-4 shrink-0 text-muted-foreground opacity-0 transition group-hover:translate-x-0.5 group-hover:opacity-100" />
               </span>
@@ -221,9 +221,9 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
 
       {/* Today in numbers */}
       {kpis.length > 0 && (
-        <section className="grid grid-cols-2 gap-3 md:grid-cols-[repeat(auto-fit,minmax(11rem,1fr))]">
+        <section className="grid grid-cols-2 gap-2 sm:gap-3 md:grid-cols-[repeat(auto-fit,minmax(11rem,1fr))]">
           {kpis.map((k) => (
-            <Link key={k.label} href={k.href} className="group rounded-2xl bg-card p-4 shadow-card ring-1 ring-border transition hover:ring-brand-muted">
+            <Link key={k.label} href={k.href} className="group rounded-2xl bg-card p-3 shadow-card [&:last-child:nth-child(odd)]:col-span-2 sm:p-4 md:[&:last-child:nth-child(odd)]:col-span-1 ring-1 ring-border transition hover:ring-brand-muted">
               <span className="flex items-start justify-between gap-2 text-sm leading-snug text-muted-foreground">
                 <span className="min-w-0">{k.label}</span>
                 <k.icon className="mt-0.5 size-4 shrink-0 text-foreground/40 transition group-hover:text-brand" />
