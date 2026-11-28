@@ -15,7 +15,7 @@ import { PayBalance } from "./pay-balance";
 import { AddPreviousBalance } from "./previous-balance";
 import { sortLedger } from "@/lib/clinic";
 
-export const metadata: Metadata = { title: "Customer account" };
+export const metadata: Metadata = { title: "Owner's account" };
 
 function withRunningBalance<T extends { debit: number; credit: number }>(entries: T[]) {
   const out: (T & { running: number })[] = [];

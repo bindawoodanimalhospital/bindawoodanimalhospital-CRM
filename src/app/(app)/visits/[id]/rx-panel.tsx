@@ -16,6 +16,7 @@ import {
 import { FormField } from "@/components/app/form-field";
 import { StatusPill } from "@/components/app/page-header";
 import { formatDateTime } from "@/lib/format";
+import { cn } from "@/lib/utils";
 import { addRxItem, createPrescription, removeRxItem, searchMedicines, setRxStatus, type RxItemInput } from "./actions";
 
 export type RxItem = {
@@ -36,18 +37,24 @@ export function RxPanel({ visitId, petId, consultationId, prescriptions, canWrit
   const draft = prescriptions.find((p) => p.status === "draft");
   const others = prescriptions.filter((p) => p !== draft);
 
+  const write = () => start(async () => {
+    const r = await createPrescription(visitId, petId, consultationId);
+    if (!r.ok) toast.error(r.message);
+  });
+  const hasIssued = others.some((p) => p.status === "issued");
   return (
     <div className="grid gap-8">
-      {draft ? <DraftRx visitId={visitId} rx={draft} canWrite={canWrite} /> : canWrite && (
+      {draft && <DraftRx visitId={visitId} rx={draft} canWrite={canWrite} />}
+      {!draft && canWrite && !hasIssued && (
         <div className="flex flex-col items-start gap-3 rounded-2xl bg-surface p-6 ring-1 ring-border">
-          <p className="text-muted-foreground">No prescription being written for this visit.</p>
-          <Button disabled={pending} onClick={() => start(async () => {
-            const r = await createPrescription(visitId, petId, consultationId);
-            if (!r.ok) toast.error(r.message);
-          })}>{pending ? <Loader2 className="animate-spin" /> : <Plus />} Write a prescription</Button>
+          <p className="text-muted-foreground">No prescription written for this visit yet.</p>
+          <Button disabled={pending} onClick={write}>{pending ? <Loader2 className="animate-spin" /> : <Plus />} Write a prescription</Button>
         </div>
       )}
       {others.map((rx) => <IssuedRx key={rx.id} visitId={visitId} rx={rx} canWrite={canWrite} />)}
+      {!draft && canWrite && hasIssued && (
+        <div><Button variant="outline" disabled={pending} onClick={write}>{pending ? <Loader2 className="animate-spin" /> : <Plus />} Write another prescription</Button></div>
+      )}
     </div>
   );
 }
@@ -157,12 +164,13 @@ function AddItemForm({ visitId, rxId }: { visitId: string; rxId: string }) {
     <div className="grid gap-3 rounded-2xl bg-surface p-4 ring-1 ring-border">
       <p className="flex items-center gap-2 text-sm font-semibold"><Pill className="size-4" /> Add medicine</p>
       <div className="grid gap-3 sm:grid-cols-[2fr_1fr_1fr]">
-        <div className="relative">
-          <Input value={item.medicine_name} placeholder="Medicine name"
+        <div className="relative grid gap-1">
+          <RxLabel text="Medicine" required />
+          <Input value={item.medicine_name} placeholder="Type to search, e.g. Otomax" aria-label="Medicine name"
             onFocus={() => setShowResults(true)} onBlur={() => setTimeout(() => setShowResults(false), 150)}
             onChange={(e) => { set({ medicine_name: e.target.value, medicine_id: null }); setShowResults(true); }} />
           {showResults && results.length > 0 && !item.medicine_id && (
-            <ul className="absolute z-20 mt-1 max-h-60 w-full overflow-auto rounded-xl bg-popover p-1 shadow-float ring-1 ring-border">
+            <ul className="absolute top-full z-20 mt-1 max-h-60 w-full overflow-auto rounded-xl bg-popover p-1 shadow-float ring-1 ring-border">
               {results.map((m) => (
                 <li key={m.id}>
                   <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={() => pick(m)}
@@ -174,20 +182,35 @@ function AddItemForm({ visitId, rxId }: { visitId: string; rxId: string }) {
             </ul>
           )}
         </div>
-        <Input value={item.strength ?? ""} onChange={(e) => set({ strength: e.target.value })} placeholder="Strength (250 mg)" />
-        <Input value={item.form ?? ""} onChange={(e) => set({ form: e.target.value })} placeholder="Form (tablet, syrup)" list="rx-forms" />
+        <label className="grid gap-1"><RxLabel text="Strength" />
+          <Input value={item.strength ?? ""} onChange={(e) => set({ strength: e.target.value })} placeholder="250 mg" /></label>
+        <label className="grid gap-1"><RxLabel text="Form" />
+          <Input value={item.form ?? ""} onChange={(e) => set({ form: e.target.value })} placeholder="Tablet, drops…" list="rx-forms" /></label>
         <datalist id="rx-forms">{["Tablet", "Capsule", "Syrup", "Suspension", "Injection", "Drops", "Ointment", "Spray", "Powder"].map((f) => <option key={f} value={f} />)}</datalist>
       </div>
       <div className="grid gap-3 sm:grid-cols-4">
-        <Input value={item.dose} onChange={(e) => set({ dose: e.target.value })} placeholder="Dose* (1 tablet, 2 ml)" />
-        <Input value={item.frequency} onChange={(e) => set({ frequency: e.target.value })} placeholder="How often*" list="rx-freq" />
-        <datalist id="rx-freq">{FREQUENCIES.map((f) => <option key={f} value={f} />)}</datalist>
-        <Input value={item.duration ?? ""} onChange={(e) => set({ duration: e.target.value })} placeholder="For how long (5 days)" />
-        <Input value={item.quantity ?? ""} onChange={(e) => set({ quantity: e.target.value })} placeholder="Quantity (10)" />
+        <label className="grid gap-1"><RxLabel text="Dose" required />
+          <Input value={item.dose} onChange={(e) => set({ dose: e.target.value })} placeholder="1 tablet, 2 ml" /></label>
+        <label className="grid gap-1"><RxLabel text="How often" required />
+          <Input value={item.frequency} onChange={(e) => set({ frequency: e.target.value })} placeholder="Tap one below" /></label>
+        <label className="grid gap-1"><RxLabel text="For how long" />
+          <Input value={item.duration ?? ""} onChange={(e) => set({ duration: e.target.value })} placeholder="5 days" /></label>
+        <label className="grid gap-1"><RxLabel text="Quantity" />
+          <Input value={item.quantity ?? ""} onChange={(e) => set({ quantity: e.target.value })} placeholder="10" /></label>
+      </div>
+      <div className="flex flex-wrap items-center gap-1.5" aria-label="How often — quick choices">
+        <span className="text-xs text-muted-foreground">How often:</span>
+        {FREQUENCIES.map((f) => (
+          <button key={f} type="button" tabIndex={-1} onClick={() => set({ frequency: f })}
+            className={cn("h-7 rounded-full px-2.5 text-xs font-medium ring-1 transition",
+              item.frequency === f ? "bg-brand text-brand-foreground ring-brand" : "bg-card ring-border hover:bg-muted")}>{f}</button>
+        ))}
       </div>
       <div className="grid gap-3 sm:grid-cols-[1fr_2fr]">
-        <Input value={item.route ?? ""} onChange={(e) => set({ route: e.target.value })} placeholder="Route (oral, SC, topical)" />
-        <Input value={item.instructions ?? ""} onChange={(e) => set({ instructions: e.target.value })} placeholder="Instructions (after food, shake well…)" />
+        <label className="grid gap-1"><RxLabel text="Route" />
+          <Input value={item.route ?? ""} onChange={(e) => set({ route: e.target.value })} placeholder="Oral, in the ear…" /></label>
+        <label className="grid gap-1"><RxLabel text="Instructions" />
+          <Input value={item.instructions ?? ""} onChange={(e) => set({ instructions: e.target.value })} placeholder="After food, shake well…" /></label>
       </div>
       <div className="flex flex-wrap items-center justify-between gap-3">
         {!item.medicine_id ? (
@@ -202,6 +225,10 @@ function AddItemForm({ visitId, rxId }: { visitId: string; rxId: string }) {
       </div>
     </div>
   );
+}
+
+function RxLabel({ text, required }: { text: string; required?: boolean }) {
+  return <span className="text-xs font-medium text-muted-foreground">{text}{required && <span className="text-danger"> *</span>}</span>;
 }
 
 function IssuedRx({ visitId, rx, canWrite }: { visitId: string; rx: Rx; canWrite: boolean }) {

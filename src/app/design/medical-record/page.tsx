@@ -45,6 +45,7 @@ const sample: MedicalRecord = {
         answers: historyLines({ appetite: "Not eating", drinking: "Drinking more", energy: "Quieter than usual", vomiting: "Yes",
           vomiting_detail: "White foam, 4 times since last night", diarrhoea: "Soft", urine: "More often", breathing: "No",
           vaccinated: "Up to date", dewormed: "Up to date", diet: "Dry cat food, some chicken", medicines: "None" }),
+        condition: "Poor",
         given: [{ what: "Ringer lactate (IV fluids)", dose: "60 ml/hr for 4 hours", route: "IV" },
           { what: "Inj. Ondansetron", dose: "0.5 mg/kg", route: "IV" }, { what: "Inj. Tropin", dose: "0.3 ml", route: "SC" }],
         history: "Previously obese, significant weight loss over two months. A lab test at another clinic nine days ago showed a normal blood count and liver tests, but markedly raised kidney values (creatinine 10 mg/dL).",

@@ -46,7 +46,10 @@ export function ProblemPicker({ visitId, current, options, canEdit }: {
         <>
           <Select value={current?.id ?? NONE} disabled={pending}
             onValueChange={(v) => (v === NEW ? setAdding(true) : save(v === NONE ? null : v, null))}>
-            <SelectTrigger className="h-9 w-auto max-w-full min-w-44"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="h-9 w-auto max-w-full min-w-44">
+              {/* Label given explicitly: the picked item's text can go missing after the page loads. */}
+              <SelectValue>{current ? `${current.title}${current.status === "resolved" ? " (resolved)" : ""}` : "Not linked to a problem"}</SelectValue>
+            </SelectTrigger>
             <SelectContent>
               <SelectItem value={NONE}>Not linked to a problem</SelectItem>
               {shown.map((o) => <SelectItem key={o.id} value={o.id}>{o.title}{o.status === "resolved" ? " (resolved)" : ""}</SelectItem>)}

@@ -1,6 +1,6 @@
 import { formatAge, formatDate, formatDateTime } from "@/lib/format";
 import { formatTemp, formatWeight, parseRange, spellFrequency } from "@/lib/clinical";
-import { historyText, vitalFlag } from "@/lib/consult-questions";
+import { conditionIsConcern, historyText, vitalFlag } from "@/lib/consult-questions";
 import type { MedicalRecord, RecordStay, RecordSurgery, RecordTest, RecordVisit } from "@/lib/medical-record";
 import { cn } from "@/lib/utils";
 
@@ -142,8 +142,10 @@ function Visit({ v, showProblem, species }: { v: RecordVisit; showProblem: boole
     vit.pain != null && ["Pain", `${vit.pain}/10`, null],
   ] : []).filter(Boolean) as [string, string, ReturnType<typeof vitalFlag>][];
   // The "Details" line: the visit kind plus what the owner reported that isn't normal, and vaccine / deworming status.
-  const concerns = c?.answers.filter((a) => a.concern) ?? [];
-  const status = c?.answers.filter((a) => !a.concern && (a.key === "vaccinated" || a.key === "dewormed")) ?? [];
+  const givenToday = (k: string) => (k === "vaccinated" && v.vaccinations.length > 0) || (k === "dewormed" && v.dewormings.length > 0);
+  const isStatus = (k: string) => k === "vaccinated" || k === "dewormed";
+  const concerns = c?.answers.filter((a) => a.concern && !(isStatus(a.key) && givenToday(a.key))) ?? [];
+  const status = c?.answers.filter((a) => isStatus(a.key) && (!a.concern || givenToday(a.key))) ?? [];
   const fine = c?.answers.filter((a) => !a.concern && a.key !== "vaccinated" && a.key !== "dewormed") ?? [];
   const abnormal = c?.exam.filter((e) => !e.normal) ?? [];
   const normal = c?.exam.filter((e) => e.normal) ?? [];
@@ -165,11 +167,17 @@ function Visit({ v, showProblem, species }: { v: RecordVisit; showProblem: boole
         </span>
       </header>
       <div className="grid gap-3 p-3.5">
-        {(concerns.length > 0 || status.length > 0) && (
+        {(concerns.length > 0 || status.length > 0 || c?.condition) && (
           <p className="flex flex-wrap items-center gap-1.5 text-[11.5px]">
             <span className="text-[9.5px] font-bold tracking-[0.12em] text-muted-foreground uppercase">Details</span>
-            {status.map((a) => <span key={a.key} className={cn("rounded-md px-1.5 py-0.5 font-semibold ring-1",
-              a.answer === "Up to date" ? "bg-success-soft text-success ring-success/25" : "bg-surface text-muted-foreground ring-border")}>{a.label}: {a.answer}</span>)}
+            {c?.condition && <span className={cn("rounded-md px-1.5 py-0.5 font-semibold ring-1", conditionIsConcern(c.condition)
+              ? "bg-danger-soft text-danger ring-danger/25" : "bg-surface ring-border")}>Condition: {c.condition}</span>}
+            {status.map((a) => {
+              const today = givenToday(a.key) && a.answer !== "Up to date";
+              return <span key={a.key} className={cn("rounded-md px-1.5 py-0.5 font-semibold ring-1",
+                a.answer === "Up to date" || today ? "bg-success-soft text-success ring-success/25" : "bg-surface text-muted-foreground ring-border")}>
+                {a.label}: {today ? `${a.answer.toLowerCase()} → given today` : a.answer}</span>;
+            })}
             {concerns.map((a) => <span key={a.key} className="rounded-md bg-danger-soft px-1.5 py-0.5 font-semibold text-danger ring-1 ring-danger/25">{historyText(a)}</span>)}
           </p>
         )}

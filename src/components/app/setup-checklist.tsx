@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, CircleCheck, CircleDashed, Rocket } from "lucide-react";
+import { ArrowRight, ChevronDown, CircleCheck, CircleDashed, Rocket } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getSetting } from "@/lib/queries";
 
@@ -29,20 +29,20 @@ export async function SetupChecklist() {
       detail: phone ? "Printed on bills, receipts, prescriptions and discharge sheets." : "Not set yet — no printout shows a number to call.",
       href: "/settings#clinic-profile", action: "Add number" },
     { done: (unpriced.count ?? 0) === 0, title: "Prices on the price list",
-      detail: unpriced.count ? `${unpriced.count} services / products have no price — they can't be billed until they do.` : "Every item has a price.",
-      href: "/inventory?tab=prices", action: "Set prices" },
+      detail: unpriced.count ? `${unpriced.count} service${unpriced.count === 1 ? " or product has" : "s and products have"} no price — they can't be billed until they do.` : "Every item has a price.",
+      href: "/inventory?tab=prices&unpriced=1", action: "Set prices" },
     { done: (schedules.count ?? 0) === 0, title: "Vaccine schedules approved",
-      detail: schedules.count ? `${schedules.count} schedule(s) still a draft — next doses aren't suggested until a senior doctor approves them.` : "All schedules approved.",
+      detail: schedules.count ? `${schedules.count} schedule${schedules.count === 1 ? " is" : "s are"} still a draft — next doses aren't suggested until a senior doctor approves them.` : "All schedules approved.",
       href: "/settings/vaccines", action: "Review schedules" },
     { done: consent?.status === "approved", title: "Surgery consent wording approved",
       detail: consent?.status === "approved" ? "Approved wording prints on the consent form." : "Still the draft wording — the consent form prints “Draft wording”.",
       href: "/settings#wording", action: "Review wording" },
     { done: (dewormers.count ?? 0) === 0, title: "Dewormers linked to the price list",
-      detail: dewormers.count ? `${dewormers.count} dewormer(s) not linked — a deworming isn't suggested on the bill until it is.` : "All dewormers are linked.",
+      detail: dewormers.count ? `${dewormers.count} dewormer${dewormers.count === 1 ? " isn't" : "s aren't"} linked — a deworming isn't suggested on the bill until it is.` : "All dewormers are linked.",
       href: "/settings/vaccines#dewormers", action: "Link dewormers" },
     { done: (retail.count ?? 0) > 0, title: "Pet-store products",
-      detail: retail.count ? `${retail.count} product(s) on sale in the pet store.` : "No products yet — add food, accessories and medicines you sell.",
-      href: "/inventory/new", action: "Add a product" },
+      detail: retail.count ? `${retail.count} product${retail.count === 1 ? "" : "s"} on sale in the pet store.` : "No products yet — add food, accessories and medicines you sell.",
+      href: "/inventory/new?store=1", action: "Add a product" },
     { done: (staff.count ?? 0) > 1, title: "Staff accounts",
       detail: (staff.count ?? 0) > 1 ? `${staff.count} people can sign in.` : "Only your own account — add doctors and reception so each person signs in as themselves.",
       href: "/admin/staff", action: "Add staff" },
@@ -50,16 +50,24 @@ export async function SetupChecklist() {
   const left = steps.filter((s) => !s.done);
   if (left.length === 0) return null;
 
+  const done = steps.length - left.length;
   return (
-    <section className="rounded-3xl bg-card p-5 shadow-card ring-1 ring-brand-muted md:p-6">
-      <div className="flex flex-wrap items-center gap-3">
+    <details open={left.length >= 4} className="group rounded-3xl bg-card shadow-card ring-1 ring-brand-muted">
+      <summary className="flex cursor-pointer list-none flex-wrap items-center gap-3 p-5 md:p-6 [&::-webkit-details-marker]:hidden">
         <span className="flex size-11 items-center justify-center rounded-2xl bg-brand-gradient text-white"><Rocket className="size-5" /></span>
         <div className="min-w-0 flex-1">
           <h2 className="font-heading text-lg font-bold">Getting ready to start</h2>
-          <p className="text-sm text-muted-foreground">{steps.length - left.length} of {steps.length} done — finish these so everything prints and bills correctly. This card goes away when they&apos;re all done.</p>
+          <p className="text-sm text-muted-foreground">{done} of {steps.length} done — finish the {left.length === 1 ? "last step" : `other ${left.length}`} so everything prints and bills correctly. This card goes away when they&apos;re all done.</p>
+          <span className="mt-2 block h-1.5 max-w-sm overflow-hidden rounded-full bg-muted" aria-hidden>
+            <span className="block h-full rounded-full bg-brand-gradient" style={{ width: `${(done / steps.length) * 100}%` }} />
+          </span>
         </div>
-      </div>
-      <ul className="mt-4 grid gap-2">
+        <span className="inline-flex items-center gap-1 text-sm font-semibold text-brand">
+          <span className="group-open:hidden">Show steps</span><span className="hidden group-open:inline">Hide</span>
+          <ChevronDown className="size-4 transition group-open:rotate-180" />
+        </span>
+      </summary>
+      <ul className="grid gap-2 px-5 pb-5 md:px-6 md:pb-6">
         {steps.map((s) => (
           <li key={s.title} className="flex flex-wrap items-center gap-3 rounded-2xl bg-surface px-3.5 py-3 ring-1 ring-border">
             {s.done ? <CircleCheck className="size-5 shrink-0 text-success" /> : <CircleDashed className="size-5 shrink-0 text-warning" />}
@@ -75,6 +83,6 @@ export async function SetupChecklist() {
           </li>
         ))}
       </ul>
-    </section>
+    </details>
   );
 }

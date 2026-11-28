@@ -15,7 +15,9 @@ export const metadata: Metadata = { title: "New item" };
 export default async function NewItemPage({ searchParams }: PageProps<"/inventory/new">) {
   const me = await requireStaff();
   if (!me.can("inventory.manage") && !me.can("settings.manage")) redirect("/inventory?denied=1");
-  const sized = (await searchParams).sizes === "1";
+  const sp = await searchParams;
+  const sized = sp.sizes === "1";
+  const forStore = sp.store === "1";  // from the Home checklist: a pet-store product
   const supabase = await createClient();
   const { data: vaccines } = await supabase.from("vaccines").select("id, name").eq("is_active", true).order("name");
   const tab = (on: boolean) => cn("flex items-start gap-3 rounded-2xl p-4 text-left ring-1 transition",
@@ -33,7 +35,8 @@ export default async function NewItemPage({ searchParams }: PageProps<"/inventor
           <span><b className="block">Product with sizes</b><span className="text-sm text-muted-foreground">e.g. a cat food in 400 g, 1.5 kg and 7 kg — each with its own price</span></span>
         </Link>
       </div>
-      {sized ? <SizedProductForm /> : <ItemForm action={saveItem.bind(null, null)} hasStock={false} vaccines={vaccines ?? []} submitLabel="Save item" />}
+      {sized ? <SizedProductForm /> : <ItemForm action={saveItem.bind(null, null)} hasStock={false} vaccines={vaccines ?? []} submitLabel="Save item"
+        defaults={forStore ? { is_retail: true } : {}} />}
     </div>
   );
 }

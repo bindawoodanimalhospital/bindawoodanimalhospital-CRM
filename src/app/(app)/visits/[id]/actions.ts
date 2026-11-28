@@ -37,10 +37,11 @@ const consultationPatch = z.object({
   temperature_c: num(25, 45), heart_rate: num(10, 400), resp_rate: num(2, 200), weight_kg: num(0.001, 1999),
   mucous_membranes: text, crt_seconds: num(0, 10), hydration: text,
   body_condition_score: num(1, 9), pain_score: num(0, 10),
-  pulse_quality: text, mentation: text, prognosis: text,
+  pulse_quality: text, mentation: text, prognosis: text, patient_condition: z.string().max(60).nullable().optional().transform((v) => (v?.trim() ? v.trim() : null)),
   exam: z.record(z.string().max(100), z.string().max(2000)).optional(),
   history_answers: z.record(z.string().max(60), z.string().max(1000)).optional(),
   treatments_given: z.array(z.object({
+    id: z.string().uuid().optional(),
     what: z.string().trim().min(1).max(200), dose: z.string().max(200).nullable().optional(),
     route: z.string().max(40).nullable().optional(), note: z.string().max(500).nullable().optional(),
   })).max(40).optional(),

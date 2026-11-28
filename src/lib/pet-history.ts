@@ -1,6 +1,6 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
-import { historyLines, historyText, treatmentsGiven } from "@/lib/consult-questions";
+import { examInOrder, historyLines, historyText, treatmentsGiven } from "@/lib/consult-questions";
 
 /*
  * Everything that ever happened to one pet, organised as "episodes": one per visit, with the
@@ -144,7 +144,7 @@ export async function loadHistory({ petIds, customerId }: { petIds: string[]; cu
     const vit: [string, unknown, string][] = [
       ["Temp", c.temperature_c, " °C"], ["Heart rate", c.heart_rate, " /min"], ["Resp. rate", c.resp_rate, " /min"], ["Weight", c.weight_kg, " kg"],
       ["Mucous membranes", c.mucous_membranes, ""], ["CRT", c.crt_seconds, " s"], ["Hydration", c.hydration, ""], ["Body condition", c.body_condition_score, "/9"], ["Pain", c.pain_score, "/10"],
-      ["Pulse", c.pulse_quality, ""], ["Mentation", c.mentation, ""],
+      ["Pulse", c.pulse_quality, ""], ["Mentation", c.mentation, ""], ["Condition", c.patient_condition, ""],
     ];
     const answers = historyLines(c.history_answers);
     const given = treatmentsGiven(c.treatments_given);
@@ -154,7 +154,7 @@ export async function loadHistory({ petIds, customerId }: { petIds: string[]; cu
       ownerSays: answers.length ? answers.map(historyText).join(" · ") : null,
       given: given.length ? given.map((t) => [t.what, t.dose, t.route].filter(Boolean).join(" ")).join(" · ") : null,
       prognosis: str(c.prognosis), vitals: vit.filter(([, v]) => v != null && v !== "").map(([k, v, u]) => [k, `${v}${u}`]),
-      exam: typeof c.exam === "object" && c.exam ? Object.entries(c.exam as Obj).filter(([, v]) => v).map(([k, v]) => `${k.replace(/_/g, " ")}: ${v}`).join("; ") || null : str(c.exam),
+      exam: typeof c.exam === "object" && c.exam ? examInOrder(c.exam as Record<string, string>).filter(([, v]) => v).map(([k, v]) => `${k.replace(/_/g, " ")}: ${v}`).join("; ") || null : str(c.exam),
       observations: str(c.observations), assessment: str(c.assessment), treatment: str(c.treatment), medicinesGiven: str(c.medicines_administered),
       followUpPlan: str(c.follow_up_plan), followUpDate: str(c.follow_up_date), doctorNotes: str(c.doctor_notes),
       diagnoses: ((c.consultation_diagnoses ?? []) as Obj[]).map((d) => ({ label: String(d.label), primary: !!d.is_primary, certainty: str(d.certainty) })),

@@ -2,7 +2,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { defaultRange, flagResult } from "@/lib/clinical";
 import { ADMISSION_OUTCOMES } from "@/lib/clinic";
-import { historyLines, treatmentsGiven, type HistoryLine, type TreatmentGiven } from "@/lib/consult-questions";
+import { examInOrder, historyLines, treatmentsGiven, type HistoryLine, type TreatmentGiven } from "@/lib/consult-questions";
 import type { ClinicProfile } from "@/components/print/print-shell";
 
 /*
@@ -32,7 +32,7 @@ export type RecordRx = {
 };
 export type RecordConsultation = {
   doctor: string | null; finalizedAt: string | null;
-  complaint: string | null; history: string | null; answers: HistoryLine[]; given: TreatmentGiven[];
+  complaint: string | null; history: string | null; answers: HistoryLine[]; given: TreatmentGiven[]; condition: string | null;
   vitals: { tempC: number | null; hr: number | null; rr: number | null; weightKg: number | null; crt: number | null; mm: string | null;
     hydration: string | null; bcs: number | null; pain: number | null; pulse: string | null; mentation: string | null };
   exam: { system: string; finding: string; normal: boolean }[];
@@ -101,7 +101,7 @@ export async function loadMedicalRecord(db: SupabaseClient, petId: string, probl
     db.from("consultations").select(`id, visit_id, status, doctor_id, finalized_at, created_at, chief_complaint, history, temperature_c,
       heart_rate, resp_rate, weight_kg, mucous_membranes, crt_seconds, hydration, body_condition_score, pain_score, pulse_quality,
       mentation, exam, observations, assessment, prognosis, treatment, medicines_administered, follow_up_plan, follow_up_date,
-      history_answers, treatments_given, consultation_diagnoses(label, certainty, is_primary, created_at)`).eq("pet_id", petId).order("created_at", { ascending: false }).limit(CAP),
+      history_answers, treatments_given, patient_condition, consultation_diagnoses(label, certainty, is_primary, created_at)`).eq("pet_id", petId).order("created_at", { ascending: false }).limit(CAP),
     db.from("prescriptions").select(`code, status, notes, issued_at, created_at, doctor_id, visit_id,
       prescription_items(medicine_name, strength, form, dose, frequency, duration, route, quantity, instructions, sort_order)`)
       .eq("pet_id", petId).eq("status", "issued").order("issued_at", { ascending: false }).limit(CAP),
@@ -176,10 +176,11 @@ export async function loadMedicalRecord(db: SupabaseClient, petId: string, probl
   const toConsultation = (c: Consult): RecordConsultation => ({
     doctor: who(c.doctor_id), finalizedAt: s(c.finalized_at),
     complaint: s(c.chief_complaint), history: s(c.history), answers: historyLines(c.history_answers), given: treatmentsGiven(c.treatments_given),
+    condition: s(c.patient_condition),
     vitals: { tempC: n(c.temperature_c), hr: n(c.heart_rate), rr: n(c.resp_rate), weightKg: n(c.weight_kg), crt: n(c.crt_seconds),
       mm: s(c.mucous_membranes), hydration: s(c.hydration), bcs: n(c.body_condition_score), pain: n(c.pain_score),
       pulse: s(c.pulse_quality), mentation: s(c.mentation) },
-    exam: Object.entries((c.exam ?? {}) as Record<string, string>).filter(([, v]) => v?.trim())
+    exam: examInOrder((c.exam ?? {}) as Record<string, string>).filter(([, v]) => v?.trim())
       .map(([system, finding]) => ({ system, finding, normal: finding.trim().toLowerCase() === "normal" })),
     observations: s(c.observations), assessment: s(c.assessment),
     diagnoses: [...(c.consultation_diagnoses ?? [])]

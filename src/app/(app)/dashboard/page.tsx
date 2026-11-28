@@ -157,7 +157,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
   const summary = [
     canQueue && `${waitingCount} waiting`,
     canAppts && `${appts?.count ?? 0} appointment${appts?.count === 1 ? "" : "s"} left today`,
-    todos.length ? `${todos.length} thing${todos.length === 1 ? "" : "s"} need attention` : "nothing urgent",
+    todos.length ? `${todos.length} thing${todos.length === 1 ? " needs" : "s need"} attention` : "nothing urgent",
   ].filter(Boolean).join(" · ");
   const canSearch = canCustomers || canPets;
 
@@ -200,7 +200,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
 
       {/* Quick actions */}
       {actions.length > 0 && (
-        <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+        <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
           {actions.map((a) => (
             <Link key={a.title} href={a.href}
               className="group flex flex-col gap-3 rounded-2xl bg-card p-4 shadow-card ring-1 ring-border transition hover:-translate-y-0.5 hover:shadow-float hover:ring-brand-muted">

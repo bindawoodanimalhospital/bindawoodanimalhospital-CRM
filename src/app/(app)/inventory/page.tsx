@@ -24,6 +24,7 @@ export default async function InventoryPage({ searchParams }: PageProps<"/invent
   const sp = await searchParams;
   const tab = sp.tab === "prices" ? "prices" : "stock";
   const q = typeof sp.q === "string" ? sp.q.trim() : "";
+  const onlyUnpriced = sp.unpriced === "1";
   const today = todayPK();
   const soon = addDaysPK(60);
   const supabase = await createClient();
@@ -56,8 +57,10 @@ export default async function InventoryPage({ searchParams }: PageProps<"/invent
       .select("id, kind, name, category, sale_price, price_is_editable, unit, track_stock, is_retail, is_active, is_available, family_id, size_label, size_grams, product_families(name)")
       .order("category").order("name");
     if (q) pq = pq.ilike("name", `%${q.replace(/[%_,()]/g, "")}%`);
-    const { data: items } = await pq;
-    const zero = (items ?? []).filter((i) => i.is_active && Number(i.sale_price) === 0 && !i.price_is_editable).length;
+    const { data: all } = await pq;
+    const unpriced = (i: NonNullable<typeof all>[number]) => i.is_active && Number(i.sale_price) === 0 && !i.price_is_editable;
+    const zero = (all ?? []).filter(unpriced).length;
+    const items = onlyUnpriced ? (all ?? []).filter(unpriced) : all;
     const suggestions = canEdit ? suggestSizeGroups((items ?? []).filter((i) => i.kind === "product" && i.is_active)
       .map((i) => ({ id: i.id, name: i.name, sale_price: Number(i.sale_price), family_id: i.family_id }))).length : 0;
     // Sizes of one product are listed together under the product's name, smallest first.
@@ -76,7 +79,16 @@ export default async function InventoryPage({ searchParams }: PageProps<"/invent
     return (
       <>
         <Suspense><NoticeToast /></Suspense>{header}{tabs}
-        {zero > 0 && <p className="mb-4 flex items-center gap-2 rounded-xl bg-warning-soft px-4 py-3 text-sm text-warning"><AlertTriangle className="size-4" /> {zero} items still have no price — set them before billing.</p>}
+        {zero > 0 && (
+          <p className="mb-4 flex flex-wrap items-center gap-2 rounded-xl bg-warning-soft px-4 py-3 text-sm text-warning">
+            <AlertTriangle className="size-4" /> {zero} item{zero === 1 ? "" : "s"} still {zero === 1 ? "has" : "have"} no price — set {zero === 1 ? "it" : "them"} before billing. Type a price and it saves by itself.
+            <Link href={onlyUnpriced ? "?tab=prices" : "?tab=prices&unpriced=1"} className="ml-auto font-semibold underline underline-offset-2">
+              {onlyUnpriced ? "Show all items" : "Show only these"}</Link>
+          </p>
+        )}
+        {onlyUnpriced && zero === 0 && (
+          <p className="mb-4 rounded-xl bg-success-soft px-4 py-3 text-sm text-success">Every item has a price. <Link href="?tab=prices" className="font-semibold underline">Show all items</Link></p>
+        )}
         {suggestions > 0 && (
           <Link href="/inventory/sizes" className="mb-4 flex items-center gap-2 rounded-xl bg-info-soft px-4 py-3 text-sm text-info hover:underline">
             <Layers className="size-4" /> {suggestions} product{suggestions === 1 ? " seems" : "s seem"} to come in more than one size (e.g. 400 g and 1.5 kg) — review and group the sizes
@@ -84,7 +96,7 @@ export default async function InventoryPage({ searchParams }: PageProps<"/invent
         )}
         <div className="overflow-hidden rounded-2xl bg-card shadow-card ring-1 ring-border">
           <Table>
-            <TableHeader><TableRow><TableHead>Item</TableHead><TableHead className="hidden md:table-cell">Category</TableHead><TableHead>Type</TableHead>
+            <TableHeader><TableRow><TableHead>Item</TableHead><TableHead className="hidden xl:table-cell">Category</TableHead><TableHead>Type</TableHead>
               <TableHead className="hidden sm:table-cell">Available</TableHead><TableHead className="text-right">Price (Rs.)</TableHead></TableRow></TableHeader>
             <TableBody>
               {rows.map((row) => row.kind === "family" ? (
@@ -97,8 +109,9 @@ export default async function InventoryPage({ searchParams }: PageProps<"/invent
                   <TableCell className={cn(row.sized && "pl-9")}>
                     <Link href={`/inventory/${row.i.id}`} className="font-medium hover:underline">{row.sized && row.i.size_label ? row.i.size_label : row.i.name}</Link>
                     {row.sized && row.i.size_label && <span className="ml-2 text-xs text-muted-foreground">{row.i.name}</span>}
-                    {row.i.is_retail && !row.sized && <StatusPill tone="info" className="ml-2">Store</StatusPill>}</TableCell>
-                  <TableCell className="hidden text-muted-foreground md:table-cell">{row.i.category}</TableCell>
+                    {row.i.is_retail && !row.sized && <StatusPill tone="info" className="ml-2">Store</StatusPill>}
+                    {row.i.category && <span className="block text-xs text-muted-foreground xl:hidden">{row.i.category}</span>}</TableCell>
+                  <TableCell className="hidden text-muted-foreground xl:table-cell">{row.i.category}</TableCell>
                   <TableCell className="text-muted-foreground">{row.i.kind === "service" ? "Service" : `Product · ${row.i.unit}`}</TableCell>
                   <TableCell className="hidden sm:table-cell">
                     {row.i.kind === "product" ? (canEdit ? <AvailabilityToggle id={row.i.id} available={row.i.is_available} label={false} />

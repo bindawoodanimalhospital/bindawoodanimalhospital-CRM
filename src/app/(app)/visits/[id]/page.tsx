@@ -28,7 +28,7 @@ import { withContact } from "@/lib/contacts";
 export const metadata: Metadata = { title: "Visit" };
 
 const CONSULT_FIELDS = ["chief_complaint", "history", "temperature_c", "heart_rate", "resp_rate", "weight_kg", "mucous_membranes",
-  "crt_seconds", "hydration", "body_condition_score", "pain_score", "pulse_quality", "mentation", "prognosis", "observations", "assessment", "treatment",
+  "crt_seconds", "hydration", "body_condition_score", "pain_score", "pulse_quality", "mentation", "prognosis", "patient_condition", "observations", "assessment", "treatment",
   "medicines_administered", "follow_up_plan", "follow_up_date", "doctor_notes"] as const;
 const ago = (iso: string) => {
   const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
@@ -155,7 +155,9 @@ export default async function VisitPage({ params, searchParams }: PageProps<"/vi
   const openTests = orders.filter((o) => ["ordered", "in_progress", "resulted"].includes(o.status)).length;
   // Vaccination / deworming visits open straight on the vaccines & deworming tab.
   const visitType = ((visit.appointment_types as unknown as { name: string } | null)?.name ?? "").toLowerCase();
-  const activeTab = typeof tab === "string" ? tab : ["vaccination", "deworming"].includes(visitType) ? "vaccines" : "consultation";
+  // ?tab=… opens a tab (prescription / vaccines / tests); anything unknown falls back to the visit's usual tab.
+  const TAB_ALIASES: Record<string, string> = { consultation: "consultation", vaccines: "vaccines", rx: "rx", prescription: "rx", tests: "tests" };
+  const activeTab = (typeof tab === "string" && TAB_ALIASES[tab]) || (["vaccination", "deworming"].includes(visitType) ? "vaccines" : "consultation");
 
   return (
     <>

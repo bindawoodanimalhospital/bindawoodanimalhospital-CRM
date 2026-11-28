@@ -64,7 +64,7 @@ export default async function InvoicePage({ params }: PageProps<"/billing/[id]">
         inv.issued_at ? `issued ${formatDateTime(inv.issued_at)}` : null].filter(Boolean).join(" · ")}
       actions={
         <>
-          {customer && <Button asChild variant="outline"><Link href={`/customers/${customer.id}`}>Customer account</Link></Button>}
+          {customer && <Button asChild variant="outline"><Link href={`/customers/${customer.id}`}>Owner&apos;s account</Link></Button>}
           {visit && <Button asChild variant="ghost"><Link href={`/visits/${visit.id}`}><Stethoscope /> Visit #{visit.token_no}</Link></Button>}
         </>
       }

@@ -24,7 +24,7 @@ export async function generateMetadata({ params }: PageProps<"/customers/[id]">)
   const { id } = await params;
   const supabase = await createClient();
   const { data } = await supabase.from("customers").select("full_name").eq("id", id).maybeSingle();
-  return { title: data?.full_name ?? "Customer" };
+  return { title: data?.full_name ?? "Pet owner" };
 }
 
 const CHANNEL: Record<string, string> = { whatsapp: "WhatsApp", call: "Phone call", sms: "SMS", email: "Email" };
@@ -66,7 +66,7 @@ export default async function CustomerPage({ params }: PageProps<"/customers/[id
     <>
       <Suspense><NoticeToast /></Suspense>
       <PageHeader
-        back={{ href: "/customers", label: "Customers" }}
+        back={{ href: "/customers", label: "Pet owners" }}
         title={
           <span className="flex flex-wrap items-center gap-3">
             {c.full_name}
@@ -75,7 +75,7 @@ export default async function CustomerPage({ params }: PageProps<"/customers/[id
             {c.status !== "active" && <StatusPill tone="warning">{sentence(c.status)}</StatusPill>}
           </span>
         }
-        description={`Customer since ${formatDate(c.created_at)}`}
+        description={`Client since ${formatDate(c.created_at)}`}
         actions={
           <>
             {contact.phone && <Button asChild variant="outline"><a href={`tel:${contact.phone}`}><Phone /> Call</a></Button>}

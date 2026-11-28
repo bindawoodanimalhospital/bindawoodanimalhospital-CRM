@@ -30,7 +30,7 @@ export async function visitSuggestions(visitId: string): Promise<{ suggestions: 
       reason, source_table, source_id, kind: item.kind });
   };
 
-  const [vacc, dx, rx, sx, adm, dew, dewormers] = await Promise.all([
+  const [vacc, dx, rx, sx, adm, dew, dewormers, vaccines, consults] = await Promise.all([
     supabase.from("vaccinations").select("id, vaccine_id, vaccine_name").eq("visit_id", visitId).is("voided_at", null),
     supabase.from("diagnostic_orders").select("id, type_id, diagnostic_types(name)").eq("visit_id", visitId).neq("status", "cancelled"),
     supabase.from("prescription_items").select("id, medicine_id, medicine_name, quantity, prescriptions!inner(visit_id, status)")
@@ -39,6 +39,8 @@ export async function visitSuggestions(visitId: string): Promise<{ suggestions: 
     supabase.from("admissions").select("id, admitted_at, discharged_at, status").eq("visit_id", visitId).neq("status", "cancelled"),
     supabase.from("dewormings").select("id, product").eq("visit_id", visitId).is("voided_at", null),
     supabase.from("dewormers").select("name, catalog_item_id"),
+    supabase.from("vaccines").select("id, covers"),
+    supabase.from("consultations").select("id, treatments_given").eq("visit_id", visitId),
   ]);
 
   if (visit.visit_type_id) {
@@ -47,7 +49,31 @@ export async function visitSuggestions(visitId: string): Promise<{ suggestions: 
   if (visit.service_location === "home_visit") {
     push("visit_home_charge", visit.id, find((c) => c.system_role === "home_visit_charge"), 1, "Home visit", "Home visit charge");
   }
-  for (const v of vacc.data ?? []) push("vaccinations", v.id, find((c) => c.vaccine_id === v.vaccine_id), 1, "Vaccine given", v.vaccine_name);
+  // A vaccine brand without its own price (e.g. Biocan R) uses the price of the one vaccine on the price list that
+  // covers exactly the same diseases (Rabies vaccine). Two or more candidates → left for reception to choose.
+  const coverKey = (id: string | null) => {
+    const c = (vaccines.data ?? []).find((x) => x.id === id)?.covers as string[] | undefined;
+    return c?.length ? [...c].sort().join("+") : null;
+  };
+  for (const v of vacc.data ?? []) {
+    let item = find((c) => c.vaccine_id === v.vaccine_id);
+    const key = coverKey(v.vaccine_id);
+    if (!item && key) {
+      const same = items.filter((c) => c.vaccine_id && c.vaccine_id !== v.vaccine_id && coverKey(c.vaccine_id) === key);
+      if (same.length === 1) item = same[0];
+    }
+    push("vaccinations", v.id, item, 1, "Vaccine given", v.vaccine_name);
+  }
+  // Treatments the doctor listed as given at the clinic: offered when the price list has the same name.
+  const norm = (x: string) => x.toLowerCase().replace(/\b(inj|injection|tab|tablet|syp|syrup)\b\.?/g, " ").replace(/[^a-z0-9]+/g, " ").trim();
+  for (const c of consults.data ?? []) {
+    for (const t of (Array.isArray(c.treatments_given) ? c.treatments_given : []) as { id?: string; what?: string }[]) {
+      if (!t.id || !t.what?.trim()) continue;
+      const n = norm(t.what);
+      const item = n ? find((x) => norm(x.name) === n) : undefined;
+      push("consultation_treatments", t.id, item, 1, "Given at the clinic", `Given at the clinic — ${t.what.trim()}`);
+    }
+  }
   // Dewormer given: the price-list item with the same name (chosen from the list on the visit).
   for (const d of dew.data ?? []) {
     const name = d.product.trim().toLowerCase();

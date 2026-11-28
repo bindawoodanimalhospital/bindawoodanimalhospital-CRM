@@ -56,7 +56,8 @@ export function historyText(l: HistoryLine): string {
 
 // ---------------------------------------------------------------------------------------------- treatments
 
-export type TreatmentGiven = { what: string; dose?: string | null; route?: string | null; note?: string | null };
+/** `id` lets the bill offer each one once (rows saved before ids existed have none and aren't offered). */
+export type TreatmentGiven = { id?: string; what: string; dose?: string | null; route?: string | null; note?: string | null };
 export const TREATMENT_ROUTES = ["IV", "IM", "SC", "Oral", "Topical", "Eye / ear", "Nebulised", "Rectal"];
 
 export function treatmentsGiven(v: unknown): TreatmentGiven[] {
@@ -64,7 +65,7 @@ export function treatmentsGiven(v: unknown): TreatmentGiven[] {
   return v.filter((t) => t && typeof t === "object" && String((t as TreatmentGiven).what ?? "").trim())
     .map((t) => {
       const x = t as TreatmentGiven;
-      return { what: String(x.what).trim(), dose: x.dose?.trim() || null, route: x.route?.trim() || null, note: x.note?.trim() || null };
+      return { ...(x.id ? { id: String(x.id) } : {}), what: String(x.what).trim(), dose: x.dose?.trim() || null, route: x.route?.trim() || null, note: x.note?.trim() || null };
     });
 }
 
@@ -95,6 +96,21 @@ export function vitalRangeText(kind: "temp" | "hr" | "rr" | "crt", species: stri
   const r = VITAL_RANGES[(species ?? "").trim().toLowerCase()]?.[kind];
   if (!r) return null;
   return kind === "crt" ? `Normal under ${r[1]} s` : `Normal ${r[0]}–${r[1]}`;
+}
+
+export const CONDITION_OPTIONS = ["Stable", "Fair", "Poor", "Critical"];
+/** Poor / Critical show in red on the record. */
+export const conditionIsConcern = (c: string | null | undefined) => /poor|critical|unstable|grave/i.test(c ?? "");
+
+/** Body parts a doctor can add to any examination, beyond the ones the visit type lists. */
+export const EXAM_SYSTEMS = ["General appearance", "Eyes", "Ears", "Nose & throat", "Mouth & teeth", "Skin & coat", "Lymph nodes",
+  "Heart", "Lungs", "Abdomen", "Gastrointestinal", "Musculoskeletal", "Neurological", "Urogenital"];
+
+/** Examination findings in body order: the visit type's own list first, then the standard order, then anything else. */
+export function examInOrder(exam: Record<string, string>, prompts: string[] = []): [string, string][] {
+  const order = [...prompts, ...EXAM_SYSTEMS.filter((x) => !prompts.includes(x))];
+  const rank = (k: string) => { const i = order.indexOf(k); return i < 0 ? order.length : i; };
+  return Object.entries(exam).sort(([a], [b]) => rank(a) - rank(b));
 }
 
 export const HYDRATION_OPTIONS = ["Normal (under 5%)", "Mild (5–6%)", "Moderate (7–9%)", "Severe (10–12%)", "Shock (over 12%)"];

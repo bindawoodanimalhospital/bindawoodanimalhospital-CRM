@@ -7,8 +7,8 @@ import { toast } from "sonner";
 const MESSAGES: Record<string, [kind: "success" | "error", text: string]> = {
   created: ["success", "Saved."],
   saved: ["success", "Changes saved."],
-  merged: ["success", "Customers merged."],
-  "pet-failed": ["error", "Customer saved, but the pet couldn't be registered. Please add it again."],
+  merged: ["success", "Pet owners merged."],
+  "pet-failed": ["error", "Pet owner saved, but the pet couldn't be registered. Please add it again."],
   "contact-failed": ["error", "Owner saved, but the phone number couldn't be saved. Please add it again from Edit."],
   "previous-balance-failed": ["error", "Owner saved, but the previous balance couldn't be added. Add it from their Account page."],
 };

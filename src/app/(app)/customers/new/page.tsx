@@ -15,7 +15,7 @@ export default async function NewCustomerPage() {
       <PageHeader title="New pet owner" back={{ href: "/customers", label: "Pet owners" }}
         description="Search first (Ctrl K) — the form also warns you if this owner already exists." />
       <CustomerForm action={createCustomer} species={me.can("pets.create") ? species : undefined}
-        referralSources={referralSources} submitLabel="Save customer" canContact={me.can("customers.contact")}
+        referralSources={referralSources} submitLabel="Save pet owner" canContact={me.can("customers.contact")}
         canPreviousBalance={me.can("billing.create")} />
     </div>
   );

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useId, useRef, useState, useTransition } from "react";
 import { Check, CircleCheck, CloudOff, History, Loader2, Lock, Plus, Star, Stethoscope, Syringe, Unlock, X } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -15,11 +15,11 @@ import {
   Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
 import { StatusPill } from "@/components/app/page-header";
-import { formatDateTime, todayPK } from "@/lib/format";
+import { formatDate, formatDateTime, todayPK } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { cToF, fToC } from "@/lib/clinical";
 import {
-  HISTORY_QUESTIONS, HISTORY_TEXT, HYDRATION_OPTIONS, MENTATION_OPTIONS, TREATMENT_ROUTES, historyLines, treatmentsGiven, vitalFlag,
+  CONDITION_OPTIONS, EXAM_SYSTEMS, examInOrder, HISTORY_QUESTIONS, HISTORY_TEXT, HYDRATION_OPTIONS, MENTATION_OPTIONS, TREATMENT_ROUTES, historyLines, treatmentsGiven, vitalFlag,
   vitalRangeText, type HistoryAnswers, type TreatmentGiven,
 } from "@/lib/consult-questions";
 import {
@@ -42,7 +42,7 @@ export type Consultation = {
 
 const SECTION_TITLES: Record<string, string> = {
   complaint: "Reason for visit", history: "History (what the owner tells you)", vitals: "Vitals",
-  exam: "Physical examination", assessment: "Assessment & diagnosis", treatment: "Treatment given", plan: "Plan & follow-up",
+  exam: "Physical examination", assessment: "Assessment & diagnosis", treatment: "Treatment", plan: "Plan & follow-up",
 };
 
 /** What the visit screen knows about the pet, to guide the doctor (normal ranges, last vaccine / deworming). */
@@ -97,6 +97,8 @@ function ConsultationEditor({ visitId, c, template, canFinalize, pet }: {
   const [fields, setFields] = useState(c.fields);
   const [exam, setExam] = useState(c.exam);
   const [answers, setAnswers] = useState<HistoryAnswers>(c.answers);
+  // Body parts examined beyond the visit type's list (kept when the record reopens: any saved finding not on the list).
+  const [extraSystems, setExtraSystems] = useState<string[]>(() => Object.keys(c.exam).filter((k) => !template.exam_prompts.includes(k)));
   const [treatments, setTreatments] = useState<TreatmentGiven[]>(c.treatments);
   const [diagnoses, setDx] = useState<Diagnosis[]>(c.diagnoses);
   const [save, setSave] = useState<SaveState>("idle");
@@ -135,6 +137,12 @@ function ConsultationEditor({ visitId, c, template, canFinalize, pet }: {
   }, []);
 
   const setField = (k: string, v: string) => { setFields((f) => ({ ...f, [k]: v })); queue({ [k]: v } as ConsultationPatch); };
+  const markRestNormal = () => {
+    const next = { ...exam };
+    for (const p of [...template.exam_prompts, ...extraSystems]) if (!next[p]?.trim()) next[p] = "Normal";
+    setExam(next);
+    queue({ exam: next });
+  };
   const setExamField = (k: string, v: string) => {
     const next = { ...exam, [k]: v };
     setExam(next);
@@ -150,11 +158,23 @@ function ConsultationEditor({ visitId, c, template, canFinalize, pet }: {
     setAnswers(next);
     queue({ history_answers: next });
   };
-  const changeTreatments = (next: TreatmentGiven[]) => { setTreatments(next); queue({ treatments_given: next }); };
-  const saveDx = async (next: Diagnosis[]) => {
-    setDx(next);
-    const r = await setDiagnoses(visitId, c.id, next);
-    if (!r.ok) toast.error(r.message);
+  const treatmentsRef = useRef(treatments);
+  const changeTreatments = (fn: (prev: TreatmentGiven[]) => TreatmentGiven[]) => {
+    const next = fn(treatmentsRef.current);
+    treatmentsRef.current = next;
+    setTreatments(next);
+    queue({ treatments_given: next });
+  };
+  // Diagnoses save as a whole list; saves run one after another (each sends the latest list), so quick taps never race.
+  const dxRef = useRef(diagnoses);
+  const dxChain = useRef<Promise<void>>(Promise.resolve());
+  const saveDx = (fn: (prev: Diagnosis[]) => Diagnosis[]) => {
+    dxRef.current = fn(dxRef.current);
+    setDx(dxRef.current);
+    dxChain.current = dxChain.current.then(async () => {
+      const r = await setDiagnoses(visitId, c.id, dxRef.current);
+      if (!r.ok) toast.error(r.message);
+    });
   };
 
   const finalize = () => startFinalize(async () => {
@@ -202,13 +222,20 @@ function ConsultationEditor({ visitId, c, template, canFinalize, pet }: {
               <TextVital label="Hydration" value={v("hydration")} onChange={(x) => setField("hydration", x)} options={HYDRATION_OPTIONS} />
               <TextVital label="Pulse" value={v("pulse_quality")} onChange={(x) => setField("pulse_quality", x)} options={["Strong and synchronous", "Weak", "Bounding", "Irregular", "Pulse deficits"]} />
               <TextVital label="Mentation" value={v("mentation")} onChange={(x) => setField("mentation", x)} options={MENTATION_OPTIONS} />
+              <TextVital label="General condition" value={v("patient_condition")} onChange={(x) => setField("patient_condition", x)} options={CONDITION_OPTIONS} />
               <Vital label="Body condition" unit="/9" value={v("body_condition_score")} onChange={(x) => setField("body_condition_score", x)} />
               <Vital label="Pain" unit="/10" value={v("pain_score")} onChange={(x) => setField("pain_score", x)} />
             </div>
           )}
           {section === "exam" && (
             <div className="grid gap-2">
-              {template.exam_prompts.map((p) => {
+              {[...template.exam_prompts, ...extraSystems].some((p) => !exam[p]?.trim()) && (
+                <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-surface px-3 py-2 ring-1 ring-border">
+                  <span className="text-xs text-muted-foreground">Type what you found where something is wrong, then mark the rest normal in one tap.</span>
+                  <Button type="button" size="sm" variant="outline" onClick={markRestNormal}><Check /> Mark the rest normal</Button>
+                </div>
+              )}
+              {[...template.exam_prompts, ...extraSystems].map((p) => {
                 const val = exam[p] ?? "";
                 const normal = val === "Normal";
                 return (
@@ -220,10 +247,22 @@ function ConsultationEditor({ visitId, c, template, canFinalize, pet }: {
                       <Check className="size-4" /> Normal
                     </button>
                     <Input value={normal ? "" : val} disabled={normal} placeholder={normal ? "No abnormality found" : "Findings…"}
-                      onChange={(e) => setExamField(p, e.target.value)} />
+                      onChange={(e) => setExamField(p, e.target.value)} aria-label={`${p} findings`}
+                      className={cn(!normal && val.trim() && "border-danger/40 bg-danger-soft/40 font-medium text-danger")} />
                   </div>
                 );
               })}
+              {EXAM_SYSTEMS.some((x) => !template.exam_prompts.includes(x) && !extraSystems.includes(x)) && (
+                <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                  <span className="text-xs text-muted-foreground">Check another body part:</span>
+                  {EXAM_SYSTEMS.filter((x) => !template.exam_prompts.includes(x) && !extraSystems.includes(x)).map((x) => (
+                    <button key={x} type="button" onClick={() => setExtraSystems((e) => [...e, x])}
+                      className="inline-flex h-7 items-center gap-1 rounded-full bg-card px-2.5 text-xs font-medium ring-1 ring-border hover:bg-muted">
+                      <Plus className="size-3" /> {x}
+                    </button>
+                  ))}
+                </div>
+              )}
               <Textarea rows={2} value={v("observations")} onChange={(e) => setField("observations", e.target.value)}
                 placeholder="Other observations" className="mt-2" />
             </div>
@@ -379,11 +418,14 @@ function HistoryQuestions({ answers, onChange, pet }: { answers: HistoryAnswers;
 }
 
 /** Treatments given at the clinic, one row each (what, dose, route) — printed as a table on the record. */
-function TreatmentList({ items, onChange, names }: { items: TreatmentGiven[]; onChange: (t: TreatmentGiven[]) => void; names: string[] }) {
+function TreatmentList({ items, onChange, names }: {
+  items: TreatmentGiven[]; onChange: (fn: (prev: TreatmentGiven[]) => TreatmentGiven[]) => void; names: string[];
+}) {
   const [draft, setDraft] = useState<TreatmentGiven>({ what: "", dose: "", route: "" });
   const add = () => {
     if (!draft.what.trim()) return;
-    onChange([...items, { what: draft.what.trim(), dose: draft.dose?.trim() || null, route: draft.route || null }]);
+    const row = { id: crypto.randomUUID(), what: draft.what.trim(), dose: draft.dose?.trim() || null, route: draft.route || null };
+    onChange((prev) => [...prev, row]);
     setDraft({ what: "", dose: "", route: draft.route });
   };
   const enter = (e: React.KeyboardEvent) => { if (e.key === "Enter") { e.preventDefault(); add(); } };
@@ -398,14 +440,14 @@ function TreatmentList({ items, onChange, names }: { items: TreatmentGiven[]; on
               {t.dose && <span className="text-sm">{t.dose}</span>}
               {t.route && <span className="rounded-full bg-brand-soft px-2 text-xs font-semibold text-brand">{t.route}</span>}
               <button type="button" title="Remove" aria-label={`Remove ${t.what}`} className="ml-auto rounded-full p-1 hover:bg-muted"
-                onClick={() => onChange(items.filter((_, j) => j !== i))}><X className="size-4" /></button>
+                onClick={() => onChange((prev) => prev.filter((_, j) => j !== i))}><X className="size-4" /></button>
             </li>
           ))}
         </ul>
       )}
       <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_150px_130px_auto]">
         <Input list="treatment-names" value={draft.what} onChange={(e) => setDraft({ ...draft, what: e.target.value })}
-          placeholder="Medicine or procedure, e.g. Ondansetron inj." onKeyDown={enter} aria-label="Medicine or procedure" />
+          placeholder="Medicine or procedure" onKeyDown={enter} aria-label="Medicine or procedure" />
         <datalist id="treatment-names">{names.map((nm) => <option key={nm} value={nm} />)}</datalist>
         <Input value={draft.dose ?? ""} onChange={(e) => setDraft({ ...draft, dose: e.target.value })} placeholder="Dose, e.g. 0.5 ml"
           onKeyDown={enter} aria-label="Dose" />
@@ -463,24 +505,52 @@ function TempVital({ value, onChange, species }: { value: string | number; onCha
   );
 }
 
+/** A vital picked from a short list (tap to open it) — or typed in the doctor's own words. */
 function TextVital({ label, value, onChange, options }: {
   label: string; value: string | number; onChange: (v: string) => void; options: string[];
 }) {
-  const id = `dl-${label.replace(/\W/g, "")}`;
+  const [open, setOpen] = useState(false);
+  const listId = useId();
+  const text = String(value ?? "");
+  const shown = options.filter((o) => !text || o.toLowerCase().includes(text.toLowerCase()) || options.includes(text));
   return (
-    <label className="grid gap-1 rounded-xl bg-surface p-2.5 ring-1 ring-border">
-      <span className="text-xs font-medium text-muted-foreground">{label}</span>
-      <input list={id} value={value ?? ""} onChange={(e) => onChange(e.target.value)} className="w-full bg-transparent font-semibold outline-none" />
-      <datalist id={id}>{options.map((o) => <option key={o} value={o} />)}</datalist>
-    </label>
+    <div className="relative">
+      <label className={cn("grid gap-1 rounded-xl bg-surface p-2.5 ring-1", open ? "ring-brand/50" : "ring-border")}>
+        <span className="text-xs font-medium text-muted-foreground">{label}</span>
+        <span className="flex items-center gap-1">
+          <input value={text} onChange={(e) => { onChange(e.target.value); setOpen(true); }} onFocus={() => setOpen(true)}
+            onBlur={() => setOpen(false)} onKeyDown={(e) => { if (e.key === "Escape" || e.key === "Enter") setOpen(false); }}
+            placeholder="Choose…" role="combobox" aria-expanded={open} aria-controls={listId} aria-label={label}
+            className="w-full min-w-0 bg-transparent font-semibold outline-none placeholder:font-normal placeholder:text-muted-foreground/70" />
+          {text && <button type="button" tabIndex={-1} aria-label={`Clear ${label}`} onMouseDown={(e) => { e.preventDefault(); onChange(""); }}
+            className="rounded-full p-0.5 text-muted-foreground hover:bg-muted"><X className="size-3.5" /></button>}
+        </span>
+      </label>
+      {open && shown.length > 0 && (
+        <ul id={listId} role="listbox" className="absolute inset-x-0 top-full z-20 mt-1 grid max-h-64 gap-0.5 overflow-x-hidden overflow-y-auto rounded-xl bg-card p-1 shadow-float ring-1 ring-border">
+          {shown.map((o) => (
+            <li key={o}>
+              <button type="button" role="option" aria-selected={o === text} onMouseDown={(e) => { e.preventDefault(); onChange(o); setOpen(false); }}
+                className={cn("flex w-full items-start gap-1.5 rounded-lg px-2 py-1.5 text-left text-[13px] leading-snug break-words hover:bg-muted", o === text && "font-semibold text-brand")}>
+                {o === text && <Check className="mt-0.5 size-3.5 shrink-0" />}<span className="min-w-0">{o}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
 
-function DiagnosisList({ items, onChange }: { items: Diagnosis[]; onChange: (d: Diagnosis[]) => void }) {
+const NEXT_CERTAINTY: Record<string, string> = { provisional: "confirmed", confirmed: "ruled_out", ruled_out: "provisional" };
+const CERTAINTY_LABEL: Record<string, string> = { provisional: "provisional", confirmed: "confirmed", ruled_out: "ruled out" };
+
+function DiagnosisList({ items, onChange }: { items: Diagnosis[]; onChange: (fn: (prev: Diagnosis[]) => Diagnosis[]) => void }) {
   const [label, setLabel] = useState("");
   const add = () => {
-    if (!label.trim()) return;
-    onChange([...items, { label: label.trim(), certainty: "provisional", is_primary: items.length === 0 }]);
+    const text = label.trim();
+    if (!text) return;
+    onChange((prev) => [...prev, { label: text, certainty: "provisional", is_primary: !prev.some((x) => x.is_primary) }]);
     setLabel("");
   };
   return (
@@ -489,30 +559,32 @@ function DiagnosisList({ items, onChange }: { items: Diagnosis[]; onChange: (d: 
       <div className="flex flex-wrap gap-2">
         {items.map((d, i) => (
           <span key={i} className={cn("inline-flex items-center gap-1.5 rounded-full py-1 pr-1 pl-3 text-sm ring-1",
-            d.is_primary ? "bg-brand-soft text-brand ring-brand-muted" : "bg-card ring-border")}>
-            {d.label}
-            <button type="button" title={d.certainty === "confirmed" ? "Mark provisional" : "Mark confirmed"}
-              onClick={() => onChange(items.map((x, j) => j === i ? { ...x, certainty: x.certainty === "confirmed" ? "provisional" : "confirmed" } : x))}
-              className="rounded-full px-1.5 text-[11px] font-semibold uppercase hover:bg-muted">
-              {d.certainty === "confirmed" ? "confirmed" : "provisional"}
+            d.certainty === "ruled_out" ? "bg-surface text-muted-foreground ring-border"
+              : d.is_primary ? "bg-brand-soft text-brand ring-brand-muted" : "bg-card ring-border")}>
+            <span className={d.certainty === "ruled_out" ? "line-through" : undefined}>{d.label}</span>
+            <button type="button" title={`Now ${CERTAINTY_LABEL[d.certainty] ?? d.certainty} — tap for ${CERTAINTY_LABEL[NEXT_CERTAINTY[d.certainty] ?? "provisional"]}`}
+              onClick={() => onChange((prev) => prev.map((x, j) => j === i ? { ...x, certainty: NEXT_CERTAINTY[x.certainty] ?? "provisional" } : x))}
+              className={cn("rounded-full px-1.5 text-[11px] font-semibold uppercase hover:bg-muted",
+                d.certainty === "confirmed" && "text-success", d.certainty === "ruled_out" && "text-muted-foreground")}>
+              {CERTAINTY_LABEL[d.certainty] ?? d.certainty}
             </button>
-            {!d.is_primary && (
+            {!d.is_primary && d.certainty !== "ruled_out" && (
               <button type="button" title="Make primary" className="rounded-full p-1 hover:bg-muted"
-                onClick={() => onChange(items.map((x, j) => ({ ...x, is_primary: j === i })))}><Star className="size-3.5" /></button>
+                onClick={() => onChange((prev) => prev.map((x, j) => ({ ...x, is_primary: j === i })))}><Star className="size-3.5" /></button>
             )}
             <button type="button" title="Remove" className="rounded-full p-1 hover:bg-muted"
-              onClick={() => {
-                const rest = items.filter((_, j) => j !== i);
+              onClick={() => onChange((prev) => {
+                const rest = prev.filter((_, j) => j !== i);
                 const hasPrimary = rest.some((x) => x.is_primary);
-                onChange(rest.map((x, j) => ({ ...x, is_primary: x.is_primary || (!hasPrimary && j === 0) })));
-              }}>
+                return rest.map((x, j) => ({ ...x, is_primary: x.is_primary || (!hasPrimary && j === 0) }));
+              })}>
               <X className="size-3.5" />
             </button>
           </span>
         ))}
       </div>
       {items.length > 0 && (
-        <p className="text-xs text-muted-foreground">Tap <b>PROVISIONAL</b> to mark a diagnosis confirmed · ★ makes it the main diagnosis.</p>
+        <p className="text-xs text-muted-foreground">Tap the tag to change it: <b>provisional</b> → <b>confirmed</b> → <b>ruled out</b> · ★ makes it the main diagnosis.</p>
       )}
       <div className="flex max-w-md gap-2">
         <Input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Add diagnosis, e.g. Tick fever"
@@ -525,28 +597,37 @@ function DiagnosisList({ items, onChange }: { items: Diagnosis[]; onChange: (d: 
 
 // ------------------------------------------------------------------------------------------ read-only
 
-const FIELD_LABELS: [string, string][] = [
-  ["chief_complaint", "Reason for visit"], ["history", "History"], ["observations", "Observations"],
-  ["assessment", "Assessment"], ["treatment", "Procedures & notes"], ["medicines_administered", "Medicines given in clinic"],
-  ["prognosis", "Prognosis"], ["follow_up_plan", "Plan & advice"], ["doctor_notes", "Doctor notes"],
-];
 const VITALS: [string, string, string][] = [
   ["temperature_c", "Temp", "°C"], ["heart_rate", "Heart rate", "/min"], ["resp_rate", "Resp. rate", "/min"],
   ["weight_kg", "Weight", "kg"], ["crt_seconds", "CRT", "s"], ["mucous_membranes", "Mucous membranes", ""],
   ["hydration", "Hydration", ""], ["body_condition_score", "BCS", "/9"], ["pain_score", "Pain", "/10"],
-  ["pulse_quality", "Pulse", ""], ["mentation", "Mentation", ""],
+  ["pulse_quality", "Pulse", ""], ["mentation", "Mentation", ""], ["patient_condition", "General condition", ""],
 ];
 
 const VITAL_KIND: Record<string, "temp" | "hr" | "rr" | "crt"> = { temperature_c: "temp", heart_rate: "hr", resp_rate: "rr", crt_seconds: "crt" };
+
+function ViewBlock({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="grid gap-2">
+      <h3 className="text-xs font-bold tracking-[0.12em] text-muted-foreground uppercase">{title}</h3>
+      {children}
+    </section>
+  );
+}
 
 function ConsultationView({ visitId, c, template, canReopen, species }: {
   visitId: string; c: Consultation; template: Template; canReopen: boolean; species: string | null;
 }) {
   const f = c.fields;
+  const t = (k: string) => (f[k] == null || f[k] === "" ? null : String(f[k]));
   const answers = historyLines(c.answers);
   const given = treatmentsGiven(c.treatments);
   const vitals = VITALS.filter(([k]) => f[k] != null && f[k] !== "");
-  const exam = Object.entries(c.exam).filter(([, val]) => val);
+  const exam = examInOrder(c.exam, template.exam_prompts).filter(([, val]) => val?.trim());
+  const abnormal = exam.filter(([, val]) => val.trim().toLowerCase() !== "normal");
+  const normal = exam.filter(([, val]) => val.trim().toLowerCase() === "normal").map(([k]) => k);
+  const dx = c.diagnoses.filter((d) => d.certainty !== "ruled_out");
+  const ruledOut = c.diagnoses.filter((d) => d.certainty === "ruled_out");
   return (
     <div className="grid gap-6">
       <div className="flex flex-wrap items-center gap-3">
@@ -565,61 +646,82 @@ function ConsultationView({ visitId, c, template, canReopen, species }: {
           {vitals.map(([k, label, unit]) => {
             const flag = VITAL_KIND[k] ? vitalFlag(VITAL_KIND[k], f[k], species) : null;
             return (
-            <div key={k} className={cn("rounded-xl bg-surface p-2.5 ring-1", flag ? "ring-danger/50" : "ring-border")}>
-              <p className="flex items-center justify-between text-xs text-muted-foreground">{label}{flag && <FlagBadge dir={flag.dir} />}</p>
-              <p className="font-semibold tabular">{String(f[k])} <span className="text-xs font-normal text-muted-foreground">{unit}</span>
-                {k === "temperature_c" && <span className="block text-xs font-normal text-muted-foreground">{cToF(Number(f[k]))} °F</span>}</p>
-            </div>
+              <div key={k} className={cn("rounded-xl bg-surface p-2.5 ring-1", flag ? "ring-danger/50" : "ring-border")}>
+                <p className="flex items-center justify-between text-xs text-muted-foreground">{label}{flag && <FlagBadge dir={flag.dir} />}</p>
+                <p className={cn("font-semibold tabular", flag && "text-danger")}>{String(f[k])} <span className="text-xs font-normal text-muted-foreground">{unit}</span>
+                  {k === "temperature_c" && <span className="block text-xs font-normal text-muted-foreground">{cToF(Number(f[k]))} °F</span>}</p>
+              </div>
             );
           })}
         </div>
       )}
-      {answers.length > 0 && (
-        <div>
-          <p className="mb-2 text-xs font-medium text-muted-foreground">Owner&apos;s answers</p>
-          <div className="flex flex-wrap gap-1.5">
-            {answers.map((l) => (
-              <span key={l.key} className={cn("rounded-lg px-2 py-1 text-sm ring-1", l.concern ? "bg-danger-soft text-danger ring-danger/25" : "bg-surface ring-border")}>
-                <span className={l.concern ? "" : "text-muted-foreground"}>{l.label}:</span> <b>{l.answer}</b>{l.detail ? ` — ${l.detail}` : ""}
-              </span>
-            ))}
-          </div>
-        </div>
+
+      {(t("chief_complaint") || answers.length > 0 || t("history")) && (
+        <ViewBlock title="What the owner said">
+          {t("chief_complaint") && <p className="font-semibold">{t("chief_complaint")}</p>}
+          {answers.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {answers.map((l) => (
+                <span key={l.key} className={cn("rounded-lg px-2 py-1 text-sm ring-1", l.concern ? "bg-danger-soft text-danger ring-danger/25" : "bg-surface ring-border")}>
+                  <span className={l.concern ? "" : "text-muted-foreground"}>{l.label}:</span> <b>{l.answer}</b>{l.detail ? ` — ${l.detail}` : ""}
+                </span>
+              ))}
+            </div>
+          )}
+          {t("history") && <p className="whitespace-pre-wrap">{t("history")}</p>}
+        </ViewBlock>
       )}
-      {given.length > 0 && (
-        <div>
-          <p className="mb-2 text-xs font-medium text-muted-foreground">Given at the clinic</p>
-          <ul className="grid gap-1 text-sm">
-            {given.map((t, i) => <li key={i}><b>{t.what}</b>{t.dose ? ` · ${t.dose}` : ""}{t.route ? ` · ${t.route}` : ""}</li>)}
-          </ul>
-        </div>
+
+      {(exam.length > 0 || t("observations")) && (
+        <ViewBlock title="Examination">
+          {abnormal.length > 0 && (
+            <ul className="grid gap-1 text-sm">
+              {abnormal.map(([k, val]) => <li key={k}><b>{k}</b> — <span className="font-medium text-danger">{val}</span></li>)}
+            </ul>
+          )}
+          {normal.length > 0 && <p className="text-sm text-success"><b>Normal:</b> {normal.join(", ")}</p>}
+          {t("observations") && <p className="whitespace-pre-wrap text-sm">{t("observations")}</p>}
+        </ViewBlock>
       )}
-      {c.diagnoses.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {c.diagnoses.map((d, i) => (
-            <StatusPill key={i} tone={d.is_primary ? "brand" : "neutral"}>{d.label} · {d.certainty.replace("_", " ")}</StatusPill>
-          ))}
-        </div>
+
+      {(c.diagnoses.length > 0 || t("assessment") || t("prognosis")) && (
+        <ViewBlock title="Assessment & diagnosis">
+          {dx.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {dx.map((d, i) => <StatusPill key={i} tone={d.is_primary ? "brand" : "neutral"}>{d.label} · {d.certainty}</StatusPill>)}
+            </div>
+          )}
+          {ruledOut.length > 0 && <p className="text-sm text-muted-foreground">Ruled out: {ruledOut.map((d) => d.label).join(", ")}</p>}
+          {t("assessment") && <p className="whitespace-pre-wrap">{t("assessment")}</p>}
+          {t("prognosis") && <p><span className="text-muted-foreground">Prognosis:</span> <b>{t("prognosis")}</b></p>}
+        </ViewBlock>
       )}
-      <dl className="grid gap-4 sm:grid-cols-2">
-        {FIELD_LABELS.filter(([k]) => f[k]).map(([k, label]) => (
-          <div key={k}>
-            <dt className="text-xs font-medium text-muted-foreground">{label}</dt>
-            <dd className="mt-1 whitespace-pre-wrap">{String(f[k])}</dd>
-          </div>
-        ))}
-        {f.follow_up_date && (
-          <div><dt className="text-xs font-medium text-muted-foreground">Follow-up</dt><dd className="mt-1">{String(f.follow_up_date)}</dd></div>
-        )}
-      </dl>
-      {exam.length > 0 && (
-        <div>
-          <p className="mb-2 text-xs font-medium text-muted-foreground">Physical examination</p>
-          <ul className="grid gap-1 text-sm sm:grid-cols-2">
-            {exam.map(([k, val]) => <li key={k}><span className="text-muted-foreground">{k}:</span> {val}</li>)}
-          </ul>
-        </div>
+
+      {(given.length > 0 || t("treatment") || t("medicines_administered")) && (
+        <ViewBlock title="Treatment">
+          {given.length > 0 && (
+            <ul className="grid gap-1 text-sm">
+              {given.map((g, i) => <li key={i}><b>{g.what}</b>{g.dose ? ` · ${g.dose}` : ""}{g.route ? ` · ${g.route}` : ""}</li>)}
+            </ul>
+          )}
+          {t("treatment") && <p className="whitespace-pre-wrap text-sm">{t("treatment")}</p>}
+          {t("medicines_administered") && <p className="whitespace-pre-wrap text-sm"><span className="text-muted-foreground">Medicines given in clinic:</span> {t("medicines_administered")}</p>}
+        </ViewBlock>
       )}
+
+      {(t("follow_up_plan") || t("follow_up_date")) && (
+        <ViewBlock title="Plan & follow-up">
+          {t("follow_up_plan") && <p className="whitespace-pre-wrap">{t("follow_up_plan")}</p>}
+          {t("follow_up_date") && <p><span className="text-muted-foreground">Next check-up:</span> <b>{formatDate(t("follow_up_date"))}</b></p>}
+        </ViewBlock>
+      )}
+
+      {t("doctor_notes") && (
+        <ViewBlock title="Doctor's private notes (not printed)">
+          <p className="whitespace-pre-wrap text-sm">{t("doctor_notes")}</p>
+        </ViewBlock>
+      )}
+
       {c.revisions.length > 1 && (
         <div className="rounded-xl bg-surface p-4 ring-1 ring-border">
           <p className="flex items-center gap-2 text-sm font-semibold"><History className="size-4" /> Version history</p>

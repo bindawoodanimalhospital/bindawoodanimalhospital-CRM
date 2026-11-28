@@ -24,7 +24,7 @@ export default async function NewPetPage({ searchParams }: PageProps<"/pets/new"
         <PageHeader title="Register pet" back={{ href: "/pets", label: "Pets" }} />
         <EmptyState icon={Users} title="Choose the owner first"
           description="Open the owner's profile (Ctrl K to search by phone) and use “Add pet”, or register a new customer with their first pet."
-          action={<Button asChild><Link href="/customers/new">New customer + pet</Link></Button>} />
+          action={<Button asChild><Link href="/customers/new">New pet owner + pet</Link></Button>} />
       </div>
     );
   }

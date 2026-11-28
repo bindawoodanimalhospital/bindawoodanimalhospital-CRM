@@ -59,4 +59,10 @@ do $$ begin
   raise exception 'FAIL: changed answers on a finalized record';
 exception when insufficient_privilege then raise notice 'OK finalized answers are locked';
 end $$;
+-- Migration 065: condition on the day; Gastrointestinal on the routine examination, right after Abdomen.
+select pg_temp.check((select (select i from jsonb_array_elements(exam_prompts) with ordinality t(x, i) where x = '"Gastrointestinal"')
+  = (select i from jsonb_array_elements(exam_prompts) with ordinality t(x, i) where x = '"Abdomen"') + 1 from public.clinical_templates where key = 'routine'),
+  'routine examination lists Gastrointestinal after Abdomen');
+select pg_temp.check(exists (select 1 from information_schema.columns where table_schema = 'public' and table_name = 'consultations'
+  and column_name = 'patient_condition'), 'consultations record the condition on the day');
 rollback;

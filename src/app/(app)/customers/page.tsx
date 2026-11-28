@@ -13,7 +13,7 @@ import { formatDate } from "@/lib/format";
 import { formatPhone, whatsappLink } from "@/lib/phone";
 import { CONTACT, contactOf } from "@/lib/contacts";
 
-export const metadata: Metadata = { title: "Customers" };
+export const metadata: Metadata = { title: "Pet owners" };
 const PAGE_SIZE = 25;
 
 export default async function CustomersPage({ searchParams }: PageProps<"/customers">) {
@@ -41,7 +41,7 @@ export default async function CustomersPage({ searchParams }: PageProps<"/custom
   return (
     <>
       <PageHeader
-        title="Customers"
+        title="Pet owners"
         description={`${count ?? 0} pet owner${count === 1 ? "" : "s"}`}
         actions={me.can("customers.create") && (
           <Button asChild><Link href="/customers/new"><UserPlus /> New pet owner</Link></Button>
@@ -52,7 +52,7 @@ export default async function CustomersPage({ searchParams }: PageProps<"/custom
       </form>
 
       {!customers?.length ? (
-        <EmptyState icon={Users} title={q ? "No matching customers" : "No customers yet"}
+        <EmptyState icon={Users} title={q ? "No matching pet owners" : "No pet owners yet"}
           description={q ? "Try a different spelling or the phone number." : "Register the first pet owner to get started."} />
       ) : (
         <div className="overflow-hidden rounded-2xl bg-card shadow-card ring-1 ring-border">
