@@ -29,8 +29,8 @@ export function ProtocolCard({ p, vaccines, canEdit }: { p: Protocol; vaccines: 
 
   return (
     <article className="grid gap-4 rounded-2xl bg-card p-5 shadow-card ring-1 ring-border">
-      <header className="flex flex-wrap items-start gap-3">
-        <div className="min-w-0 flex-1">
+      <header className="flex flex-wrap items-start gap-x-3 gap-y-2">
+        <div className="min-w-0 flex-1 basis-64">
           <h3 className="text-lg font-semibold">{p.name}</h3>
           <p className="text-sm text-muted-foreground">{[p.species_name ?? "Any species", p.description].filter(Boolean).join(" · ")}</p>
         </div>

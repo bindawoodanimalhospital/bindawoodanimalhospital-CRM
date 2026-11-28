@@ -63,7 +63,7 @@ export default async function StaffPage() {
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
-              {seeRoles && <TableHead>Roles</TableHead>}
+              {seeRoles && <TableHead className="hidden sm:table-cell">Roles</TableHead>}
               <TableHead className="hidden md:table-cell">Contact</TableHead>
               <TableHead className="hidden sm:table-cell">Since</TableHead>
               <TableHead className="text-right">Status</TableHead>
@@ -79,8 +79,9 @@ export default async function StaffPage() {
                       {s.full_name || (seeEmail(s) ? s.email : "Staff member")}
                     </Link>
                     {s.title && <p className="text-xs text-muted-foreground">{s.title}</p>}
+                    {seeRoles && <p className="text-xs whitespace-normal text-muted-foreground sm:hidden">{current.map((r) => r.roles.name).join(", ") || "No role"}</p>}
                   </TableCell>
-                  {seeRoles && <TableCell>
+                  {seeRoles && <TableCell className="hidden sm:table-cell">
                     <div className="flex flex-wrap gap-1">
                       {current.length ? current.map((r) => (
                         <StatusPill key={r.roles.name} tone={r.valid_until ? "info" : "neutral"}>

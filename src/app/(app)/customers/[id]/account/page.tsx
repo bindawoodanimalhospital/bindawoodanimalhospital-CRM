@@ -67,17 +67,17 @@ export default async function AccountPage({ params }: PageProps<"/customers/[id]
         <div className="rounded-2xl bg-card p-4 shadow-card ring-1 ring-border"><p className="text-sm text-muted-foreground">Unused advance</p><p className="text-2xl font-bold tabular">{formatPKR(credit)}</p></div>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
-        <Card className="min-w-0 lg:col-span-3">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-5">
+        <Card className="min-w-0 xl:col-span-3">
           <CardHeader><CardTitle>Account history</CardTitle></CardHeader>
           <CardContent className="overflow-x-auto">
-            <table className="w-full min-w-[520px] text-sm">
-              <thead><tr className="text-left text-xs text-muted-foreground"><th className="py-1">Date</th><th>Entry</th><th className="text-right">Charged</th><th className="text-right">Paid / credit</th><th className="text-right">Balance</th></tr></thead>
+            <table className="w-full text-sm sm:min-w-[520px]">
+              <thead><tr className="text-left text-xs text-muted-foreground"><th className="hidden py-1 sm:table-cell">Date</th><th className="py-1">Entry</th><th className="text-right">Charged</th><th className="text-right">Paid / credit</th><th className="text-right">Balance</th></tr></thead>
               <tbody>
                 {rows.map((r) => (
                   <tr key={`${r.entry}-${r.ref_id}`} className="border-t">
-                    <td className="py-2 whitespace-nowrap text-muted-foreground">{formatDateTime(r.at)}</td>
-                    <td>{r.entry === "invoice" && previous.has(r.ref_id) ? `Previous balance (before CRM)${previous.get(r.ref_id) ? ` · old bill ${previous.get(r.ref_id)}` : ""}` : ENTRY[r.entry] ?? r.entry} {r.entry === "invoice" ? <Link href={`/billing/${r.ref_id}`} className="font-mono text-xs text-brand hover:underline">{r.ref}</Link> : <span className="font-mono text-xs text-muted-foreground">{r.ref}</span>}</td>
+                    <td className="hidden py-2 whitespace-nowrap text-muted-foreground sm:table-cell">{formatDateTime(r.at)}</td>
+                    <td className="py-2 pr-2"><span className="block text-xs text-muted-foreground sm:hidden">{formatDateTime(r.at)}</span>{r.entry === "invoice" && previous.has(r.ref_id) ? `Previous balance (before CRM)${previous.get(r.ref_id) ? ` · old bill ${previous.get(r.ref_id)}` : ""}` : ENTRY[r.entry] ?? r.entry} {r.entry === "invoice" ? <Link href={`/billing/${r.ref_id}`} className="font-mono text-xs text-brand hover:underline">{r.ref}</Link> : <span className="font-mono text-xs text-muted-foreground">{r.ref}</span>}</td>
                     <td className="text-right tabular">{Number(r.debit) ? formatPKR(r.debit) : ""}</td>
                     <td className="text-right tabular text-success">{Number(r.credit) ? formatPKR(r.credit) : ""}</td>
                     <td className={cn("text-right font-semibold tabular", r.running > 0 && "text-danger")}>{formatPKR(r.running)}</td>
@@ -88,7 +88,7 @@ export default async function AccountPage({ params }: PageProps<"/customers/[id]
             </table>
           </CardContent>
         </Card>
-        <Card className="min-w-0 lg:col-span-2">
+        <Card className="min-w-0 xl:col-span-2">
           <CardHeader><CardTitle>Unpaid bills</CardTitle></CardHeader>
           <CardContent>
             <ul className="grid gap-2">

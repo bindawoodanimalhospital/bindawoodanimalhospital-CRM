@@ -81,7 +81,7 @@ export default async function OwnerHistoryPage({ params, searchParams }: PagePro
       )}
 
       <form className="mb-4 flex flex-wrap items-end gap-2">
-        <input name="q" defaultValue={q} placeholder="Search: medicine, diagnosis, doctor, bill no…" className={`${sel} min-w-0 flex-1 sm:min-w-64`} />
+        <input name="q" defaultValue={q} placeholder="Search medicine, diagnosis, bill no…" className={`${sel} min-w-0 flex-1 basis-full sm:basis-auto sm:min-w-64`} />
         {h.pets.length > 1 && (
           <select name="pet" defaultValue={pet} className={sel}><option value="">All pets</option>{h.pets.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}</select>
         )}

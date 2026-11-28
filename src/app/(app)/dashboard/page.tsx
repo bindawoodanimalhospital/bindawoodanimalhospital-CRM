@@ -99,6 +99,7 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
   const queueRows = (queue?.data ?? []) as unknown as QueueRow[];
   const waitingCount = queueRows.filter((v) => v.status === "waiting").length;
   const inClinicCount = queueRows.length - waitingCount;
+  const urgentWaiting = queueRows.filter((v) => v.status === "waiting" && v.priority !== "normal").length;
   const toDispatch = (deliveries?.data ?? []).filter((d) => d.delivery_status === "pending").length;
   const outForDelivery = (deliveries?.data ?? []).filter((d) => d.delivery_status === "dispatched").length;
   const monthReport = monthReportQuery ? ((await monthReportQuery).data as FinancialReport | null) : null;
@@ -128,10 +129,10 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
   // Today in plain numbers (always shown when allowed).
   type Kpi = { label: string; value: string; sub: string; icon: LucideIcon; href: string };
   const kpis = ([
-    canQueue && { label: "Waiting", value: String(waitingCount), sub: `${inClinicCount} with doctor / treatment`, icon: ListOrdered, href: "/queue" },
-    canAppts && { label: "Appointments left", value: String(appts?.count ?? 0), sub: "booked or confirmed", icon: CalendarDays, href: "/appointments" },
+    canQueue && { label: "Waiting", value: String(waitingCount), sub: `${inClinicCount} with the doctor`, icon: ListOrdered, href: "/queue" },
+    canAppts && { label: "Appointments", value: String(appts?.count ?? 0), sub: "still to come today", icon: CalendarDays, href: "/appointments" },
     canDue && { label: "Due today", value: String(dueToday?.count ?? 0), sub: "vaccines & follow-ups", icon: Syringe, href: "/due?view=today" },
-    me.can("clinical.view") && { label: "In the ward", value: String(inWard?.count ?? 0), sub: `${theatre?.count ?? 0} surgery case(s)`, icon: BedDouble, href: "/ward" },
+    me.can("clinical.view") && { label: "In the ward", value: String(inWard?.count ?? 0), sub: `${theatre?.count ?? 0} surgery case${theatre?.count === 1 ? "" : "s"}`, icon: BedDouble, href: "/ward" },
     seeMoney && { label: "Collected today", value: rs(collected), sub: "payments − refunds", icon: Wallet, href: "/billing" },
   ].filter(Boolean) as Kpi[]);
 
@@ -156,8 +157,9 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
 
   const summary = [
     canQueue && `${waitingCount} waiting`,
+    canQueue && urgentWaiting > 0 && `${urgentWaiting} urgent`,
     canAppts && `${appts?.count ?? 0} appointment${appts?.count === 1 ? "" : "s"} left today`,
-    todos.length ? `${todos.length} thing${todos.length === 1 ? " needs" : "s need"} attention` : "nothing urgent",
+    todos.length ? `${todos.length} thing${todos.length === 1 ? " needs" : "s need"} attention` : !urgentWaiting && "nothing urgent",
   ].filter(Boolean).join(" · ");
   const canSearch = canCustomers || canPets;
 
@@ -222,12 +224,12 @@ export default async function DashboardPage({ searchParams }: PageProps<"/dashbo
         <section className="grid grid-cols-2 gap-3 md:grid-cols-[repeat(auto-fit,minmax(11rem,1fr))]">
           {kpis.map((k) => (
             <Link key={k.label} href={k.href} className="group rounded-2xl bg-card p-4 shadow-card ring-1 ring-border transition hover:ring-brand-muted">
-              <span className="flex items-center justify-between gap-2 text-sm text-muted-foreground">
-                <span className="truncate">{k.label}</span>
-                <k.icon className="size-4 shrink-0 text-foreground/40 transition group-hover:text-brand" />
+              <span className="flex items-start justify-between gap-2 text-sm leading-snug text-muted-foreground">
+                <span className="min-w-0">{k.label}</span>
+                <k.icon className="mt-0.5 size-4 shrink-0 text-foreground/40 transition group-hover:text-brand" />
               </span>
               <span className="mt-1 block truncate text-2xl font-bold tracking-tight tabular">{k.value}</span>
-              <span className="block truncate text-xs text-muted-foreground">{k.sub}</span>
+              <span className="block text-xs leading-snug text-muted-foreground">{k.sub}</span>
             </Link>
           ))}
         </section>

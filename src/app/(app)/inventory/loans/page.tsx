@@ -115,7 +115,7 @@ export default async function StockLoansPage({ searchParams }: PageProps<"/inven
         </section>
       )}
 
-      <form className="mb-4 grid gap-2 rounded-2xl bg-card p-3 shadow-card ring-1 ring-border sm:grid-cols-2 lg:grid-cols-[repeat(4,minmax(0,1fr))_9.5rem_9.5rem_auto]">
+      <form className="mb-4 grid gap-2 rounded-2xl bg-card p-3 shadow-card ring-1 ring-border sm:grid-cols-2 xl:grid-cols-[repeat(4,minmax(0,1fr))_9.5rem_9.5rem_auto]">
         <input type="hidden" name="view" value={view} />
         <select name="dir" defaultValue={direction} className="h-10 w-full min-w-0 rounded-xl border border-input bg-card px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50" aria-label="Borrowed or lent">
           <option value="">Borrowed & lent</option><option value="borrowed">Borrowed (we owe)</option><option value="lent">Lent (owed to us)</option>

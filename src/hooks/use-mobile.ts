@@ -1,6 +1,6 @@
 import * as React from "react"
 
-const MOBILE_BREAKPOINT = 768
+const MOBILE_BREAKPOINT = 1024  // below this the menu is a slide-out drawer (phones and upright tablets)
 const QUERY = `(max-width: ${MOBILE_BREAKPOINT - 1}px)`
 
 function subscribe(onChange: () => void) {

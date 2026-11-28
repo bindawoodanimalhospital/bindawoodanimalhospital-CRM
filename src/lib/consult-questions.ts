@@ -26,7 +26,7 @@ export const HISTORY_QUESTIONS: HistoryQuestion[] = [
 /** Free-text answers asked on every visit. */
 export const HISTORY_TEXT: { key: string; label: string; placeholder: string }[] = [
   { key: "diet", label: "Food", placeholder: "e.g. Dry food twice a day, some home food" },
-  { key: "medicines", label: "Medicines already given", placeholder: "e.g. Paracetamol at home yesterday — none if blank" },
+  { key: "medicines", label: "Medicines already given", placeholder: "e.g. Paracetamol yesterday" },
 ];
 
 export type HistoryAnswers = Record<string, string>;

@@ -70,7 +70,7 @@ function StartConsultation({ visitId, templates, canCreate }: { visitId: string;
     <div>
       <h3 className="text-lg font-semibold">Start the consultation</h3>
       <p className="mt-1 text-sm text-muted-foreground">Pick the kind of visit — you&apos;ll only see the sections that matter.</p>
-      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {templates.map((t) => (
           <button key={t.key} type="button" disabled={pending}
             onClick={() => start(async () => { const r = await startConsultation(visitId, t.key); if (!r.ok) toast.error(r.message); })}
@@ -239,14 +239,14 @@ function ConsultationEditor({ visitId, c, template, canFinalize, pet }: {
                 const val = exam[p] ?? "";
                 const normal = val === "Normal";
                 return (
-                  <div key={p} className="grid items-center gap-2 sm:grid-cols-[190px_auto_1fr]">
-                    <Label className="text-sm">{p}</Label>
+                  <div key={p} className="grid grid-cols-[auto_1fr] items-center gap-x-2 gap-y-1 sm:grid-cols-[190px_auto_1fr] sm:gap-y-2">
+                    <Label className="col-span-2 text-sm sm:col-span-1">{p}</Label>
                     <button type="button" onClick={() => setExamField(p, normal ? "" : "Normal")}
                       className={cn("inline-flex h-10 items-center gap-1.5 rounded-xl border px-3 text-sm font-semibold transition",
                         normal ? "border-success bg-success-soft text-success" : "hover:bg-muted")}>
                       <Check className="size-4" /> Normal
                     </button>
-                    <Input value={normal ? "" : val} disabled={normal} placeholder={normal ? "No abnormality found" : "Findings…"}
+                    <Input value={normal ? "" : val} disabled={normal} placeholder={normal ? "Nothing abnormal" : "Findings…"}
                       onChange={(e) => setExamField(p, e.target.value)} aria-label={`${p} findings`}
                       className={cn(!normal && val.trim() && "border-danger/40 bg-danger-soft/40 font-medium text-danger")} />
                   </div>
@@ -587,7 +587,7 @@ function DiagnosisList({ items, onChange }: { items: Diagnosis[]; onChange: (fn:
         <p className="text-xs text-muted-foreground">Tap the tag to change it: <b>provisional</b> → <b>confirmed</b> → <b>ruled out</b> · ★ makes it the main diagnosis.</p>
       )}
       <div className="flex max-w-md gap-2">
-        <Input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Add diagnosis, e.g. Tick fever"
+        <Input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Add a diagnosis…"
           onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); add(); } }} />
         <Button type="button" variant="outline" onClick={add}><Plus /> Add</Button>
       </div>

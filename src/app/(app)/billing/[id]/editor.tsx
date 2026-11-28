@@ -127,16 +127,19 @@ function AddItem({ invoiceId, retailOnly = false }: { invoiceId: string; retailO
       <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
       <Input value={q} onChange={(e) => { setQ(e.target.value); setOpen(true); }} onKeyDown={onKeyDown} onFocus={() => setOpen(true)} onBlur={() => setTimeout(() => setOpen(false), 150)}
         role="combobox" aria-expanded={open && hits.length > 0} aria-label="Add service or product"
-        placeholder="Add service or product — type a name or scan a barcode" className="h-12 pl-9 text-base" />
+        placeholder="Add an item — name or barcode" className="h-12 pl-9 text-base" />
       {open && hits.length > 0 && (
         <ul className="absolute z-20 mt-1 max-h-72 w-full overflow-auto rounded-xl bg-popover p-1 shadow-float ring-1 ring-border">
           {hits.map((h, i) => (
             <li key={h.id}>
               <button type="button" disabled={pending} onMouseDown={(e) => e.preventDefault()} onClick={() => add(h)} onMouseEnter={() => setActive(i)}
                 className={cn("flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left", i === active ? "bg-muted" : "hover:bg-muted")}>
-                {h.kind === "product" ? <Package className="size-4 text-muted-foreground" /> : <Sparkles className="size-4 text-muted-foreground" />}
-                <span className="min-w-0 flex-1 truncate"><b>{h.name}</b> <span className="text-xs text-muted-foreground">{h.category}</span>{!h.is_available && <span className="ml-1 text-xs font-semibold text-warning">· marked not available</span>}</span>
-                <span className="tabular text-sm font-semibold">{h.price_is_editable ? "set price" : formatPKR(h.sale_price)}</span>
+                {h.kind === "product" ? <Package className="size-4 shrink-0 text-muted-foreground" /> : <Sparkles className="size-4 shrink-0 text-muted-foreground" />}
+                <span className="min-w-0 flex-1 leading-snug">
+                  <b className="break-words">{h.name}</b>
+                  <span className="block text-xs text-muted-foreground">{h.category}{!h.is_available && <span className="font-semibold text-warning"> · marked not available</span>}</span>
+                </span>
+                <span className="shrink-0 tabular text-sm font-semibold">{h.price_is_editable ? "set price" : formatPKR(h.sale_price)}</span>
               </button>
             </li>
           ))}

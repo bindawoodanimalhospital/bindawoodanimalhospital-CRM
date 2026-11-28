@@ -96,7 +96,7 @@ export default async function InventoryPage({ searchParams }: PageProps<"/invent
         )}
         <div className="overflow-hidden rounded-2xl bg-card shadow-card ring-1 ring-border">
           <Table>
-            <TableHeader><TableRow><TableHead>Item</TableHead><TableHead className="hidden xl:table-cell">Category</TableHead><TableHead>Type</TableHead>
+            <TableHeader><TableRow><TableHead>Item</TableHead><TableHead className="hidden xl:table-cell">Category</TableHead><TableHead className="hidden md:table-cell">Type</TableHead>
               <TableHead className="hidden sm:table-cell">Available</TableHead><TableHead className="text-right">Price (Rs.)</TableHead></TableRow></TableHeader>
             <TableBody>
               {rows.map((row) => row.kind === "family" ? (
@@ -106,13 +106,13 @@ export default async function InventoryPage({ searchParams }: PageProps<"/invent
                 </TableRow>
               ) : (
                 <TableRow key={row.i.id} className={cn(!row.i.is_active && "opacity-50")}>
-                  <TableCell className={cn(row.sized && "pl-9")}>
+                  <TableCell className={cn("whitespace-normal", row.sized && "pl-9")}>
                     <Link href={`/inventory/${row.i.id}`} className="font-medium hover:underline">{row.sized && row.i.size_label ? row.i.size_label : row.i.name}</Link>
                     {row.sized && row.i.size_label && <span className="ml-2 text-xs text-muted-foreground">{row.i.name}</span>}
                     {row.i.is_retail && !row.sized && <StatusPill tone="info" className="ml-2">Store</StatusPill>}
                     {row.i.category && <span className="block text-xs text-muted-foreground xl:hidden">{row.i.category}</span>}</TableCell>
                   <TableCell className="hidden text-muted-foreground xl:table-cell">{row.i.category}</TableCell>
-                  <TableCell className="text-muted-foreground">{row.i.kind === "service" ? "Service" : `Product · ${row.i.unit}`}</TableCell>
+                  <TableCell className="hidden text-muted-foreground md:table-cell">{row.i.kind === "service" ? "Service" : `Product · ${row.i.unit}`}</TableCell>
                   <TableCell className="hidden sm:table-cell">
                     {row.i.kind === "product" ? (canEdit ? <AvailabilityToggle id={row.i.id} available={row.i.is_available} label={false} />
                       : row.i.is_available ? "Yes" : <span className="text-warning">No</span>) : null}

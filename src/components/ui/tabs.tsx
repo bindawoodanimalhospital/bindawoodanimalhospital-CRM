@@ -41,11 +41,33 @@ const tabsListVariants = cva(
 function TabsList({
   className,
   variant = "default",
+  ref,
   ...props
 }: React.ComponentProps<typeof TabsPrimitive.List> &
   VariantProps<typeof tabsListVariants>) {
+  const own = React.useRef<HTMLDivElement | null>(null)
+  // When the strip is wider than the screen (phones), keep the chosen tab scrolled into view.
+  React.useEffect(() => {
+    const list = own.current
+    if (!list) return
+    const show = () => {
+      const tab = list.querySelector<HTMLElement>('[data-state="active"]')
+      if (!tab || list.scrollWidth <= list.clientWidth) return
+      const l = list.getBoundingClientRect(), t = tab.getBoundingClientRect()
+      list.scrollLeft += t.left - l.left - (l.width - t.width) / 2
+    }
+    show()
+    const watch = new MutationObserver(show)
+    watch.observe(list, { subtree: true, attributes: true, attributeFilter: ["data-state"] })
+    return () => watch.disconnect()
+  }, [])
   return (
     <TabsPrimitive.List
+      ref={(node: HTMLDivElement | null) => {
+        own.current = node
+        if (typeof ref === "function") ref(node)
+        else if (ref) ref.current = node
+      }}
       data-slot="tabs-list"
       data-variant={variant}
       className={cn(tabsListVariants({ variant }), className)}

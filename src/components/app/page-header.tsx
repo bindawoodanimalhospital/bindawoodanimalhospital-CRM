@@ -19,7 +19,7 @@ export function PageHeader({
         </Link>
       )}
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0 flex-1 basis-72">
+        <div className="min-w-0 flex-1 basis-[28rem]">
           <h1 className="text-2xl font-bold tracking-tight break-words md:text-3xl">{title}</h1>
           {description && <p className="mt-1.5 max-w-3xl text-muted-foreground">{description}</p>}
         </div>
@@ -50,7 +50,7 @@ export function Field({ label, children, className }: { label: string; children:
   return (
     <div className={cn("min-w-0", className)}>
       <dt className="text-xs text-muted-foreground">{label}</dt>
-      <dd className="mt-1 truncate font-medium">{children || <span className="text-muted-foreground">—</span>}</dd>
+      <dd className="mt-1 font-medium break-words">{children || <span className="text-muted-foreground">—</span>}</dd>
     </div>
   );
 }

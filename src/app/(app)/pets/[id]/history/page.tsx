@@ -70,7 +70,7 @@ export default async function PetHistoryPage({ params, searchParams }: PageProps
       <div className="mb-5 rounded-2xl bg-card p-4 shadow-card ring-1 ring-border"><HistorySummary h={h} showMoney={showMoney} /></div>
 
       <form className="mb-4 flex flex-wrap items-end gap-2">
-        <input name="q" defaultValue={q} placeholder="Search this history: medicine, diagnosis, doctor…" className={`${sel} min-w-0 flex-1 sm:min-w-64`} />
+        <input name="q" defaultValue={q} placeholder="Search medicine, diagnosis, doctor…" className={`${sel} min-w-0 flex-1 basis-full sm:basis-auto sm:min-w-64`} />
         <select name="show" defaultValue={show} className={sel}>{SHOW.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}</select>
         <select name="doctor" defaultValue={doctor} className={sel}>
           <option value="">Any doctor / staff</option>

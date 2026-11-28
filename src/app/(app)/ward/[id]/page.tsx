@@ -93,8 +93,8 @@ export default async function AdmissionPage({ params }: PageProps<"/ward/[id]">)
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="grid content-start gap-6 lg:col-span-2">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+        <div className="grid content-start gap-6 xl:col-span-2">
           <Card>
             <CardHeader><CardTitle>Treatment chart</CardTitle></CardHeader>
             <CardContent>

@@ -103,7 +103,7 @@ export function DewormingPanel({ visitId, petId, dob, weight, history, dewormers
           <div id={`deworm-form-${petId}`} className="grid gap-3 sm:grid-cols-2">
             {visitId && (
               <div className="grid grid-cols-2 gap-1 rounded-xl bg-muted p-1 sm:col-span-2" role="radiogroup" aria-label="When was it given">
-                {([["now", "Given now (this visit)"], ["earlier", "Given earlier"]] as const).map(([v, l]) => (
+                {([["now", "Given today"], ["earlier", "Given earlier"]] as const).map(([v, l]) => (
                   <button key={v} type="button" role="radio" aria-checked={when === v} onClick={() => { setWhen(v); if (v === "now") setNext(addDaysPK(s.days)); }}
                     className={cn("h-9 rounded-lg text-sm font-semibold transition", when === v ? "bg-card shadow-sm ring-1 ring-border" : "text-muted-foreground hover:text-foreground")}>{l}</button>
                 ))}

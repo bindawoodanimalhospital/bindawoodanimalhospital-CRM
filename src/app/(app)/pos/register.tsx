@@ -138,11 +138,11 @@ export function Register({ initial, popular = [], methods, canDiscount, defaultD
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="relative">
             <ScanBarcode className="absolute top-1/2 left-3 size-5 -translate-y-1/2 text-brand" />
-            <Input ref={scan} autoFocus onKeyDown={onScan} className="h-12 pl-10 text-base" placeholder="Scan barcode (or type SKU + Enter)" />
+            <Input ref={scan} autoFocus onKeyDown={onScan} className="h-12 pl-10 text-base" placeholder="Scan barcode or type SKU" />
           </div>
           <div className="relative">
             <Search className="absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input value={q} onChange={(e) => setQ(e.target.value)} className="h-12 pl-9 text-base" placeholder="Search products — food, shampoo, collar…"
+            <Input value={q} onChange={(e) => setQ(e.target.value)} className="h-12 pl-9 text-base" placeholder="Search products…"
               onKeyDown={(e) => { if (e.key === "Enter" && items.length === 1) { addAndClear(items[0]); setQ(""); } }} />
           </div>
         </div>
@@ -299,10 +299,12 @@ export function Register({ initial, popular = [], methods, canDiscount, defaultD
           {payNow && short > 0 && <p className="rounded-xl bg-warning-soft px-3 py-2 text-sm text-warning">{customer ? `${formatPKR(short)} will be added to ${customer.title}'s account.` : "Walk-in sales must be paid in full — or choose the customer."}</p>}
           {discountReason.trim() === "" && Number(billDiscount) > 0 && <p className="text-xs text-danger">Give a reason for the discount.</p>}
         </section>
-        <Button size="lg" className="h-14 w-full text-lg xl:sticky xl:bottom-0 xl:z-10 xl:shadow-float" onClick={pay} disabled={!canPay}>
+        <div className="xl:sticky xl:bottom-0 xl:z-10 xl:-mb-2 xl:bg-background xl:pt-2 xl:pb-2">
+          <Button size="lg" className="h-14 w-full text-lg xl:shadow-float" onClick={pay} disabled={!canPay}>
             {pending ? <Loader2 className="animate-spin" /> : delivery ? <Truck /> : <Check />}
             {mode === "cod" ? "Confirm order — cash on delivery" : mode === "later" ? `Make bill — pay later (${formatPKR(total)})` : `Pay ${formatPKR(Math.min(paid, total))}`}
           </Button>
+        </div>
       </aside>
 
       {/* Phones: products come first, so keep the total and a way to pay always in reach. */}
@@ -366,7 +368,7 @@ function CustomerPicker({ value, onChange, required, walkIn, onWalkIn }: {
     <div className="relative">
       <Input value={q} onChange={(e) => setQ(e.target.value)}
         onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); pickWalkIn(); } }}
-        placeholder={required ? "Customer (required for delivery) — search name" : "Customer name — search, or type a walk-in's name + Enter"} />
+        placeholder={required ? "Customer (needed for delivery)…" : "Customer or walk-in name…"} />
       {name.length >= 2 && (
         <ul className="absolute z-20 mt-1 w-full rounded-xl bg-popover p-1 shadow-float ring-1 ring-border">
           {opts.map((o) => <li key={o.id}><button type="button" onClick={() => { onChange(o); setQ(""); setOpts([]); }} className="w-full rounded-lg px-3 py-2 text-left text-sm hover:bg-muted"><b>{o.title}</b> <span className="text-muted-foreground">{o.subtitle}</span></button></li>)}

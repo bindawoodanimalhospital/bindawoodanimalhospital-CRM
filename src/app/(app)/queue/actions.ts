@@ -16,8 +16,19 @@ export type PetOption = {
 export async function searchPets(q: string): Promise<PetOption[]> {
   if (q.trim().length < 2) return [];
   const supabase = await createClient();
-  const { data } = await supabase.rpc("smart_search", { q, p_scope: "pet", max_results: 20 });
-  const petIds = ((data ?? []) as { kind: string; id: string }[]).filter((h) => h.kind === "pet").map((h) => h.id).slice(0, 8);
+  const [{ data }, { data: ownerHits }] = await Promise.all([
+    supabase.rpc("smart_search", { q, p_scope: "pet", max_results: 20 }),
+    supabase.rpc("smart_search", { q, p_scope: "owner", max_results: 5 }),
+  ]);
+  const petIds = ((data ?? []) as { kind: string; id: string }[]).filter((h) => h.kind === "pet").map((h) => h.id);
+  // Just the owner's name typed: their pets too, after the pets matched by name.
+  const ownerIds = ((ownerHits ?? []) as { kind: string; id: string }[]).filter((h) => h.kind === "customer").map((h) => h.id);
+  if (ownerIds.length) {
+    const { data: owned } = await supabase.from("pet_owners").select("pet_id, customer_id").in("customer_id", ownerIds);
+    const byOwner = (owned ?? []).sort((x, y) => ownerIds.indexOf(x.customer_id) - ownerIds.indexOf(y.customer_id));
+    for (const o of byOwner) if (!petIds.includes(o.pet_id)) petIds.push(o.pet_id);
+  }
+  petIds.splice(8);
   if (!petIds.length) return [];
   const { data: pets } = await supabase
     .from("pets")

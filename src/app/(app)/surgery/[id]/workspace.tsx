@@ -86,8 +86,8 @@ export function SurgeryWorkspace({ s, perms, doctors, staff, checklist, consentT
       {s.reopened_reason && !closed && <Banner tone="info">Reopened after discharge: {s.reopened_reason}</Banner>}
       {s.emergency_override_reason && <Banner tone="danger"><Siren className="size-4" /> Emergency override: {s.emergency_override_reason}</Banner>}
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        <div className="grid min-w-0 content-start gap-6 lg:col-span-2">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+        <div className="grid min-w-0 content-start gap-6 xl:col-span-2">
           {/* 1. Plan */}
           <Section n={1} title="Plan" right={<SaveIndicator state={state} />}>
             <div className="grid gap-4 sm:grid-cols-2">

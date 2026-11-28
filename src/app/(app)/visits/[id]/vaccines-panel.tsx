@@ -164,7 +164,7 @@ export function VaccinesPanel({ visitId, petId, vaccines, protocols, history, du
           <h3 className="text-lg font-semibold">{visitId ? "Record a vaccination" : "Add a vaccine given earlier"}</h3>
           {visitId && (
             <div className="grid grid-cols-2 gap-1 rounded-xl bg-muted p-1 sm:max-w-md" role="radiogroup" aria-label="When was it given">
-              {([["now", "Given now (this visit)"], ["earlier", "Given earlier"]] as const).map(([v, l]) => (
+              {([["now", "Given today"], ["earlier", "Given earlier"]] as const).map(([v, l]) => (
                 <button key={v} type="button" role="radio" aria-checked={when === v} onClick={() => setWhen(v)}
                   className={cn("h-9 rounded-lg text-sm font-semibold transition", when === v ? "bg-card shadow-sm ring-1 ring-border" : "text-muted-foreground hover:text-foreground")}>{l}</button>
               ))}

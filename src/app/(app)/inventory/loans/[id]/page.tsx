@@ -62,8 +62,8 @@ export default async function StockLoanPage({ params }: PageProps<"/inventory/lo
         <p className="mb-6 rounded-xl bg-muted px-4 py-3 text-sm">Cancelled {formatDateTime(loan.cancelled_at)} by {names.get(loan.cancelled_by) ?? "—"}: {loan.cancel_reason}. Its stock movement was reversed.</p>
       )}
 
-      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
+      <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-3">
+        <Card className="xl:col-span-2">
           <CardHeader><CardTitle>Products</CardTitle></CardHeader>
           <CardContent className="overflow-x-auto">
             <table className="w-full min-w-[520px] text-sm">
@@ -110,7 +110,7 @@ export default async function StockLoanPage({ params }: PageProps<"/inventory/lo
           </CardContent>
         </Card>
 
-        <Card className="lg:col-span-3">
+        <Card className="xl:col-span-3">
           <CardHeader><CardTitle>Return history</CardTitle></CardHeader>
           <CardContent>
             {returns.length === 0 ? <p className="text-sm text-muted-foreground">Nothing returned yet.</p> : (

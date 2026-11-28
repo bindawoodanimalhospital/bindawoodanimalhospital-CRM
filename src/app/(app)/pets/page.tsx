@@ -53,9 +53,9 @@ export default async function PetsPage({ searchParams }: PageProps<"/pets">) {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-24">ID</TableHead>
+                <TableHead className="hidden w-24 sm:table-cell">ID</TableHead>
                 <TableHead>Name</TableHead>
-                <TableHead>Species / breed</TableHead>
+                <TableHead className="hidden sm:table-cell">Species / breed</TableHead>
                 <TableHead className="hidden md:table-cell">Age</TableHead>
                 <TableHead className="hidden md:table-cell">Owner</TableHead>
                 <TableHead className="text-right">Status</TableHead>
@@ -69,12 +69,14 @@ export default async function PetsPage({ searchParams }: PageProps<"/pets">) {
                 const br = p.breeds as unknown as { name: string } | null;
                 return (
                   <TableRow key={p.id} className="relative">
-                    <TableCell className="font-mono text-xs text-muted-foreground">{p.code}</TableCell>
-                    <TableCell className="font-medium">
+                    <TableCell className="hidden font-mono text-xs text-muted-foreground sm:table-cell">{p.code}</TableCell>
+                    <TableCell className="min-w-40 font-medium whitespace-normal">
                       <Link href={`/pets/${p.id}`} className="after:absolute after:inset-0">{p.name}</Link>
                       {p.special_handling && <StatusPill tone="danger" className="ml-2">!</StatusPill>}
+                      <span className="block text-xs font-normal text-muted-foreground sm:hidden">{[sp?.name, br?.name ?? p.breed_text].filter(Boolean).join(" · ")}</span>
+                      {owner && <span className="block text-xs font-normal text-muted-foreground md:hidden">{owner.full_name}</span>}
                     </TableCell>
-                    <TableCell className="text-muted-foreground">{[sp?.name, br?.name ?? p.breed_text].filter(Boolean).join(" · ")}</TableCell>
+                    <TableCell className="hidden text-muted-foreground sm:table-cell">{[sp?.name, br?.name ?? p.breed_text].filter(Boolean).join(" · ")}</TableCell>
                     <TableCell className="hidden md:table-cell">{formatAge(p.date_of_birth, p.dob_is_estimate)}</TableCell>
                     <TableCell className="hidden md:table-cell">{owner?.full_name}</TableCell>
                     <TableCell className="text-right">

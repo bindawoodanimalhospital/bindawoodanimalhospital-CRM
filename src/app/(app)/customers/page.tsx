@@ -59,7 +59,7 @@ export default async function CustomersPage({ searchParams }: PageProps<"/custom
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-24">ID</TableHead>
+                <TableHead className="hidden w-24 sm:table-cell">ID</TableHead>
                 <TableHead>Name</TableHead>
                 {canContact && <TableHead>Phone</TableHead>}
                 <TableHead className="hidden md:table-cell">Area</TableHead>
@@ -77,9 +77,10 @@ export default async function CustomersPage({ searchParams }: PageProps<"/custom
                 const wa = whatsappLink(contact.whatsapp);
                 return (
                   <TableRow key={c.id} className="relative">
-                    <TableCell className="font-mono text-xs text-muted-foreground">{c.code}</TableCell>
-                    <TableCell className="font-medium">
+                    <TableCell className="hidden font-mono text-xs text-muted-foreground sm:table-cell">{c.code}</TableCell>
+                    <TableCell className="min-w-40 font-medium whitespace-normal">
                       <Link href={`/customers/${c.id}`} className="after:absolute after:inset-0">{c.full_name}</Link>
+                      {pets.length > 0 && <span className="block text-xs font-normal text-muted-foreground lg:hidden">{pets.join(", ")}</span>}
                     </TableCell>
                     {canContact && <TableCell>
                       <span className="inline-flex items-center gap-2">

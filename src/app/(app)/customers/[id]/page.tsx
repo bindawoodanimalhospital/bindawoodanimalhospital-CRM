@@ -106,12 +106,12 @@ export default async function CustomerPage({ params }: PageProps<"/customers/[id
         </div>
       )}
 
-      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-3">
+      <div className="grid grid-cols-1 items-start gap-6 xl:grid-cols-3">
         {/* Left: contact profile */}
-        <Card className="lg:sticky lg:top-20">
+        <Card className="xl:sticky xl:top-20">
           <CardHeader><CardTitle>Contact</CardTitle></CardHeader>
           <CardContent>
-            <dl className="grid grid-cols-2 gap-4">
+            <dl className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-2">
               {canContact ? (
                 <>
                   <Field label="Mobile">{formatPhone(contact.phone)}</Field>
@@ -143,7 +143,7 @@ export default async function CustomerPage({ params }: PageProps<"/customers/[id
         </Card>
 
         {/* Right: money & bookings at a glance, pets, history */}
-        <div className="grid min-w-0 gap-6 lg:col-span-2">
+        <div className="grid min-w-0 gap-6 xl:col-span-2">
         <CustomerSummaryCards customerId={c.id} petIds={pets.map((p) => p.id)} me={me} />
         <Card>
           <CardHeader>
@@ -158,12 +158,12 @@ export default async function CustomerPage({ params }: PageProps<"/customers/[id
             {pets.length === 0 ? (
               <p className="text-sm text-muted-foreground">No pets registered yet.</p>
             ) : (
-              <div className="grid gap-3 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 {pets.map((p) => {
                   const alerts = (p.pet_alerts ?? []).filter((a) => a.is_active);
                   return (
                     <Link key={p.id} href={`/pets/${p.id}`}
-                      className="group rounded-2xl p-4 ring-1 ring-border transition hover:-translate-y-0.5 hover:shadow-card hover:ring-brand-muted">
+                      className="group min-w-0 rounded-2xl p-4 ring-1 ring-border transition hover:-translate-y-0.5 hover:shadow-card hover:ring-brand-muted">
                       <div className="flex items-start gap-3">
                         <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand">
                           <PawPrint className="size-5" />
@@ -179,14 +179,14 @@ export default async function CustomerPage({ params }: PageProps<"/customers/[id
                           </p>
                           {(alerts.length > 0 || p.special_handling) && (
                             <div className="mt-2 flex flex-wrap gap-1">
-                              {p.special_handling && <StatusPill tone="danger">{p.special_handling}</StatusPill>}
+                              {p.special_handling && <StatusPill tone="danger" className="h-auto min-h-6 py-0.5 whitespace-normal">{p.special_handling}</StatusPill>}
                               {alerts.map((a) => (
-                                <StatusPill key={a.label} tone={a.severity === "critical" ? "danger" : "warning"}>{a.label}</StatusPill>
+                                <StatusPill key={a.label} tone={a.severity === "critical" ? "danger" : "warning"} className="h-auto min-h-6 py-0.5 whitespace-normal">{a.label}</StatusPill>
                               ))}
                             </div>
                           )}
                         </div>
-                        <span className="font-mono text-[11px] text-muted-foreground">{p.code}</span>
+                        <span className="shrink-0 font-mono text-[11px] text-muted-foreground">{p.code}</span>
                       </div>
                     </Link>
                   );

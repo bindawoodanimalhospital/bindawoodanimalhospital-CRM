@@ -78,7 +78,7 @@ export async function PetTimeline({ petId }: { petId: string }) {
   ].sort((a, b) => b.at.localeCompare(a.at));
 
   return (
-    <Card className="lg:col-span-3">
+    <Card className="md:col-span-2 xl:col-span-3">
       <CardHeader>
         <CardTitle className="flex items-center gap-2"><History className="size-4" /> Medical history</CardTitle>
         <CardAction>

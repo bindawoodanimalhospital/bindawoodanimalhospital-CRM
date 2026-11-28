@@ -60,7 +60,7 @@ export default async function BillingPage({ searchParams }: PageProps<"/billing"
         <div className="overflow-hidden rounded-2xl bg-card shadow-card ring-1 ring-border">
           <Table>
             <TableHeader><TableRow><TableHead>Bill</TableHead><TableHead>Customer</TableHead><TableHead className="hidden md:table-cell">When</TableHead>
-              <TableHead className="text-right">Total</TableHead><TableHead className="text-right">Balance</TableHead></TableRow></TableHeader>
+              <TableHead className="hidden text-right sm:table-cell">Total</TableHead><TableHead className="text-right">Balance</TableHead></TableRow></TableHeader>
             <TableBody>
               {data.map((i) => (
                 <TableRow key={i.id} className="relative">
@@ -70,10 +70,10 @@ export default async function BillingPage({ searchParams }: PageProps<"/billing"
                     {i.is_previous_balance && <StatusPill tone="warning" className="ml-2">Before CRM</StatusPill>}
                     {i.status === "void" && <StatusPill className="ml-2">Void</StatusPill>}
                   </TableCell>
-                  <TableCell>{(i.customers as unknown as { full_name: string } | null)?.full_name ?? (i.walk_in_name ? `${i.walk_in_name} (walk-in)` : "Walk-in")}
-                    {(i.pets as unknown as { name: string } | null)?.name && <span className="text-muted-foreground"> · {(i.pets as unknown as { name: string }).name}</span>}</TableCell>
+                  <TableCell className="min-w-36 whitespace-normal">{(i.customers as unknown as { full_name: string } | null)?.full_name ?? (i.walk_in_name ? `${i.walk_in_name} (walk-in)` : "Walk-in")}
+                    {(i.pets as unknown as { name: string } | null)?.name && <span className="block text-xs text-muted-foreground sm:inline sm:text-sm"><span className="hidden sm:inline"> · </span>{(i.pets as unknown as { name: string }).name}</span>}</TableCell>
                   <TableCell className="hidden text-muted-foreground md:table-cell">{formatDateTime(i.issued_at ?? i.created_at)}</TableCell>
-                  <TableCell className="text-right tabular">{formatPKR(i.total)}</TableCell>
+                  <TableCell className="hidden text-right tabular sm:table-cell">{formatPKR(i.total)}</TableCell>
                   <TableCell className="text-right">
                     {i.status === "issued" ? (Number(i.balance) > 0 ? <StatusPill tone="danger">{formatPKR(i.balance)}</StatusPill> : <StatusPill tone="success">Paid</StatusPill>)
                       : i.status === "draft" ? <StatusPill tone="warning">Draft</StatusPill> : "—"}

@@ -113,7 +113,7 @@ export default async function PetPage({ params }: PageProps<"/pets/[id]">) {
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
         <Card>
           <CardHeader><CardTitle>Identity</CardTitle></CardHeader>
           <CardContent>
@@ -208,9 +208,9 @@ export default async function PetPage({ params }: PageProps<"/pets/[id]">) {
           </CardContent>
         </Card>
 
-        {(me.can("clinical.view") || me.can("crm.view")) && <PetDueCard petId={p.id} className="lg:col-span-2" />}
+        {(me.can("clinical.view") || me.can("crm.view")) && <PetDueCard petId={p.id} className="md:col-span-2" />}
         {vacc && plans && (
-          <Card className="lg:col-span-3">
+          <Card className="md:col-span-2 xl:col-span-3">
             <CardHeader><CardTitle>Vaccinations</CardTitle></CardHeader>
             <CardContent>
               <VaccinesPanel visitId={null} petId={p.id} vaccines={vacc.vaccines} protocols={vacc.protocols} history={vacc.history}
@@ -219,12 +219,12 @@ export default async function PetPage({ params }: PageProps<"/pets/[id]">) {
           </Card>
         )}
         {showDeworming && plans && (
-          <DewormingPanel className="lg:col-span-3" visitId={null} petId={p.id} dob={p.date_of_birth} weight={latest ? Number(latest.weight_kg) : null}
+          <DewormingPanel className="md:col-span-2 xl:col-span-3" visitId={null} petId={p.id} dob={p.date_of_birth} weight={latest ? Number(latest.weight_kg) : null}
             history={(dewormQ?.data ?? []) as DewormingRow[]} dewormers={((dewormerQ?.data ?? []) as (DewormerOption & { species_ids: string[] })[]).filter((d) => !d.species_ids.length || d.species_ids.includes(p.species_id))}
             plan={plans.deworming} canRecord={me.can("vaccinations.manage")} />
         )}
         {showRecord && (
-          <RecordCard className="lg:col-span-3" petId={p.id} petName={p.name} canEdit={me.can("clinical.create")}
+          <RecordCard className="md:col-span-2 xl:col-span-3" petId={p.id} petName={p.name} canEdit={me.can("clinical.create")}
             ownerWhatsapp={me.can("customers.contact") ? owners[0]?.customers.whatsapp ?? owners[0]?.customers.phone ?? null : null}
             problems={((problemsQ?.data ?? []) as unknown as (Omit<ProblemRow, "visits"> & { visits: { count: number }[] })[])
               .map((pr) => ({ ...pr, visits: pr.visits?.[0]?.count ?? 0 }))}

@@ -99,17 +99,17 @@ export function CheckInDialog({ doctors, types, trigger }: {
               <Input autoFocus value={q} onChange={(e) => setQ(e.target.value)} className="h-12 pl-9 text-base"
                 placeholder="Pet name or owner's name" />
             </div>
-            <div className="grid max-h-72 gap-1 overflow-auto">
+            <div className="grid max-h-72 grid-cols-1 gap-1 overflow-x-hidden overflow-y-auto">
               {searching && <p className="flex items-center gap-2 p-2 text-sm text-muted-foreground"><Loader2 className="size-4 animate-spin" /> Searching…</p>}
               {!searching && results.map((p) => (
                 <button key={p.id} type="button" onClick={() => choose(p)}
-                  className="flex items-center gap-3 rounded-xl p-2.5 text-left hover:bg-muted">
-                  <span className="flex size-10 items-center justify-center rounded-xl bg-brand-soft text-brand"><PawPrint className="size-5" /></span>
+                  className="flex min-w-0 items-center gap-3 rounded-xl p-2.5 text-left hover:bg-muted">
+                  <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-soft text-brand"><PawPrint className="size-5" /></span>
                   <span className="min-w-0 flex-1">
-                    <span className="block font-semibold">{p.name}</span>
+                    <span className="block truncate font-semibold">{p.name}</span>
                     <span className="block truncate text-sm text-muted-foreground">{p.subtitle}</span>
                   </span>
-                  <span className="font-mono text-xs text-muted-foreground">{p.code}</span>
+                  <span className="shrink-0 font-mono text-xs text-muted-foreground">{p.code}</span>
                 </button>
               ))}
               {!searching && q.trim().length >= 2 && results.length === 0 && (

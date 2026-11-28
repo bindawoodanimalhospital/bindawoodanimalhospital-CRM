@@ -25,7 +25,7 @@ export function WeightForm({ petId }: { petId: string }) {
         <Input name="weight_kg" type="number" step="0.01" min="0" inputMode="decimal" placeholder="kg" className="w-24"
           aria-invalid={!!errors.weight_kg} />
       </div>
-      <Input name="note" placeholder="Note (optional)" className="flex-1" />
+      <Input name="note" placeholder="Note" aria-label="Note (optional)" className="min-w-0 flex-1" />
       <Button type="submit" size="icon" variant="outline" disabled={pending} aria-label="Record weight">
         {pending ? <Loader2 className="animate-spin" /> : <Plus />}
       </Button>

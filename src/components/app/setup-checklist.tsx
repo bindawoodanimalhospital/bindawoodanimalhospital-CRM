@@ -53,8 +53,8 @@ export async function SetupChecklist() {
   const done = steps.length - left.length;
   return (
     <details open={left.length >= 4} className="group rounded-3xl bg-card shadow-card ring-1 ring-brand-muted">
-      <summary className="flex cursor-pointer list-none flex-wrap items-center gap-3 p-5 md:p-6 [&::-webkit-details-marker]:hidden">
-        <span className="flex size-11 items-center justify-center rounded-2xl bg-brand-gradient text-white"><Rocket className="size-5" /></span>
+      <summary className="flex cursor-pointer list-none items-center gap-3 p-4 sm:p-5 md:p-6 [&::-webkit-details-marker]:hidden">
+        <span className="hidden size-11 shrink-0 items-center justify-center rounded-2xl bg-brand-gradient text-white sm:flex"><Rocket className="size-5" /></span>
         <div className="min-w-0 flex-1">
           <h2 className="font-heading text-lg font-bold">Getting ready to start</h2>
           <p className="text-sm text-muted-foreground">{done} of {steps.length} done — finish the {left.length === 1 ? "last step" : `other ${left.length}`} so everything prints and bills correctly. This card goes away when they&apos;re all done.</p>
@@ -62,21 +62,21 @@ export async function SetupChecklist() {
             <span className="block h-full rounded-full bg-brand-gradient" style={{ width: `${(done / steps.length) * 100}%` }} />
           </span>
         </div>
-        <span className="inline-flex items-center gap-1 text-sm font-semibold text-brand">
+        <span className="inline-flex shrink-0 items-center gap-1 self-start text-sm font-semibold text-brand sm:self-center">
           <span className="group-open:hidden">Show steps</span><span className="hidden group-open:inline">Hide</span>
           <ChevronDown className="size-4 transition group-open:rotate-180" />
         </span>
       </summary>
-      <ul className="grid gap-2 px-5 pb-5 md:px-6 md:pb-6">
+      <ul className="grid gap-2 px-3 pb-3 sm:px-5 sm:pb-5 md:px-6 md:pb-6">
         {steps.map((s) => (
           <li key={s.title} className="flex flex-wrap items-center gap-3 rounded-2xl bg-surface px-3.5 py-3 ring-1 ring-border">
             {s.done ? <CircleCheck className="size-5 shrink-0 text-success" /> : <CircleDashed className="size-5 shrink-0 text-warning" />}
-            <div className="min-w-0 flex-1">
+            <div className="min-w-0 flex-1 basis-48">
               <p className={s.done ? "font-semibold text-muted-foreground line-through decoration-1" : "font-semibold"}>{s.title}</p>
               <p className="text-xs text-muted-foreground">{s.detail}</p>
             </div>
             {!s.done && (
-              <Link href={s.href} className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-brand-gradient px-3.5 text-sm font-semibold text-white shadow-sm">
+              <Link href={s.href} className="ml-8 inline-flex h-9 shrink-0 items-center gap-1.5 rounded-xl sm:ml-0 bg-brand-gradient px-3.5 text-sm font-semibold text-white shadow-sm">
                 {s.action} <ArrowRight className="size-4" />
               </Link>
             )}
